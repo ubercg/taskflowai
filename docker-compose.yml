@@ -1,0 +1,76 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: taskflow_secret
+      POSTGRES_DB: taskflow_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow -d taskflow_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - taskflow_network
+
+  backend:
+    build:
+      context: ./backend
+    expose:
+      - "8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://taskflow:taskflow_secret@db:5432/taskflow_db
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - taskflow_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+    expose:
+      - "3000"
+    environment:
+      VITE_API_URL: http://localhost/
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - taskflow_network
+    command: >
+      sh -c "npm install --no-audit --no-fund &&
+             npm run dev -- --host 0.0.0.0 --port 3000"
+
+  nginx:
+    image: nginx:alpine
+    container_name: taskflow_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - taskflow_network
+
+volumes:
+  db_data:
+  frontend_node_modules:
+
+networks:
+  taskflow_network:
+    driver: bridge
