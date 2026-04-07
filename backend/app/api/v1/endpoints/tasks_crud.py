@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
@@ -15,12 +17,21 @@ router = APIRouter()
 @router.get("", response_model=list[TaskResponseFull])
 def read_tasks(
     project_id: int = Query(None),
+    parent_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user=Depends(require_authenticated),
 ):
     query = db.query(Task)
 
-    if project_id:
+    if parent_id is not None:
+        if not project_id:
+            raise HTTPException(
+                status_code=400,
+                detail="project_id es obligatorio cuando se filtra por parent_id",
+            )
+        check_project_access(project_id, current_user, db)
+        query = query.filter(Task.project_id == project_id, Task.parent_id == parent_id)
+    elif project_id:
         check_project_access(project_id, current_user, db)
         query = query.filter(Task.project_id == project_id)
 

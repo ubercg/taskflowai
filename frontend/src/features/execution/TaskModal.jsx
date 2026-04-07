@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useSWR from 'swr';
-import { getTask, updateTask, deleteTask, getTimeLogs, createTimeLog } from '../../services/api';
+import { getTask, getTasks, updateTask, deleteTask, getTimeLogs, createTimeLog } from '../../services/api';
 import api from '../../services/api/client';
 import { toDateInputValue, formatCalendarLocale } from '../../utils/dateUtils';
 
@@ -41,18 +41,14 @@ const TaskModal = ({ taskId, onClose }) => {
     () => api.get(`/api/v1/tasks/${taskId}/activities`).then(res => res.data)
   );
 
-  // Clave distinta a TaskListView (/api/v1/tasks?project_id=) para no compartir caché SWR:
-  // si comparten clave, el fetch filtrado por parent_id sobrescribe la lista completa del tablero.
+  // URL distinta a TaskListView (solo ?project_id) para no compartir caché SWR.
+  // El backend filtra por parent_id; antes el fetcher filtraba en cliente y colisionaba la clave.
   const { data: subtasks, mutate: mutateSubtasks } = useSWR(
-    task?.project_id && taskId
-      ? ['task-subtasks', Number(taskId), task.project_id]
+    task?.project_id != null && taskId != null
+      ? `/api/v1/tasks?project_id=${task.project_id}&parent_id=${taskId}`
       : null,
     () =>
-      api
-        .get(`/api/v1/tasks?project_id=${task.project_id}`)
-        .then((res) =>
-          res.data.filter((t) => Number(t.parent_id) === Number(taskId))
-        )
+      getTasks({ project_id: task.project_id, parent_id: taskId })
   );
 
   const { data: members } = useSWR(
