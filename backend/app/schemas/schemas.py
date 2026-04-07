@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from typing import List, Optional
 from datetime import date, datetime
 from app.models.models import TaskStatus, TaskPriority, TaskType
@@ -36,6 +36,15 @@ class ProjectBase(BaseModel):
     description: Optional[str] = None
     color: Optional[str] = "#6366f1"
     icon: Optional[str] = "🚀"
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+
+    @field_validator("start_date", "end_date", mode="before")
+    @classmethod
+    def empty_date_to_none(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 
 class ProjectCreate(ProjectBase):
@@ -43,7 +52,7 @@ class ProjectCreate(ProjectBase):
 
 
 class ProjectUpdate(BaseModel):
-    """Campos opcionales para PATCH; ignora claves extra (p. ej. fechas solo en UI)."""
+    """Campos opcionales para PATCH."""
 
     model_config = ConfigDict(extra="ignore")
     name: Optional[str] = None
@@ -51,6 +60,15 @@ class ProjectUpdate(BaseModel):
     color: Optional[str] = None
     icon: Optional[str] = None
     status: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+
+    @field_validator("start_date", "end_date", mode="before")
+    @classmethod
+    def empty_date_to_none(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 
 class ProjectResponse(ProjectBase):

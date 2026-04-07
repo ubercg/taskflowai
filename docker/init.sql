@@ -27,6 +27,8 @@ CREATE TABLE projects (
     color VARCHAR(7) DEFAULT '#6366f1',
     icon VARCHAR(10) DEFAULT '🚀',
     status project_status NOT NULL DEFAULT 'active',
+    start_date DATE,
+    end_date DATE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

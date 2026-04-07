@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     DECIMAL,
     DateTime,
+    Date,
     text,
 )
 from sqlalchemy.sql import func
@@ -63,6 +64,8 @@ class Project(Base):
     color = Column(String(7), default="#6366f1")
     icon = Column(String(10), default="🚀")
     status = Column(SQLEnum(ProjectStatus), default=ProjectStatus.active)
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

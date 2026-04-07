@@ -46,14 +46,24 @@ const ProjectFormModal = ({ project, onClose, onSaved }) => {
       }
     }
 
+    const payload = {
+      name: formData.name.trim(),
+      description: formData.description,
+      icon: formData.icon,
+      color: formData.color,
+      status: formData.status,
+      start_date: formData.start_date || null,
+      end_date: formData.end_date || null,
+    };
+
     setIsSubmitting(true);
     try {
       let savedProject;
       if (isEdit) {
-        const res = await api.patch(`/api/v1/projects/${project.id}`, formData);
+        const res = await api.patch(`/api/v1/projects/${project.id}`, payload);
         savedProject = res.data;
       } else {
-        const res = await api.post('/api/v1/projects', formData);
+        const res = await api.post('/api/v1/projects', payload);
         savedProject = res.data;
       }
       onSaved(savedProject);
