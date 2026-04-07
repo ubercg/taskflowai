@@ -41,9 +41,18 @@ const TaskModal = ({ taskId, onClose }) => {
     () => api.get(`/api/v1/tasks/${taskId}/activities`).then(res => res.data)
   );
 
+  // Clave distinta a TaskListView (/api/v1/tasks?project_id=) para no compartir caché SWR:
+  // si comparten clave, el fetch filtrado por parent_id sobrescribe la lista completa del tablero.
   const { data: subtasks, mutate: mutateSubtasks } = useSWR(
-    taskId ? `/api/v1/tasks?project_id=${task?.project_id}` : null,
-    () => api.get(`/api/v1/tasks?project_id=${task.project_id}`).then(res => res.data.filter(t => t.parent_id === taskId))
+    task?.project_id && taskId
+      ? ['task-subtasks', Number(taskId), task.project_id]
+      : null,
+    () =>
+      api
+        .get(`/api/v1/tasks?project_id=${task.project_id}`)
+        .then((res) =>
+          res.data.filter((t) => Number(t.parent_id) === Number(taskId))
+        )
   );
 
   const { data: members } = useSWR(
