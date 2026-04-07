@@ -18,6 +18,7 @@ router = APIRouter()
 def read_tasks(
     project_id: int = Query(None),
     parent_id: Optional[int] = Query(None),
+    assignee_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user=Depends(require_authenticated),
 ):
@@ -35,7 +36,14 @@ def read_tasks(
         check_project_access(project_id, current_user, db)
         query = query.filter(Task.project_id == project_id)
 
-    if current_user.role == UserRole.developer:
+    # Mis Tareas (y filtros admin): ?assignee_id= — antes se ignoraba y los números no coincidían con la lista
+    if assignee_id is not None:
+        if current_user.role == UserRole.developer and assignee_id != current_user.id:
+            raise HTTPException(
+                status_code=403, detail="No puedes ver las tareas de otro usuario"
+            )
+        query = query.filter(Task.assignee_id == assignee_id)
+    elif current_user.role == UserRole.developer:
         query = query.filter(Task.assignee_id == current_user.id)
 
     return query.order_by(Task.position).all()
