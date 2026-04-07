@@ -54,11 +54,21 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
       if (user) {
         await updateAdminUser(user.id, formData);
       } else {
-        await createAdminUser(formData);
+        const { name, email, role, color } = formData;
+        await createAdminUser({ name, email, role, color });
       }
       onSaved();
     } catch (err) {
-      setError(err.detail || 'Error al guardar el usuario.');
+      const d = err.response?.data?.detail;
+      const msg =
+        typeof d === 'string'
+          ? d
+          : Array.isArray(d)
+            ? d.map((e) => e.msg || JSON.stringify(e)).join(' ')
+            : d
+              ? String(d)
+              : err.message;
+      setError(msg || 'Error al guardar el usuario.');
     } finally {
       setIsSubmitting(false);
     }
@@ -122,6 +132,18 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
               <option value="viewer">👁 Viewer</option>
             </select>
           </div>
+
+          {isEdit && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', color: '#334155' }}>
+              <input
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                style={{ width: '16px', height: '16px', accentColor: '#6366f1' }}
+              />
+              Usuario activo (puede iniciar sesión)
+            </label>
+          )}
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Color de Avatar</label>

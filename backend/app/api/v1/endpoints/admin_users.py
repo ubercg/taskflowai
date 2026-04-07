@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, text, func
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import List, Optional
 from datetime import datetime
@@ -235,6 +236,42 @@ def update_user(
         "assigned_tasks_count": tasks_cnt,
         "total_logged_hours": float(hours),
     }
+
+
+@router.delete("/{user_id}")
+def delete_admin_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=403, detail="No puedes eliminar tu propio usuario"
+        )
+
+    u = db.query(User).filter(User.id == user_id).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if u.role == UserRole.admin:
+        admin_count = db.query(User).filter(User.role == UserRole.admin).count()
+        if admin_count <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="No se puede eliminar el único administrador del sistema",
+            )
+
+    try:
+        db.delete(u)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="No se puede eliminar el usuario por restricciones en la base de datos",
+        )
+
+    return {"message": "Usuario eliminado", "id": user_id}
 
 
 @router.patch("/{user_id}/toggle")

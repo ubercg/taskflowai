@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import useSWR from 'swr';
-import { getAdminUsers, toggleAdminUser } from '../services/api';
+import { getAdminUsers, toggleAdminUser, deleteAdminUser } from '../services/api';
+import { useAuth } from '../store/authStore';
 import UserTable from '../components/users/UserTable';
 import UserFormModal from '../components/users/UserFormModal';
 import UserTasksDrawer from '../components/users/UserTasksDrawer';
 
 const AdminUsersPage = () => {
+  const { user: authUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
@@ -28,7 +30,30 @@ const AdminUsersPage = () => {
       await toggleAdminUser(user.id);
       mutate();
     } catch (err) {
-      alert(err.detail?.detail || err.detail || 'Error al cambiar el estado del usuario');
+      const d = err.response?.data?.detail;
+      const msg =
+        typeof d === 'string'
+          ? d
+          : d?.detail || (Array.isArray(d) ? d.map((e) => e.msg).join(' ') : JSON.stringify(d));
+      alert(msg || 'Error al cambiar el estado del usuario');
+    }
+  };
+
+  const handleDeleteUser = async (u) => {
+    if (
+      !window.confirm(
+        `¿Eliminar permanentemente a "${u.name}" (${u.email})? Esta acción no se puede deshacer.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await deleteAdminUser(u.id);
+      mutate();
+    } catch (err) {
+      const d = err.response?.data?.detail;
+      const msg = typeof d === 'string' ? d : err.message;
+      alert(msg || 'No se pudo eliminar el usuario');
     }
   };
 
@@ -123,6 +148,8 @@ const AdminUsersPage = () => {
         onEdit={handleOpenEdit} 
         onToggle={handleToggleUser} 
         onViewTasks={handleViewTasks}
+        onDelete={handleDeleteUser}
+        currentUserId={authUser?.id}
         loading={isLoading} 
       />
 

@@ -162,10 +162,23 @@ export const createUser = (data) => api.post('/api/v1/admin/users', data).then(r
 
 /**
  * @param {number} id
+ * @returns {Promise<User>}
+ */
+export const getAdminUser = (id) =>
+  api.get(`/api/v1/admin/users/${id}`).then((res) => res.data);
+
+/**
+ * @param {number} id
  * @param {Object} data
  * @returns {Promise<User>}
  */
 export const updateUser = (id, data) => api.patch(`/api/v1/admin/users/${id}`, data).then(res => res.data); // ✓ EXISTÍA (alias de updateAdminUser)
+
+/**
+ * @param {number} id
+ * @returns {Promise<any>}
+ */
+export const deleteUser = (id) => api.delete(`/api/v1/admin/users/${id}`).then((res) => res.data);
 
 /**
  * @param {number} id
@@ -190,6 +203,7 @@ export const getUserTasks = (id, params) => api.get(`/api/v1/admin/users/${id}/t
 export const getAdminUsers = (params) => api.get('/api/v1/admin/users', { params }).then(res => res.data); // ✓ EXISTÍA
 export const createAdminUser = createUser; // ✓ EXISTÍA
 export const updateAdminUser = updateUser; // ✓ EXISTÍA
+export const deleteAdminUser = deleteUser;
 export const toggleAdminUser = toggleUser; // ✓ EXISTÍA
 export const getAdminUserTasks = getUserTasks; // ✓ EXISTÍA
 export const getAdminUserStats = getUserStats; // ✓ EXISTÍA

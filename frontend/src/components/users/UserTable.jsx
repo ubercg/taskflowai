@@ -13,7 +13,7 @@ const getInitials = (name) => {
   return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
 };
 
-const UserTable = ({ users, onEdit, onToggle, onViewTasks, loading }) => {
+const UserTable = ({ users, onEdit, onToggle, onViewTasks, onDelete, currentUserId, loading }) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const sortedUsers = React.useMemo(() => {
@@ -157,6 +157,17 @@ const UserTable = ({ users, onEdit, onToggle, onViewTasks, loading }) => {
                     <button data-testid="btn-toggle-user" onClick={() => onToggle(user)} title={user.is_active ? 'Desactivar' : 'Activar'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}>
                       {user.is_active ? '⏸' : '🔄'}
                     </button>
+                    {onDelete && user.id !== currentUserId && (
+                      <button
+                        type="button"
+                        data-testid="btn-delete-user"
+                        onClick={() => onDelete(user)}
+                        title="Eliminar usuario"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', padding: '4px' }}
+                      >
+                        🗑
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
