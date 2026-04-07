@@ -32,7 +32,7 @@ const TaskModal = ({ taskId, onClose }) => {
 
   const { data: timeLogs, mutate: mutateLogs } = useSWR(
     taskId ? `/api/v1/time-logs?task_id=${taskId}` : null,
-    () => getTimeLogs(taskId)
+    () => getTimeLogs({ task_id: taskId })
   );
 
   const { data: activities } = useSWR(
