@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
 
+// Vacío = misma origen que la página (vital detrás de Nginx o en IP pública).
+// Solo define VITE_API_URL si el front y la API no comparten host (p. ej. puertos distintos en local).
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_URL ?? '',
   timeout: 10000,
 });
 
