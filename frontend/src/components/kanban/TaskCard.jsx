@@ -1,4 +1,5 @@
 import React from 'react';
+import { parseDateOnly, formatCalendarShortEs } from '../../utils/dateUtils';
 
 // Helpers para colores e iconos
 const PRIORITY_COLORS = {
@@ -17,25 +18,19 @@ const getInitials = (name) => {
 
 const getDueDateStatus = (dueDateStr) => {
   if (!dueDateStr) return null;
-  const due = new Date(dueDateStr);
+  const due = parseDateOnly(dueDateStr);
+  if (!due || Number.isNaN(due.getTime())) return null;
   const now = new Date();
-  
-  // Normalizamos a medianoche para comparar solo fechas
+
   const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
+
   const diffTime = dueDay - today;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) return { color: '#ef4444', bg: '#fee2e2' }; // Vencido (Rojo)
   if (diffDays <= 3) return { color: '#d97706', bg: '#fef3c7' }; // Pronto (Amarillo)
   return { color: '#64748b', bg: '#f1f5f9' }; // Futuro (Gris)
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).replace('.', '');
 };
 
 const TaskCard = ({ task, onMove, onOpen, isDragging, provided }) => {
@@ -134,7 +129,7 @@ const TaskCard = ({ task, onMove, onOpen, isDragging, provided }) => {
               fontSize: '10px',
               fontWeight: 600,
             }}>
-              {formatDate(task.due_date)}
+              {formatCalendarShortEs(task.due_date)}
             </span>
           )}
         </div>

@@ -5,6 +5,7 @@ import { useAuth } from '../store/authStore';
 import api from '../services/api/client';
 import TaskModal from '../features/execution/TaskModal';
 import TimeLogWidget from '../features/operations/TimeLogWidget';
+import { formatCalendarShortEs } from '../utils/dateUtils';
 
 const getInitials = (name) => {
   if (!name) return '??';
@@ -203,7 +204,7 @@ const MyTasksPage = () => {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: '#64748b' }}>
                             <span>📁 Proyecto {task.project_id}</span>
                             {task.objective_id && <span style={{ color: '#5b21b6', backgroundColor: '#ede9fe', padding: '2px 6px', borderRadius: '12px', fontWeight: 600 }}>🎯 OKR #{task.objective_id}</span>}
-                            <span>📅 {task.due_date ? new Date(task.due_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Sin fecha'}</span>
+                            <span>📅 {task.due_date ? formatCalendarShortEs(task.due_date) : 'Sin fecha'}</span>
                           </div>
                         </div>
 

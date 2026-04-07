@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api/client';
+import { toDateInputValue } from '../../utils/dateUtils';
 
 const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
   const isEdit = !!objective;
@@ -19,7 +20,7 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
         title: objective.title || '',
         description: objective.description || '',
         progress: objective.progress || 0,
-        due_date: objective.due_date ? new Date(objective.due_date).toISOString().split('T')[0] : '',
+        due_date: objective.due_date ? toDateInputValue(objective.due_date) : '',
         project_id: objective.project_id || projectId
       });
     }

@@ -9,6 +9,7 @@ import ProjectFormModal from '../components/projects/ProjectFormModal';
 import ObjectiveFormModal from '../components/projects/ObjectiveFormModal';
 import MembersPanel from '../components/projects/MembersPanel';
 import ObjectiveTasksPanel from '../components/projects/ObjectiveTasksPanel';
+import { formatCalendarLocale } from '../utils/dateUtils';
 
 const getInitials = (name) => {
   if (!name) return '??';
@@ -157,7 +158,7 @@ const ProjectDetailPage = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'right' }}>
                           <div>Vence</div>
-                          <div style={{ fontWeight: 500, color: '#334155' }}>{new Date(obj.due_date).toLocaleDateString()}</div>
+                          <div style={{ fontWeight: 500, color: '#334155' }}>{formatCalendarLocale(obj.due_date)}</div>
                         </div>
                         {obj.owner_id ? (
                           <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#cbd5e1', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600 }}>

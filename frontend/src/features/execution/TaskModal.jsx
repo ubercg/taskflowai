@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import { getTask, updateTask, deleteTask, getTimeLogs, createTimeLog } from '../../services/api';
 import api from '../../services/api/client';
+import { toDateInputValue, formatCalendarLocale } from '../../utils/dateUtils';
 
 import usePermissions from '../../hooks/usePermissions';
 
@@ -326,7 +327,7 @@ const TaskModal = ({ taskId, onClose }) => {
                 <span style={{ color: '#64748b', fontSize: '13px' }}>Vencimiento</span>
                 <input 
                   type="date" 
-                  value={task?.due_date ? task.due_date.split('T')[0] : ''}
+                  value={task?.due_date ? toDateInputValue(task.due_date) : ''}
                   onChange={async e => {
                     const newDate = e.target.value || null;
                     try {
@@ -458,7 +459,7 @@ const TaskModal = ({ taskId, onClose }) => {
                   <div data-testid="task-modal" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {timeLogs.slice(0, 5).map(log => (
                       <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '4px', fontSize: '12px' }}>
-                        <span style={{ color: '#475569' }}>U{log.user_id} - {new Date(log.log_date).toLocaleDateString()} {log.description && `(${log.description})`}</span>
+                        <span style={{ color: '#475569' }}>U{log.user_id} - {formatCalendarLocale(log.log_date)} {log.description && `(${log.description})`}</span>
                         <span style={{ fontWeight: 600, color: '#0f172a' }}>{log.hours}h</span>
                       </div>
                     ))}

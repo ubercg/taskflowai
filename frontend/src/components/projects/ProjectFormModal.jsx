@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api/client';
+import { toDateInputValue } from '../../utils/dateUtils';
 
 const EMOJIS = ['🚀', '🏛️', '🤖', '⚡', '🎯', '💡', '🔧', '📦'];
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'];
@@ -25,8 +26,8 @@ const ProjectFormModal = ({ project, onClose, onSaved }) => {
         description: project.description || '',
         icon: project.icon || EMOJIS[0],
         color: project.color || COLORS[0],
-        start_date: project.start_date ? new Date(project.start_date).toISOString().split('T')[0] : '',
-        end_date: project.end_date ? new Date(project.end_date).toISOString().split('T')[0] : '',
+        start_date: project.start_date ? toDateInputValue(project.start_date) : '',
+        end_date: project.end_date ? toDateInputValue(project.end_date) : '',
         status: project.status || 'active'
       });
     }
