@@ -17,8 +17,9 @@ export const useAuthStore = create(persist(
         params.append('username', email)
         params.append('password', password)
 
+        const base = import.meta.env.VITE_API_URL ?? ''
         const response = await axios.post(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/auth/login`,
+          `${base}/api/v1/auth/login`,
           params,
           {
             headers: {
