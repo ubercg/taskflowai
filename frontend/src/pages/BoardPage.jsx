@@ -14,7 +14,8 @@ import { useKanbanStore } from '../store/kanbanStore'; // AGREGADO
 
 const BoardPage = () => {
   const { id } = useParams();
-  const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'list'
+  // Vista inicial: lista (mejor lectura de detalle; rol viewer y el resto entran igual aquí).
+  const [viewMode, setViewMode] = useState('list'); // 'kanban' | 'list'
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [showTaskForm, setShowTaskForm] = useState(false); // AGREGADO
   const [taskFormStatus, setTaskFormStatus] = useState('backlog'); // AGREGADO
@@ -49,26 +50,10 @@ const BoardPage = () => {
             </button>
           </Can>
           
-          {/* View Toggle */}
+          {/* Vista: Lista primero (predeterminada), Kanban como alternativa */}
           <div style={{ display: 'flex', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
             <button
-              onClick={() => setViewMode('kanban')}
-              style={{
-                padding: '6px 12px',
-                border: 'none',
-                borderRadius: '6px',
-                backgroundColor: viewMode === 'kanban' ? '#ffffff' : 'transparent',
-                boxShadow: viewMode === 'kanban' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                color: viewMode === 'kanban' ? '#0f172a' : '#64748b',
-                fontWeight: 500,
-                fontSize: '13px',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              Kanban
-            </button>
-            <button
+              type="button"
               onClick={() => setViewMode('list')}
               style={{
                 padding: '6px 12px',
@@ -84,6 +69,24 @@ const BoardPage = () => {
               }}
             >
               Lista
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('kanban')}
+              style={{
+                padding: '6px 12px',
+                border: 'none',
+                borderRadius: '6px',
+                backgroundColor: viewMode === 'kanban' ? '#ffffff' : 'transparent',
+                boxShadow: viewMode === 'kanban' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                color: viewMode === 'kanban' ? '#0f172a' : '#64748b',
+                fontWeight: 500,
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              Kanban
             </button>
             <Link
               to={`/projects/${id}/metrics`}

@@ -16,7 +16,7 @@ router = APIRouter()
 def get_flow_metrics(
     project_id: int = Query(...),
     db: Session = Depends(get_db),
-    current_user=Depends(require_manager_or_above),
+    current_user=Depends(require_authenticated),
 ):
     query = text("""
         SELECT project_id, lead_time_avg_h, cycle_time_avg_h, throughput_week, efficiency_ratio, total_completed
@@ -43,7 +43,7 @@ def get_flow_metrics(
 def get_aging(
     project_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
-    current_user=Depends(require_manager_or_above),
+    current_user=Depends(require_authenticated),
 ):
     """Tiempo promedio en cada columna desde la última vez que la tarea entró a ese estado (activities), o created_at si no hay historial."""
     filters = "AND t.project_id = :project_id" if project_id is not None else ""

@@ -20,8 +20,8 @@ const usePermissions = () => {
     // Tiempo
     canLogTime:          ['admin', 'manager', 'developer'].includes(role),
 
-    // Métricas
-    canViewMetrics:      ['admin', 'manager'].includes(role),
+    // Métricas (lectura de dashboards de proyecto)
+    canViewMetrics:      ['admin', 'manager', 'developer', 'viewer'].includes(role),
 
     // Admin
     canAccessAdmin:      role === 'admin',
