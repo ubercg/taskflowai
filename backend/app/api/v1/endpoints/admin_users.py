@@ -7,7 +7,8 @@ from datetime import datetime
 
 from app.db.database import get_db
 from app.models.models import User, UserRole, Task, TaskStatus, TimeLog
-from app.core.security import require_admin
+from app.core.security import require_admin, hash_password
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -163,6 +164,7 @@ def create_admin_user(
         role=payload.role,
         color=payload.color,
         is_active=True,
+        password_hash=hash_password(settings.DEFAULT_NEW_USER_PASSWORD),
     )
     db.add(db_user)
     db.commit()

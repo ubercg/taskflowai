@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "taskflow-super-secret-key-12345"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
+    # Contraseña inicial al crear usuarios (deben cambiarla desde el perfil)
+    DEFAULT_NEW_USER_PASSWORD: str = "taskflow123"
 
 
 settings = Settings()
