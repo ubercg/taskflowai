@@ -58,7 +58,16 @@ const ProjectFormModal = ({ project, onClose, onSaved }) => {
       }
       onSaved(savedProject);
     } catch (err) {
-      setError(err.response?.data?.detail || err.detail || 'Error al guardar el proyecto');
+      const d = err.response?.data?.detail;
+      const msg =
+        typeof d === 'string'
+          ? d
+          : Array.isArray(d)
+            ? d.map((e) => e.msg || JSON.stringify(e)).join(' ')
+            : d
+              ? String(d)
+              : err.message;
+      setError(msg || 'Error al guardar el proyecto');
     } finally {
       setIsSubmitting(false);
     }

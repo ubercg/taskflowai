@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from app.models.models import Project, ProjectMember
-from app.schemas.schemas import ProjectResponse, ProjectCreate
+from app.models.models import Project, ProjectMember, ProjectStatus
+from app.schemas.schemas import ProjectResponse, ProjectCreate, ProjectUpdate
 from sqlalchemy import text
 from app.core.security import (
     require_authenticated,
@@ -63,7 +63,7 @@ def create_project(
 @router.patch("/{project_id}", response_model=ProjectResponse)
 def update_project(
     project_id: int,
-    project_update: dict,
+    project_update: ProjectUpdate,
     db: Session = Depends(get_db),
     current_user=Depends(require_authenticated),
 ):
@@ -71,8 +71,12 @@ def update_project(
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(404, "Project not found")
-    for k, v in project_update.items():
-        setattr(project, k, v)
+    data = project_update.model_dump(exclude_unset=True)
+    for k, v in data.items():
+        if k == "status" and v is not None:
+            setattr(project, k, ProjectStatus(v))
+        else:
+            setattr(project, k, v)
     db.commit()
     db.refresh(project)
     return project

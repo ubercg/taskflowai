@@ -42,6 +42,17 @@ class ProjectCreate(ProjectBase):
     pass
 
 
+class ProjectUpdate(BaseModel):
+    """Campos opcionales para PATCH; ignora claves extra (p. ej. fechas solo en UI)."""
+
+    model_config = ConfigDict(extra="ignore")
+    name: Optional[str] = None
+    description: Optional[str] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+    status: Optional[str] = None
+
+
 class ProjectResponse(ProjectBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
