@@ -101,7 +101,7 @@ TaskFlow cuenta con una cobertura de pruebas rigurosa. Puedes ejecutar las suite
 
 Si planeas llevar este repositorio a un servidor de producción real en la nube (AWS, DigitalOcean, VPS), considera los siguientes pasos:
 
-1.  **Variables de Entorno Mínimas:** Reemplaza el `SECRET_KEY` quemado en `backend/app/core/config.py` por una variable de entorno inyectada de forma segura.
+1.  **Variables de Entorno Mínimas:** Define `SECRET_KEY` en `backend/.env` (o como variable de entorno inyectada de forma segura). Ya no hay ningún secreto quemado en el código: si `SECRET_KEY` no se define, la app genera una clave efímera al arrancar y los tokens JWT se invalidan en cada reinicio. Genera una clave fuerte con `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
 2.  **Frontend Build Stage:** Actualmente, el contenedor del frontend corre `npm run dev` (Vite Hot-Reload) detrás de Nginx para facilitar el desarrollo continuo. En producción estricta, modifica el `frontend/Dockerfile` para que ejecute `npm run build` y que un contenedor de Nginx puro sirva directamente la carpeta `/dist` estática compilada (Multi-stage build).
 3.  **Certificados SSL:** Configura Nginx (o el Load Balancer frontal de tu proveedor cloud) para manejar tráfico HTTPS (puerto 443) utilizando Let's Encrypt / Certbot.
 4.  **Aislamiento de Red:** Actualmente la base de datos no mapea puertos al *host* por seguridad (usa `expose` en vez de `ports`). Mantén esta política en producción para que PostgreSQL solo sea accesible desde FastAPI.
