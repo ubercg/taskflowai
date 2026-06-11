@@ -20,3 +20,6 @@ playwright-report/
 .env
 .env.local
 .atl
+
+# Overrides locales de Docker (desarrollo, no producción)
+docker-compose.override.yml
