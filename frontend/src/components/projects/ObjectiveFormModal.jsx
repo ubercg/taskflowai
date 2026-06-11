@@ -7,7 +7,6 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    progress: 0,
     due_date: '',
     project_id: projectId
   });
@@ -19,7 +18,6 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
       setFormData({
         title: objective.title || '',
         description: objective.description || '',
-        progress: objective.progress || 0,
         due_date: objective.due_date ? toDateInputValue(objective.due_date) : '',
         project_id: objective.project_id || projectId
       });
@@ -54,10 +52,12 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
     return '#4ade80';
   };
 
+  const derivedProgress = objective?.progress || 0;
+
   return (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, animation: 'fadeIn 0.2s ease-out' }}>
       <div style={{ backgroundColor: '#fff', borderRadius: '12px', width: '480px', maxWidth: '90vw', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', animation: 'scaleUp 0.2s ease-out' }}>
-        
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>{isEdit ? 'Editar OKR' : 'Nuevo OKR'}</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
@@ -74,10 +74,10 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
         <form id="objective-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Título *</label>
-            <input 
-              type="text" 
-              value={formData.title} 
-              onChange={e => setFormData({...formData, title: e.target.value})} 
+            <input
+              type="text"
+              value={formData.title}
+              onChange={e => setFormData({...formData, title: e.target.value})}
               style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
               placeholder="Ej: Incrementar retención un 20%"
             />
@@ -85,37 +85,33 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Descripción</label>
-            <textarea 
-              value={formData.description} 
-              onChange={e => setFormData({...formData, description: e.target.value})} 
+            <textarea
+              value={formData.description}
+              onChange={e => setFormData({...formData, description: e.target.value})}
               style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', minHeight: '80px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
             />
           </div>
 
-          <div>
-            <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>
-              <span>Progreso Actual</span>
-              <span style={{ color: getProgressColor(formData.progress), fontWeight: 600 }}>{formData.progress}%</span>
-            </label>
-            <input 
-              type="range" 
-              min="0" max="100" 
-              value={formData.progress} 
-              onChange={e => setFormData({...formData, progress: Number(e.target.value)})}
-              style={{ width: '100%', margin: '8px 0' }}
-            />
-            {/* Live Progress Bar */}
-            <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginTop: '4px' }}>
-              <div style={{ height: '100%', width: `${formData.progress}%`, backgroundColor: getProgressColor(formData.progress), transition: 'width 0.2s, background-color 0.2s' }} />
+          {isEdit && (
+            <div>
+              <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>
+                <span>Progreso (derivado de tareas)</span>
+                <span style={{ color: getProgressColor(derivedProgress), fontWeight: 600 }}>
+                  {derivedProgress}%
+                </span>
+              </label>
+              <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginTop: '4px' }}>
+                <div style={{ height: '100%', width: `${derivedProgress}%`, backgroundColor: getProgressColor(derivedProgress) }} />
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Fecha Límite *</label>
-            <input 
-              type="date" 
-              value={formData.due_date} 
-              onChange={e => setFormData({...formData, due_date: e.target.value})} 
+            <input
+              type="date"
+              value={formData.due_date}
+              onChange={e => setFormData({...formData, due_date: e.target.value})}
               style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
@@ -123,17 +119,17 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
         </form>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
-          <button 
-            type="button" 
-            onClick={onClose} 
+          <button
+            type="button"
+            onClick={onClose}
             style={{ padding: '10px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', fontWeight: 500, cursor: 'pointer' }}
           >
             Cancelar
           </button>
-          <button 
+          <button
             type="submit"
             form="objective-form"
-            disabled={isSubmitting} 
+            disabled={isSubmitting}
             style={{ padding: '10px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#6366f1', color: '#fff', fontWeight: 500, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1 }}
           >
             {isSubmitting ? 'Guardando...' : (isEdit ? 'Guardar OKR' : 'Crear OKR')}
