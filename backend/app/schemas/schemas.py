@@ -82,17 +82,27 @@ class ObjectiveBase(BaseModel):
     title: str
     due_date: datetime
     project_id: int
+    description: Optional[str] = None
 
 
 class ObjectiveCreate(ObjectiveBase):
     pass
 
 
+class ObjectiveUpdate(BaseModel):
+    """Optional fields for PATCH (mirrors ProjectUpdate pattern)."""
+
+    model_config = ConfigDict(extra="ignore")
+    title: Optional[str] = None
+    due_date: Optional[datetime] = None
+    description: Optional[str] = None
+
+
 class ObjectiveResponse(ObjectiveBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     created_at: datetime
-    progress: int = 0  # Calculado al vuelo o fallback
+    progress: int = 0  # Derived server-side; default 0 when no tasks exist
 
 
 # Task Schemas ampliados (agregando los que faltaban)
