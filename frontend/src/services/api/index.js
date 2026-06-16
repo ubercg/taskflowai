@@ -108,6 +108,14 @@ export const deleteObjective = (id) => api.delete(`/api/v1/objectives/${id}`).th
 export const getTasks = (params) => api.get('/api/v1/tasks', { params }).then(res => res.data); // ✓ EXISTÍA
 
 /**
+ * @param {number} projectId
+ * @param {string} date - Format YYYY-MM-DD
+ * @returns {Promise<Task[]>}
+ */
+export const getCalendarTasks = (projectId, startDate, endDate) =>
+  api.get('/api/v1/tasks/calendar', { params: { project_id: projectId, start_date: startDate, end_date: endDate } }).then(res => res.data);
+
+/**
  * @param {number} id
  * @returns {Promise<Task>}
  */

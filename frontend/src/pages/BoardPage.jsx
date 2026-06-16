@@ -11,11 +11,12 @@ import usePermissions from '../hooks/usePermissions';
 import Can from '../components/shared/Can';
 import TaskFormModal from '../features/execution/TaskFormModal'; // AGREGADO
 import { useKanbanStore } from '../store/kanbanStore'; // AGREGADO
+import CalendarView from '../features/calendar/CalendarView'; // NEW IMPORT
 
 const BoardPage = () => {
   const { id } = useParams();
   // Vista inicial: lista (mejor lectura de detalle; rol viewer y el resto entran igual aquí).
-  const [viewMode, setViewMode] = useState('list'); // 'kanban' | 'list'
+  const [viewMode, setViewMode] = useState('list'); // 'kanban' | 'list' | 'calendar'
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [showTaskForm, setShowTaskForm] = useState(false); // AGREGADO
   const [taskFormStatus, setTaskFormStatus] = useState('backlog'); // AGREGADO
@@ -88,6 +89,24 @@ const BoardPage = () => {
             >
               Kanban
             </button>
+            <button // NEW CALENDAR BUTTON
+              type="button"
+              onClick={() => setViewMode('calendar')}
+              style={{
+                padding: '6px 12px',
+                border: 'none',
+                borderRadius: '6px',
+                backgroundColor: viewMode === 'calendar' ? '#ffffff' : 'transparent',
+                boxShadow: viewMode === 'calendar' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                color: viewMode === 'calendar' ? '#0f172a' : '#64748b',
+                fontWeight: 500,
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              Calendario
+            </button>
             <Link
               to={`/projects/${id}/metrics`}
               style={{
@@ -140,10 +159,12 @@ const BoardPage = () => {
             onTaskClick={(taskId) => setSelectedTaskId(taskId)} 
             onAddTask={(status) => { setTaskFormStatus(status); setShowTaskForm(true); }} // AGREGADO
           />
-        ) : (
+        ) : viewMode === 'list' ? (
           <div style={{ height: '100%', overflowY: 'auto', paddingRight: '4px' }}>
             <TaskListView projectId={id} onOpen={(taskId) => setSelectedTaskId(taskId)} />
           </div>
+        ) : (
+          <CalendarView projectId={id} />
         )}
       </div>
 

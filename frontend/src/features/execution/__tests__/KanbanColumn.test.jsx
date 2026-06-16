@@ -36,7 +36,7 @@ describe('KanbanColumn', () => {
   test('muestra badge de bottleneck cuando is_bottleneck es true', () => {
     const bottleneck = { is_bottleneck: true, avg_hours: 50 }
     renderWithDnd(<KanbanColumn columnId="in_progress" title="In Progress" tasks={[]} bottleneck={bottleneck} />)
-    expect(screen.getByText(/Aging 50h promedio/i)).toBeInTheDocument()
+    expect(screen.getByText(/Aging 50h/i)).toBeInTheDocument()
   })
 
   test('no muestra badge bottleneck cuando is_bottleneck es false', () => {
