@@ -49,7 +49,7 @@ def read_tasks(
     return query.order_by(Task.position).all()
 
 
-@router.get("/{task_id}", response_model=TaskResponseFull)
+@router.get("/{task_id:int}", response_model=TaskResponseFull)
 def read_task(
     task_id: int,
     db: Session = Depends(get_db),
@@ -82,7 +82,7 @@ def create_task(
     return db_task
 
 
-@router.patch("/{task_id}", response_model=TaskResponseFull)
+@router.patch("/{task_id:int}", response_model=TaskResponseFull)
 def update_task(
     task_id: int,
     payload: TaskUpdate,
@@ -114,7 +114,7 @@ def update_task(
     return task
 
 
-@router.get("/{task_id}/activities")
+@router.get("/{task_id:int}/activities")
 def read_task_activities(
     task_id: int,
     db: Session = Depends(get_db),
@@ -149,7 +149,7 @@ def read_task_activities(
     ]
 
 
-@router.delete("/{task_id}")
+@router.delete("/{task_id:int}")
 def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
