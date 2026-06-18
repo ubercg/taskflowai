@@ -285,6 +285,7 @@ function CalendarView({ projectId, onTaskClick }) {
             <div
               key={day}
               style={{
+                minWidth: 0,
                 padding: '0.5rem',
                 textAlign: 'center',
                 fontSize: '0.75rem',
@@ -312,16 +313,21 @@ function CalendarView({ projectId, onTaskClick }) {
               const today = isToday(day);
               const dayTasks = getTasksForDay(day);
 
+              const MAX_VISIBLE = 3;
+              const visible = dayTasks.slice(0, MAX_VISIBLE);
+              const overflow = dayTasks.length - MAX_VISIBLE;
+
               return (
                 <div
                   key={di}
                   style={{
                     minHeight: '120px',
+                    minWidth: 0,
+                    overflow: 'hidden',
                     padding: '6px',
                     borderLeft: di > 0 ? '1px solid #e2e8f0' : 'none',
                     borderTop: today ? '3px solid #6366f1' : undefined,
                     backgroundColor: inMonth ? 'white' : '#f8fafc',
-                    verticalAlign: 'top',
                   }}
                 >
                   <div
@@ -336,13 +342,26 @@ function CalendarView({ projectId, onTaskClick }) {
                     {format(day, 'd')} {format(day, 'MMM').toUpperCase()}
                   </div>
                   <div>
-                    {dayTasks.map((task) => (
+                    {visible.map((task) => (
                       <TaskCard
                         key={task.id}
                         task={task}
                         onClick={() => onTaskClick && onTaskClick(task.id)}
                       />
                     ))}
+                    {overflow > 0 && (
+                      <div
+                        style={{
+                          fontSize: '10px',
+                          color: '#6366f1',
+                          fontWeight: 600,
+                          padding: '2px 4px',
+                          cursor: 'default',
+                        }}
+                      >
+                        +{overflow} más
+                      </div>
+                    )}
                   </div>
                 </div>
               );
