@@ -3,7 +3,7 @@ import useSWR from 'swr';
 import { useAuth } from '../../store/authStore';
 import api from '../../services/api/client';
 
-const TimeLogWidget = ({ task, onClose, onLogged }) => {
+const TimeLogWidget = ({ task, anchor, onClose, onLogged }) => {
   const { user } = useAuth();
   const [hours, setHours] = useState('');
   const [description, setDescription] = useState('');
@@ -49,10 +49,12 @@ const TimeLogWidget = ({ task, onClose, onLogged }) => {
 
   return (
     <div style={{
-      position: 'absolute', top: '100%', right: '0', marginTop: '8px',
+      position: 'fixed',
+      top: anchor ? anchor.top : 0,
+      right: anchor ? anchor.right : 24,
       backgroundColor: '#ffffff', borderRadius: '8px', width: '320px',
       boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
-      border: '1px solid #e2e8f0', zIndex: 9999, display: 'flex', flexDirection: 'column'
+      border: '1px solid #e2e8f0', zIndex: 999, display: 'flex', flexDirection: 'column'
     }}>
       <div style={{ padding: '16px', borderBottom: '1px solid #e2e8f0' }}>
         <h4 style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#64748b', fontWeight: 500 }}>Registrar tiempo en:</h4>
