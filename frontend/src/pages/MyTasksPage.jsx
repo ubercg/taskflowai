@@ -30,6 +30,22 @@ const MyTasksPage = () => {
   const [expandedSections, setExpandedSections] = useState({});
   const [selectedTask, setSelectedTask] = useState(null);
   const [activeTimeLogWidget, setActiveTimeLogWidget] = useState(null);
+  const [widgetAnchor, setWidgetAnchor] = useState(null);
+
+  const openWidget = (e, taskId) => {
+    if (activeTimeLogWidget === taskId) {
+      setActiveTimeLogWidget(null);
+      setWidgetAnchor(null);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setActiveTimeLogWidget(taskId);
+      setWidgetAnchor({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+    }
+  };
+
+  const closeWidget = () => { setActiveTimeLogWidget(null); setWidgetAnchor(null); };
+
+  const openDetail = (taskId) => { closeWidget(); setSelectedTask(taskId); };
 
   const { data: tasks, isLoading, mutate } = useSWR(
     user ? `/api/v1/tasks?assignee_id=${user.id}` : null,
@@ -437,7 +453,7 @@ const MyTasksPage = () => {
                                     title={pInfo.label}
                                   />
                                   <h4
-                                    onClick={() => setSelectedTask(task.id)}
+                                    onClick={() => openDetail(task.id)}
                                     style={{
                                       margin: 0,
                                       fontSize: '15px',
@@ -508,8 +524,8 @@ const MyTasksPage = () => {
                                 <div style={{ position: 'relative' }}>
                                   <button
                                     type="button"
-                                    onClick={() =>
-                                      setActiveTimeLogWidget(activeTimeLogWidget === task.id ? null : task.id)
+                                    onClick={(e) =>
+                                      openWidget(e, task.id)
                                     }
                                     style={{
                                       padding: '8px 12px',
@@ -525,13 +541,6 @@ const MyTasksPage = () => {
                                     ⏱ Registrar
                                   </button>
 
-                                  {activeTimeLogWidget === task.id && (
-                                    <TimeLogWidget
-                                      task={task}
-                                      onClose={() => setActiveTimeLogWidget(null)}
-                                      onLogged={handleLogged}
-                                    />
-                                  )}
                                 </div>
                               </div>
                             </div>
@@ -600,7 +609,7 @@ const MyTasksPage = () => {
                                 title={pInfo.label}
                               />
                               <h4
-                                onClick={() => setSelectedTask(task.id)}
+                                onClick={() => openDetail(task.id)}
                                 style={{
                                   margin: 0,
                                   fontSize: '15px',
@@ -616,9 +625,7 @@ const MyTasksPage = () => {
                           <div style={{ position: 'relative' }}>
                             <button
                               type="button"
-                              onClick={() =>
-                                setActiveTimeLogWidget(activeTimeLogWidget === task.id ? null : task.id)
-                              }
+                              onClick={(e) => openWidget(e, task.id)}
                               style={{
                                 padding: '8px 12px',
                                 backgroundColor: '#f8fafc',
@@ -631,13 +638,6 @@ const MyTasksPage = () => {
                             >
                               ⏱ Registrar
                             </button>
-                            {activeTimeLogWidget === task.id && (
-                              <TimeLogWidget
-                                task={task}
-                                onClose={() => setActiveTimeLogWidget(null)}
-                                onLogged={handleLogged}
-                              />
-                            )}
                           </div>
                         </div>
                       );
@@ -699,7 +699,7 @@ const MyTasksPage = () => {
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <h4
-                            onClick={() => setSelectedTask(task.id)}
+                            onClick={() => openDetail(task.id)}
                             style={{
                               margin: 0,
                               fontSize: '15px',
@@ -714,9 +714,7 @@ const MyTasksPage = () => {
                         <div style={{ position: 'relative' }}>
                           <button
                             type="button"
-                            onClick={() =>
-                              setActiveTimeLogWidget(activeTimeLogWidget === task.id ? null : task.id)
-                            }
+                            onClick={(e) => openWidget(e, task.id)}
                             style={{
                               padding: '8px 12px',
                               backgroundColor: '#f8fafc',
@@ -729,13 +727,6 @@ const MyTasksPage = () => {
                           >
                             ⏱ Registrar
                           </button>
-                          {activeTimeLogWidget === task.id && (
-                            <TimeLogWidget
-                              task={task}
-                              onClose={() => setActiveTimeLogWidget(null)}
-                              onLogged={handleLogged}
-                            />
-                          )}
                         </div>
                       </div>
                     ))}
@@ -745,6 +736,24 @@ const MyTasksPage = () => {
             })}
         </div>
       )}
+
+      {activeTimeLogWidget && (
+        <div
+          onClick={closeWidget}
+          style={{ position: 'fixed', inset: 0, zIndex: 998 }}
+        />
+      )}
+      {activeTimeLogWidget && widgetAnchor && (() => {
+        const activeTask = myTasks.find(t => t.id === activeTimeLogWidget);
+        return activeTask ? (
+          <TimeLogWidget
+            task={activeTask}
+            anchor={widgetAnchor}
+            onClose={closeWidget}
+            onLogged={handleLogged}
+          />
+        ) : null;
+      })()}
 
       {selectedTask && (
         <TaskModal taskId={selectedTask} onClose={() => setSelectedTask(null)} />
