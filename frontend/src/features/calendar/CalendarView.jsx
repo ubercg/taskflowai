@@ -39,12 +39,14 @@ function buildGrid(currentMonth) {
   return weeks;
 }
 
-function TaskCard({ task }) {
+function TaskCard({ task, onClick }) {
   const statusStyle = STATUS_STYLE[task.status] || { bg: '#e2e8f0', color: '#0f172a', label: task.status };
   const timeLabel = task.due_date ? format(new Date(task.due_date), 'HH:mm') : null;
 
   return (
     <div
+      onClick={onClick}
+      title={task.title}
       style={{
         backgroundColor: 'white',
         border: '1px solid #e2e8f0',
@@ -53,9 +55,12 @@ function TaskCard({ task }) {
         padding: '4px 6px',
         marginBottom: '4px',
         fontSize: '11px',
-        cursor: 'default',
+        cursor: 'pointer',
         overflow: 'hidden',
+        transition: 'box-shadow 0.15s',
       }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(99,102,241,0.15)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
     >
       {timeLabel && (
         <div style={{ color: '#64748b', marginBottom: '2px' }}>{timeLabel}</div>
@@ -68,6 +73,7 @@ function TaskCard({ task }) {
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           marginBottom: '2px',
+          maxWidth: '100%',
         }}
       >
         {task.title}
@@ -80,6 +86,11 @@ function TaskCard({ task }) {
           borderRadius: '9999px',
           fontSize: '10px',
           fontWeight: 500,
+          display: 'inline-block',
+          maxWidth: '100%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
         }}
       >
         {statusStyle.label}
@@ -88,7 +99,7 @@ function TaskCard({ task }) {
   );
 }
 
-function CalendarView({ projectId }) {
+function CalendarView({ projectId, onTaskClick }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -326,7 +337,11 @@ function CalendarView({ projectId }) {
                   </div>
                   <div>
                     {dayTasks.map((task) => (
-                      <TaskCard key={task.id} task={task} />
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        onClick={() => onTaskClick && onTaskClick(task.id)}
+                      />
                     ))}
                   </div>
                 </div>

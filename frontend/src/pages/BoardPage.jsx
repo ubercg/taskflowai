@@ -164,7 +164,7 @@ const BoardPage = () => {
             <TaskListView projectId={id} onOpen={(taskId) => setSelectedTaskId(taskId)} />
           </div>
         ) : (
-          <CalendarView projectId={id} />
+          <CalendarView projectId={id} onTaskClick={(taskId) => setSelectedTaskId(taskId)} />
         )}
       </div>
 
