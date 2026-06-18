@@ -1,7 +1,8 @@
 import os
+from datetime import date, datetime, time, timezone # Added for date type in endpoint parameters
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_ # Added or_ for advanced filtering
 
 from app.db.database import get_db
 from app.models.models import Task, Activity, TaskStatus, UserRole
@@ -13,7 +14,7 @@ from app.core.security import require_authenticated, check_project_access
 WIP_LIMIT = int(os.getenv("WIP_LIMIT", "3"))
 
 
-@router.patch("/{task_id}/move", response_model=TaskResponse)
+@router.patch("/{task_id:int}/move", response_model=TaskResponse)
 def move_task(
     task_id: int,
     payload: TaskMove,
@@ -134,3 +135,33 @@ def move_task(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/calendar", response_model=list[TaskResponseFull])
+def get_calendar_tasks(
+    project_id: int,
+    start_date: date,
+    end_date: date,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_authenticated),
+):
+    member = check_project_access(project_id, current_user, db)
+
+    start_dt = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
+    end_dt = datetime.combine(end_date, time.max, tzinfo=timezone.utc)
+
+    query = db.query(Task).filter(
+        Task.project_id == project_id,
+        Task.due_date.isnot(None),
+        or_(
+            Task.start_date.between(start_dt, end_dt),
+            Task.due_date.between(start_dt, end_dt)
+        )
+    )
+
+    if current_user.role == UserRole.developer:
+        query = query.filter(Task.assignee_id == current_user.id)
+
+    tasks = query.all()
+    return tasks
+
