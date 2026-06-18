@@ -121,7 +121,7 @@ class TaskBase(BaseModel):
 
 
 class TaskCreate(TaskBase):
-    pass
+    due_date: Optional[datetime] = None
 
 
 class TaskUpdate(BaseModel):
