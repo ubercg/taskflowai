@@ -131,6 +131,7 @@ class TaskUpdate(BaseModel):
     priority: Optional[TaskPriority] = None
     assignee_id: Optional[int] = None
     due_date: Optional[datetime] = None
+    estimated_hours: Optional[float] = None
 
 
 # Este ya lo teníamos pero lo amplío con Config

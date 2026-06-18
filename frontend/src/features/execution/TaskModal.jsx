@@ -20,6 +20,7 @@ const TaskModal = ({ taskId, onClose }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [estimatedHours, setEstimatedHours] = useState('');
   const [newLogHours, setNewLogHours] = useState('');
   const [newLogDesc, setNewLogDesc] = useState('');
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
@@ -76,12 +77,24 @@ const TaskModal = ({ taskId, onClose }) => {
     if (task) {
       setTitle(task.title || '');
       setDescription(task.description || '');
+      setEstimatedHours(task.estimated_hours ?? '');
     }
   }, [task]);
 
   const handleClose = () => {
     setIsOpen(false);
     setTimeout(onClose, 200); // Esperar que termine la animación
+  };
+
+  const handleEstimatedHoursBlur = async () => {
+    const parsed = estimatedHours === '' ? null : parseFloat(estimatedHours);
+    if (parsed === task?.estimated_hours) return;
+    try {
+      await updateTask(taskId, { estimated_hours: parsed });
+      mutate({ ...task, estimated_hours: parsed }, false);
+    } catch (err) {
+      setEstimatedHours(task?.estimated_hours ?? '');
+    }
   };
 
   const handleTitleBlur = async () => {
@@ -330,8 +343,8 @@ const TaskModal = ({ taskId, onClose }) => {
                 </select>
 
                 <span style={{ color: '#64748b', fontSize: '13px' }}>Vencimiento</span>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   value={task?.due_date ? toDateInputValue(task.due_date) : ''}
                   onChange={async e => {
                     const newDate = e.target.value || null;
@@ -341,7 +354,20 @@ const TaskModal = ({ taskId, onClose }) => {
                     } catch (err) {}
                   }}
                   disabled={!canEditField('due_date')}
-                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', backgroundColor: !canEditField('due_date') ? '#f8fafc' : '#fff' }} 
+                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', backgroundColor: !canEditField('due_date') ? '#f8fafc' : '#fff' }}
+                />
+
+                <span style={{ color: '#64748b', fontSize: '13px' }}>Estimación (hs)</span>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={estimatedHours}
+                  onChange={e => setEstimatedHours(e.target.value)}
+                  onBlur={handleEstimatedHoursBlur}
+                  disabled={!canEditField('estimated_hours')}
+                  placeholder="0.0"
+                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', backgroundColor: !canEditField('estimated_hours') ? '#f8fafc' : '#fff', width: '100px' }}
                 />
               </div>
 
