@@ -6,6 +6,12 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 // 1. Setup global mocks before importing components
 vi.mock('../../../services/api', () => ({
   getCalendarTasks: vi.fn(),
+  // Usadas por CalendarPdfReport (bloque de metricas del PDF)
+  getFlowMetrics: vi.fn().mockResolvedValue({}),
+  getTasks: vi.fn().mockResolvedValue([]),
+  getVelocityMetrics: vi.fn().mockResolvedValue([]),
+  getAgingMetrics: vi.fn().mockResolvedValue([]),
+  getObjectives: vi.fn().mockResolvedValue([]),
 }));
 
 import { SWRConfig } from 'swr';
@@ -92,5 +98,69 @@ describe('CalendarView', () => {
     expect(within(saturdayCell).getByText('Weekend Task')).toBeInTheDocument();
     expect(within(fridayCell).queryByText('Weekend Task')).not.toBeInTheDocument();
     expect(saturdayCell.contains(taskNode)).toBe(true);
+  });
+
+  it('mounts the metrics report and prints once its data is ready', async () => {
+    getCalendarTasks.mockResolvedValueOnce([]);
+    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
+
+    render(
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <CalendarView projectId={99} />
+      </SWRConfig>
+    );
+
+    const exportBtn = await screen.findByRole('button', { name: /exportar pdf/i });
+
+    // The printable region must be flagged so the print stylesheet can isolate it.
+    expect(document.querySelector('.calendar-print-area')).toBeInTheDocument();
+
+    fireEvent.click(exportBtn);
+
+    // The metrics report is mounted off-screen for the PDF.
+    expect(await screen.findByText('Métricas del Proyecto')).toBeInTheDocument();
+    expect(document.querySelector('.calendar-pdf-report')).toBeInTheDocument();
+
+    // print() fires only after the report signals its data is ready.
+    await waitFor(() => expect(printSpy).toHaveBeenCalledTimes(1));
+
+    printSpy.mockRestore();
+  });
+
+  it('keeps every task of a day in the DOM so the PDF can expand beyond the on-screen limit', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 5, 16)); // June 16, 2026
+
+    // Five tasks on the same day: 3 visible on screen, the rest live in a
+    // print-only container that the print stylesheet expands.
+    const mockTasks = Array.from({ length: 5 }, (_, i) => ({
+      id: i + 1,
+      title: `Daily Task ${i + 1}`,
+      status: 'todo',
+      due_date: '2026-06-16T12:00:00Z',
+    }));
+    getCalendarTasks.mockResolvedValueOnce(mockTasks);
+
+    render(
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <CalendarView projectId={99} />
+      </SWRConfig>
+    );
+
+    // All five tasks must exist in the DOM, even the overflowed ones.
+    await screen.findByText('Daily Task 1');
+    for (let i = 1; i <= 5; i++) {
+      expect(screen.getByText(`Daily Task ${i}`)).toBeInTheDocument();
+    }
+
+    // The overflow tasks sit inside the print-only container.
+    const printOnly = document.querySelector('.calendar-print-only-tasks');
+    expect(printOnly).toBeInTheDocument();
+    expect(within(printOnly).getByText('Daily Task 4')).toBeInTheDocument();
+    expect(within(printOnly).getByText('Daily Task 5')).toBeInTheDocument();
+
+    // The "+N más" badge is hidden from the PDF.
+    const moreBadge = screen.getByText('+2 más');
+    expect(moreBadge).toHaveClass('calendar-no-print');
   });
 });

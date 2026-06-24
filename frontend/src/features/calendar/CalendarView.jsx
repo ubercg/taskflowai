@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import useSWR from 'swr';
 import {
   format,
@@ -15,6 +15,7 @@ import {
 } from 'date-fns';
 import { getCalendarTasks } from '../../services/api';
 import { parseDateOnly } from '../../utils/dateUtils';
+import CalendarPdfReport from './CalendarPdfReport';
 
 const STATUS_STYLE = {
   backlog:     { bg: '#f1f5f9', color: '#475569', label: 'Backlog' },
@@ -103,6 +104,19 @@ function TaskCard({ task, onClick }) {
 function CalendarView({ projectId, onTaskClick }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [statusFilter, setStatusFilter] = useState('all');
+  const [preparingPdf, setPreparingPdf] = useState(false);
+
+  // El reporte de metricas se monta fuera de pantalla al exportar; cuando sus
+  // datos/charts estan listos imprimimos y lo desmontamos.
+  const handleReportReady = useCallback(() => {
+    // Doble rAF: garantiza que el SVG de los charts ya pinto antes de imprimir.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        window.print();
+        setPreparingPdf(false);
+      })
+    );
+  }, []);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -142,6 +156,7 @@ function CalendarView({ projectId, onTaskClick }) {
       </h2>
 
       <div
+        className="calendar-no-print"
         style={{
           background: 'white',
           border: '1px solid #e2e8f0',
@@ -258,6 +273,28 @@ function CalendarView({ projectId, onTaskClick }) {
           Limpiar Filtros
         </button>
 
+        <button
+          onClick={() => setPreparingPdf(true)}
+          disabled={preparingPdf}
+          title="Exportar el calendario y las métricas a PDF (horizontal)"
+          style={{
+            marginLeft: 'auto',
+            background: preparingPdf ? '#a5b4fc' : '#6366f1',
+            border: `1px solid ${preparingPdf ? '#a5b4fc' : '#6366f1'}`,
+            borderRadius: '0.25rem',
+            padding: '0.25rem 0.75rem',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: 'white',
+            cursor: preparingPdf ? 'wait' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+          }}
+        >
+          {preparingPdf ? 'Preparando…' : '⤓ Exportar PDF'}
+        </button>
+
         {isLoading && (
           <span style={{ fontSize: '0.875rem', color: '#64748b' }}>Cargando...</span>
         )}
@@ -267,6 +304,7 @@ function CalendarView({ projectId, onTaskClick }) {
       </div>
 
       <div
+        className="calendar-print-area"
         style={{
           flex: 1,
           overflow: 'auto',
@@ -275,6 +313,18 @@ function CalendarView({ projectId, onTaskClick }) {
           borderRadius: '0.5rem',
         }}
       >
+        <div
+          className="calendar-print-header"
+          style={{
+            padding: '0.75rem 1rem',
+            fontSize: '1.1rem',
+            fontWeight: 700,
+            color: '#1e293b',
+            borderBottom: '1px solid #e2e8f0',
+          }}
+        >
+          Calendario — {format(currentMonth, 'MMMM yyyy')}
+        </div>
         <div
           style={{
             display: 'grid',
@@ -321,6 +371,7 @@ function CalendarView({ projectId, onTaskClick }) {
               return (
                 <div
                   key={di}
+                  className="calendar-cell"
                   style={{
                     minHeight: '120px',
                     minWidth: 0,
@@ -350,8 +401,21 @@ function CalendarView({ projectId, onTaskClick }) {
                         onClick={() => onTaskClick && onTaskClick(task.id)}
                       />
                     ))}
+                    {/* Tareas extra: ocultas en pantalla, expandidas solo en el PDF */}
+                    {overflow > 0 && (
+                      <div className="calendar-print-only-tasks">
+                        {dayTasks.slice(MAX_VISIBLE).map((task) => (
+                          <TaskCard
+                            key={task.id}
+                            task={task}
+                            onClick={() => onTaskClick && onTaskClick(task.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
                     {overflow > 0 && (
                       <div
+                        className="calendar-no-print"
                         style={{
                           fontSize: '10px',
                           color: '#6366f1',
@@ -369,6 +433,11 @@ function CalendarView({ projectId, onTaskClick }) {
             })}
           </div>
         ))}
+
+        {/* Bloque de metricas para el PDF: se monta solo al exportar */}
+        {preparingPdf && (
+          <CalendarPdfReport projectId={projectId} onReady={handleReportReady} />
+        )}
       </div>
     </div>
   );
