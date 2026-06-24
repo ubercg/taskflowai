@@ -1,9 +1,9 @@
-from typing import Optional
+from typing import Optional, List
 
-from fastapi import APIRouter, Depends, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, Query, BackgroundTasks, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from datetime import datetime
+from datetime import datetime, date
 
 from app.db.database import get_db
 from app.core.security import require_manager_or_above, require_authenticated
@@ -12,30 +12,125 @@ from app.modules.intelligence.bottleneck import analyze_bottleneck
 router = APIRouter()
 
 
+def _validate_date_range(start_date: Optional[date], end_date: Optional[date]) -> None:
+    """Raise HTTP 422 if start_date >= end_date."""
+    if start_date is not None and end_date is not None:
+        if start_date >= end_date:
+            raise HTTPException(
+                status_code=422,
+                detail="start_date must be strictly before end_date",
+            )
+
+
 @router.get("/flow")
 def get_flow_metrics(
     project_id: int = Query(...),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
     current_user=Depends(require_authenticated),
 ):
-    query = text("""
-        SELECT project_id, lead_time_avg_h, cycle_time_avg_h, throughput_week, efficiency_ratio, total_completed
-        FROM flow_metrics
-        WHERE project_id = :project_id
+    """
+    Flow metrics (Lead Time, Cycle Time, Throughput, Efficiency Ratio).
+
+    - Without start_date/end_date: reads all-time aggregates from the
+      `flow_metrics` materialized view (backward-compatible).
+    - With both dates: computes metrics on-the-fly using [start_date, end_date)
+      half-open range.  Cycle time is derived from the FIRST activity with
+      to_status='in_progress', NOT tasks.start_date.
+    """
+    _validate_date_range(start_date, end_date)
+
+    if start_date is None or end_date is None:
+        # Legacy path: read from matview
+        query = text("""
+            SELECT project_id, lead_time_avg_h, cycle_time_avg_h,
+                   throughput_week, efficiency_ratio, total_completed
+            FROM flow_metrics
+            WHERE project_id = :project_id
+        """)
+        result = db.execute(query, {"project_id": project_id}).fetchone()
+        if result:
+            return dict(result._mapping)
+        return {
+            "project_id": project_id,
+            "lead_time_avg_h": 0.0,
+            "cycle_time_avg_h": 0.0,
+            "throughput_week": 0,
+            "efficiency_ratio": 0.0,
+            "total_completed": 0,
+        }
+
+    # Monthly path: on-the-fly queries against tasks + activities
+    params = {
+        "project_id": project_id,
+        "start": start_date,
+        "end": end_date,
+    }
+
+    flow_query = text("""
+        SELECT
+            AVG(
+                EXTRACT(EPOCH FROM (t.completed_at - t.created_at)) / 3600
+            ) FILTER (WHERE t.completed_at IS NOT NULL) AS lead_time_avg_h,
+
+            AVG(
+                EXTRACT(EPOCH FROM (
+                    t.completed_at - (
+                        SELECT MIN(a.created_at)
+                        FROM activities a
+                        WHERE a.task_id = t.id AND a.to_status = 'in_progress'
+                    )
+                )) / 3600
+            ) FILTER (WHERE t.completed_at IS NOT NULL) AS cycle_time_avg_h,
+
+            COUNT(*) FILTER (
+                WHERE t.status = 'done'
+                  AND t.completed_at >= :start
+                  AND t.completed_at < :end
+            ) AS throughput,
+
+            COALESCE(
+                SUM(t.logged_hours) FILTER (
+                    WHERE t.completed_at >= :start AND t.completed_at < :end
+                ) / NULLIF(
+                    SUM(t.estimated_hours) FILTER (
+                        WHERE t.completed_at >= :start AND t.completed_at < :end
+                    ),
+                    0
+                ) * 100,
+                0
+            ) AS efficiency_ratio
+        FROM tasks t
+        WHERE t.project_id = :project_id
+          AND t.type = 'task'
+          AND t.parent_id IS NULL
+          AND t.completed_at >= :start
+          AND t.completed_at < :end
     """)
-    result = db.execute(query, {"project_id": project_id}).fetchone()
 
-    if result:
-        return dict(result._mapping)
+    result = db.execute(flow_query, params).fetchone()
 
-    # Si no hay datos (proyecto nuevo o sin finalizar), retorna zeros
+    if result is None:
+        lead = None
+        cycle = None
+        throughput = 0
+        efficiency = 0.0
+    else:
+        row = result._mapping
+        lead = float(row["lead_time_avg_h"]) if row["lead_time_avg_h"] is not None else None
+        cycle = float(row["cycle_time_avg_h"]) if row["cycle_time_avg_h"] is not None else None
+        throughput = int(row["throughput"]) if row["throughput"] is not None else 0
+        efficiency = float(row["efficiency_ratio"]) if row["efficiency_ratio"] is not None else 0.0
+
     return {
         "project_id": project_id,
-        "lead_time_avg_h": 0.0,
-        "cycle_time_avg_h": 0.0,
-        "throughput_week": 0,
-        "efficiency_ratio": 0.0,
-        "total_completed": 0,
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "lead_time_avg_h": lead,
+        "cycle_time_avg_h": cycle,
+        "throughput": throughput,
+        "efficiency_ratio": efficiency,
     }
 
 
@@ -45,7 +140,14 @@ def get_aging(
     db: Session = Depends(get_db),
     current_user=Depends(require_authenticated),
 ):
-    """Tiempo promedio en cada columna desde la última vez que la tarea entró a ese estado (activities), o created_at si no hay historial."""
+    """
+    Average time tasks have spent in each column (point-in-time, NOW).
+    Derived from the last activity that moved the task into its current status,
+    or created_at if no such activity exists.
+
+    project_id is optional — without it, returns data for all projects.
+    Date params are accepted for API symmetry but ignored (aging is point-in-time).
+    """
     filters = "AND t.project_id = :project_id" if project_id is not None else ""
     params = {"project_id": project_id} if project_id is not None else {}
     result = db.execute(
@@ -73,7 +175,6 @@ def get_aging(
         params,
     )
     rows = [dict(r) for r in result.mappings().all()]
-    # Recharts espera avg_hours numérico
     for r in rows:
         if r.get("avg_hours") is not None:
             r["avg_hours"] = float(r["avg_hours"])
@@ -107,26 +208,70 @@ def get_projects_metrics(
 
 @router.get("/velocity")
 def get_velocity_metrics(
-    db: Session = Depends(get_db), current_user=Depends(require_authenticated)
+    project_id: int = Query(...),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    db: Session = Depends(get_db),
+    current_user=Depends(require_authenticated),
 ):
-    query = text("""
-        SELECT 
-            u.id as user_id, 
-            u.name,
-            u.color,
-            COUNT(t.id) FILTER (WHERE t.status = 'in_progress') as in_progress,
-            COUNT(t.id) FILTER (WHERE t.status = 'done' AND t.completed_at >= CURRENT_DATE) as completed,
-            COALESCE((
-                SELECT SUM(tl.hours)
-                FROM time_logs tl
-                WHERE tl.user_id = u.id AND tl.log_date >= date_trunc('week', CURRENT_DATE)
-            ), 0) as total_hours
-        FROM users u
-        LEFT JOIN tasks t ON t.assignee_id = u.id
-        WHERE u.is_active = true
-        GROUP BY u.id, u.name, u.color
-    """)
-    results = db.execute(query).fetchall()
+    """
+    Velocity per user for the given project.
+
+    project_id is now REQUIRED (breaking-minor, intentional: fixes scope).
+    Without dates, defaults to current calendar month.
+    With both dates, filters using [start_date, end_date) half-open range.
+
+    Only users with tasks assigned to the project appear (INNER JOIN).
+    Users not assigned to any task in the project are excluded.
+    """
+    _validate_date_range(start_date, end_date)
+
+    # Default to current calendar month if no date range provided
+    if start_date is None or end_date is None:
+        today = date.today()
+        # First day of current month
+        start_date = today.replace(day=1)
+        # First day of next month (exclusive upper bound)
+        if today.month == 12:
+            end_date = today.replace(year=today.year + 1, month=1, day=1)
+        else:
+            end_date = today.replace(month=today.month + 1, day=1)
+
+    params = {
+        "project_id": project_id,
+        "start": start_date,
+        "end": end_date,
+    }
+
+    result = db.execute(
+        text("""
+            SELECT
+                u.id AS user_id,
+                u.name,
+                u.color,
+                COUNT(t.id) FILTER (WHERE t.status = 'in_progress') AS in_progress,
+                COUNT(t.id) FILTER (
+                    WHERE t.status = 'done'
+                      AND t.completed_at >= :start
+                      AND t.completed_at < :end
+                ) AS completed,
+                COALESCE((
+                    SELECT SUM(tl.hours)
+                    FROM time_logs tl
+                    JOIN tasks t2 ON t2.id = tl.task_id
+                    WHERE tl.user_id = u.id
+                      AND t2.project_id = :project_id
+                      AND tl.log_date >= :start
+                      AND tl.log_date < :end
+                ), 0) AS total_hours
+            FROM users u
+            JOIN tasks t ON t.assignee_id = u.id AND t.project_id = :project_id
+            WHERE u.is_active = true
+            GROUP BY u.id, u.name, u.color
+        """),
+        params,
+    )
+    results = result.fetchall()
 
     return [
         {
@@ -138,6 +283,89 @@ def get_velocity_metrics(
             "total_hours": float(r.total_hours) if r.total_hours else 0.0,
         }
         for r in results
+    ]
+
+
+@router.get("/burndown")
+def get_burndown(
+    project_id: int = Query(...),
+    start_date: date = Query(...),
+    end_date: date = Query(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(require_authenticated),
+):
+    """
+    Daily burndown series for the given project and date range.
+
+    Returns [{date, ideal, real}] with one point per calendar day in [start_date, end_date).
+    Scope: tasks where due_date falls within [start_date, end_date), type='task',
+    parent_id IS NULL. Tasks without due_date are excluded.
+
+    ideal: linear descent from N to 0 across the period.
+    real: N minus cumulative completed tasks (completed_at < end of day d).
+
+    Empty scope (no tasks with due_date in range) returns a valid series of zeros.
+    """
+    _validate_date_range(start_date, end_date)
+
+    params = {
+        "project_id": project_id,
+        "start": start_date,
+        "end": end_date,
+    }
+
+    query = text("""
+        WITH params AS (
+            SELECT
+                CAST(:start AS date) AS s,
+                CAST(:end AS date) AS e
+        ),
+        days AS (
+            SELECT
+                generate_series(p.s, p.e - INTERVAL '1 day', INTERVAL '1 day')::date AS d,
+                (p.e - p.s) AS total_days,
+                p.s AS s,
+                p.e AS e
+            FROM params p
+        ),
+        scope AS (
+            SELECT t.id, t.completed_at
+            FROM tasks t, params p
+            WHERE t.project_id = :project_id
+              AND t.type = 'task'
+              AND t.parent_id IS NULL
+              AND t.due_date >= p.s
+              AND t.due_date < p.e
+        ),
+        total AS (SELECT COUNT(*)::int AS n FROM scope)
+        SELECT
+            to_char(days.d, 'YYYY-MM-DD') AS date,
+            ROUND(
+                (SELECT n FROM total)
+                * (1 - (days.d - days.s)::numeric / NULLIF(days.total_days, 0)),
+                2
+            ) AS ideal,
+            (
+                (SELECT n FROM total) - (
+                    SELECT COUNT(*) FROM scope sc
+                    WHERE sc.completed_at IS NOT NULL
+                      AND sc.completed_at < (days.d + INTERVAL '1 day')
+                )
+            )::int AS real
+        FROM days
+        ORDER BY days.d
+    """)
+
+    result = db.execute(query, params)
+    rows = result.mappings().all()
+
+    return [
+        {
+            "date": r["date"],
+            "ideal": float(r["ideal"]) if r["ideal"] is not None else 0.0,
+            "real": int(r["real"]) if r["real"] is not None else 0,
+        }
+        for r in rows
     ]
 
 
@@ -158,7 +386,6 @@ def get_bottlenecks(
     )
     rows = result.mappings().all()
 
-    # Si no hay datos aún, retornar estructura vacía (no 404)
     if not rows:
         return [
             {
