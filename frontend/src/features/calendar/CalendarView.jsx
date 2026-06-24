@@ -14,6 +14,7 @@ import {
   endOfWeek,
 } from 'date-fns';
 import { getCalendarTasks } from '../../services/api';
+import { parseDateOnly } from '../../utils/dateUtils';
 
 const STATUS_STYLE = {
   backlog:     { bg: '#f1f5f9', color: '#475569', label: 'Backlog' },
@@ -127,8 +128,8 @@ function CalendarView({ projectId, onTaskClick }) {
 
   const getTasksForDay = (day) =>
     filteredTasks.filter((task) => {
-      if (task.due_date && isSameDay(new Date(task.due_date), day)) return true;
-      if (task.start_date && isSameDay(new Date(task.start_date), day)) return true;
+      if (task.due_date && isSameDay(parseDateOnly(task.due_date), day)) return true;
+      if (task.start_date && isSameDay(parseDateOnly(task.start_date), day)) return true;
       return false;
     });
 

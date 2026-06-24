@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 
@@ -61,5 +61,36 @@ describe('CalendarView', () => {
     await waitFor(() => {
       expect(screen.getByText('Task 1')).toBeInTheDocument();
     });
+  });
+
+  it('renders a task on its exact due_date cell despite UTC-midnight timestamps (timezone regression)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 5, 16)); // June 16, 2026
+
+    // Saturday June 27 at UTC midnight: with naive `new Date()` parsing this
+    // shifts to Friday June 26 in negative-offset timezones. parseDateOnly must
+    // keep it anchored to the calendar day (27).
+    const mockTasks = [
+      { id: 7, title: 'Weekend Task', status: 'todo', due_date: '2026-06-27T00:00:00Z' },
+    ];
+    getCalendarTasks.mockResolvedValueOnce(mockTasks);
+
+    render(
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <CalendarView projectId={99} />
+      </SWRConfig>
+    );
+
+    // Wait for the grid to paint the task somewhere
+    const taskNode = await screen.findByText('Weekend Task');
+
+    // The day cell holds a "27 JUN" label as its first child; the task must live
+    // inside that same cell, not in the "26 JUN" (Friday) cell.
+    const saturdayCell = screen.getByText('27 JUN').parentElement;
+    const fridayCell = screen.getByText('26 JUN').parentElement;
+
+    expect(within(saturdayCell).getByText('Weekend Task')).toBeInTheDocument();
+    expect(within(fridayCell).queryByText('Weekend Task')).not.toBeInTheDocument();
+    expect(saturdayCell.contains(taskNode)).toBe(true);
   });
 });
