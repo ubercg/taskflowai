@@ -218,6 +218,80 @@ def get_projects_metrics(
     ]
 
 
+@router.get("/velocity/team")
+def get_team_velocity(
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    db: Session = Depends(get_db),
+    current_user=Depends(require_authenticated),
+):
+    """
+    Org-wide team capacity velocity: per-user velocity aggregated across ALL projects.
+
+    No project_id — covers every active user regardless of project.
+    Without dates, defaults to current calendar month.
+    With both dates, filters using [start_date, end_date) half-open range.
+
+    Uses LEFT JOIN from users to tasks so every active user appears even with
+    zero tasks (team-capacity view), unlike /velocity which uses INNER JOIN.
+    """
+    _validate_date_range(start_date, end_date)
+
+    # Default to current calendar month if no date range provided
+    if start_date is None or end_date is None:
+        today = date.today()
+        start_date = today.replace(day=1)
+        if today.month == 12:
+            end_date = today.replace(year=today.year + 1, month=1, day=1)
+        else:
+            end_date = today.replace(month=today.month + 1, day=1)
+
+    params = {
+        "start": start_date,
+        "end": end_date,
+    }
+
+    result = db.execute(
+        text("""
+            SELECT
+                u.id AS user_id,
+                u.name,
+                u.color,
+                COUNT(t.id) FILTER (WHERE t.status = 'in_progress') AS in_progress,
+                COUNT(t.id) FILTER (
+                    WHERE t.status = 'done'
+                      AND t.completed_at >= :start
+                      AND t.completed_at < :end
+                ) AS completed,
+                COALESCE((
+                    SELECT SUM(tl.hours)
+                    FROM time_logs tl
+                    WHERE tl.user_id = u.id
+                      AND tl.log_date >= :start
+                      AND tl.log_date < :end
+                ), 0) AS total_hours
+            FROM users u
+            LEFT JOIN tasks t ON t.assignee_id = u.id
+            WHERE u.is_active = true
+            GROUP BY u.id, u.name, u.color
+        """),
+        params,
+    )
+    results = result.fetchall()
+
+    return [
+        {
+            "user_id": r.user_id,
+            "name": r.name,
+            "color": r.color,
+            "in_progress": int(r.in_progress) if r.in_progress else 0,
+            "completed": int(r.completed) if r.completed else 0,
+            "total_hours": float(r.total_hours) if r.total_hours else 0.0,
+        }
+        for r in results
+    ]
+
+
 @router.get("/velocity")
 def get_velocity_metrics(
     project_id: int = Query(...),

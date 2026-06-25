@@ -301,6 +301,20 @@ export const triggerBottleneckAnalysis = (projectId) =>
   api.post(`/api/v1/metrics/trigger-analysis?project_id=${projectId}`)
     .then(r => r.data);
 
+/**
+ * Org-wide team velocity: velocity per user aggregated across ALL projects.
+ * No project_id — covers every active user.
+ * @param {string} [startDate] - ISO date YYYY-MM-DD (start_date, inclusive)
+ * @param {string} [endDate] - ISO date YYYY-MM-DD (end_date, exclusive)
+ * @returns {Promise<Array<{user_id, name, color, in_progress, completed, total_hours}>>}
+ */
+export const getTeamVelocity = (startDate, endDate) => {
+  const params = {};
+  if (startDate) params.start_date = startDate;
+  if (endDate) params.end_date = endDate;
+  return api.get('/api/v1/metrics/velocity/team', { params }).then(res => res.data);
+};
+
 // Mantenemos alias temporales para las metricas
 export const getMetrics = getGlobalSummary;
 export const getVelocityMetrics = getVelocity;

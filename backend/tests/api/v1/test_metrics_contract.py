@@ -235,4 +235,35 @@ class TestNonexistentProjectReturns404:
         """
         resp = app_client_no_raise.get("/api/v1/metrics/aging")
         assert resp.status_code != 404
+
+
+# ---------------------------------------------------------------------------
+# Slice 3 Addendum — /velocity/team param validation (pure Python, no SQL)
+# ---------------------------------------------------------------------------
+
+class TestTeamVelocityContract:
+    def test_team_velocity_start_after_end_returns_422(self, client):
+        """start_date > end_date for /velocity/team must return 422."""
+        resp = client.get(
+            "/api/v1/metrics/velocity/team"
+            "?start_date=2026-07-01&end_date=2026-06-01"
+        )
+        assert resp.status_code == 422
+
+    def test_team_velocity_start_equal_end_returns_422(self, client):
+        """start_date == end_date (zero-length range) must return 422."""
+        resp = client.get(
+            "/api/v1/metrics/velocity/team"
+            "?start_date=2026-06-01&end_date=2026-06-01"
+        )
+        assert resp.status_code == 422
+
+    def test_team_velocity_routes_to_handler(self, client):
+        """
+        GET /velocity/team with no date params must reach the handler (not 404/405/422).
+        May return 500 on SQLite (Postgres-only SQL) but NOT 404/422.
+        """
+        resp = client.get("/api/v1/metrics/velocity/team")
+        assert resp.status_code != 404
+        assert resp.status_code != 405
         assert resp.status_code != 422
