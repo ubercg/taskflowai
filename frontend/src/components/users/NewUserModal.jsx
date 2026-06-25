@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { createUser } from '../../services/api';
+import { Modal, Input, Select, Button } from '../ui';
+import { cn } from '../../lib/cn';
 
 const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#f97316'];
+const LABEL = 'mb-1.5 block text-[13px] font-medium text-fg';
 
 const NewUserModal = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({ name: '', email: '', role: 'developer', color: COLORS[0] });
@@ -11,15 +14,11 @@ const NewUserModal = ({ onClose, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    if (!formData.name.trim() || !formData.email.trim()) {
-      return setError('Nombre y correo son obligatorios.');
-    }
-    
+
+    if (!formData.name.trim() || !formData.email.trim()) return setError('Nombre y correo son obligatorios.');
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      return setError('Formato de correo inválido.');
-    }
+    if (!emailRegex.test(formData.email)) return setError('Formato de correo inválido.');
 
     setIsSubmitting(true);
     try {
@@ -34,91 +33,54 @@ const NewUserModal = ({ onClose, onSuccess }) => {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-      <div style={{ backgroundColor: '#fff', borderRadius: '12px', width: '400px', maxWidth: '90vw', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 600 }}>Nuevo Usuario</h2>
-        
-        {error && (
-          <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#fef2f2', color: '#991b1b', borderRadius: '6px', fontSize: '13px' }}>
-            {error}
+    <Modal open onClose={onClose} className="max-w-sm p-6">
+      <h2 className="mb-4 text-xl font-semibold text-fg">Nuevo Usuario</h2>
+
+      {error && (
+        <div className="mb-4 rounded-md border border-status-blocked/40 bg-status-blocked/10 p-3 text-[13px] text-status-blocked">{error}</div>
+      )}
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div>
+          <label className={LABEL}>Nombre completo</label>
+          <Input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ej: John Doe" />
+        </div>
+        <div>
+          <label className={LABEL}>Email</label>
+          <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="john@example.com" />
+        </div>
+        <div>
+          <label className={LABEL}>Rol</label>
+          <Select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+            <option value="developer">Developer</option>
+            <option value="viewer">Viewer</option>
+          </Select>
+        </div>
+        <div>
+          <label className={LABEL}>Color identificador</label>
+          <div className="flex gap-2">
+            {COLORS.map((c) => (
+              <div
+                key={c}
+                onClick={() => setFormData({ ...formData, color: c })}
+                className={cn(
+                  'h-8 w-8 cursor-pointer rounded-full border-2 transition-all',
+                  formData.color === c ? 'scale-110 border-fg' : 'border-transparent',
+                )}
+                style={{ backgroundColor: c }}
+              />
+            ))}
           </div>
-        )}
-        
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Nombre completo</label>
-            <input 
-              type="text" 
-              value={formData.name} 
-              onChange={e => setFormData({...formData, name: e.target.value})} 
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} 
-              placeholder="Ej: John Doe" 
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Email</label>
-            <input 
-              type="email" 
-              value={formData.email} 
-              onChange={e => setFormData({...formData, email: e.target.value})} 
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} 
-              placeholder="john@example.com" 
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Rol</label>
-            <select 
-              value={formData.role} 
-              onChange={e => setFormData({...formData, role: e.target.value})} 
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', backgroundColor: '#fff' }}
-            >
-              <option value="admin">Admin</option>
-              <option value="manager">Manager</option>
-              <option value="developer">Developer</option>
-              <option value="viewer">Viewer</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Color identificador</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {COLORS.map(c => (
-                <div 
-                  key={c}
-                  onClick={() => setFormData({...formData, color: c})}
-                  style={{ 
-                    width: '32px', 
-                    height: '32px', 
-                    borderRadius: '50%', 
-                    backgroundColor: c, 
-                    cursor: 'pointer', 
-                    border: formData.color === c ? '2px solid #0f172a' : '2px solid transparent', 
-                    transform: formData.color === c ? 'scale(1.1)' : 'scale(1)', 
-                    transition: 'all 0.2s' 
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
-            <button 
-              type="button" 
-              onClick={onClose} 
-              style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', fontWeight: 500, cursor: 'pointer' }}
-            >
-              Cancelar
-            </button>
-            <button 
-              type="submit" 
-              disabled={isSubmitting} 
-              style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#6366f1', color: '#fff', fontWeight: 500, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1 }}
-            >
-              {isSubmitting ? 'Creando...' : 'Crear Usuario'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        <div className="mt-2 flex justify-end gap-3">
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Creando...' : 'Crear Usuario'}</Button>
+        </div>
+      </form>
+    </Modal>
   );
 };
 

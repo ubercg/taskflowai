@@ -165,10 +165,10 @@ function CalendarPdfReport({ projectId, startDate, endDate, isCurrentMonth, onRe
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-        <BurndownChart projectId={projectId} startDate={startDate} endDate={endDate} animate={false} />
-        <VelocityChart projectId={projectId} startDate={startDate} endDate={endDate} animate={false} />
-        <AgingChart projectId={projectId} isCurrentMonth={isCurrentMonth} animate={false} />
-        <OkrProgressChart projectId={projectId} animate={false} />
+        <BurndownChart projectId={projectId} startDate={startDate} endDate={endDate} animate={false} forceTheme="light" />
+        <VelocityChart projectId={projectId} startDate={startDate} endDate={endDate} animate={false} forceTheme="light" />
+        <AgingChart projectId={projectId} isCurrentMonth={isCurrentMonth} animate={false} forceTheme="light" />
+        <OkrProgressChart projectId={projectId} animate={false} forceTheme="light" />
       </div>
     </div>
   );

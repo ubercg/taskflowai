@@ -1,4 +1,3 @@
-import React from 'react';
 import { format } from 'date-fns';
 
 const STATUS_STYLE = {
@@ -12,34 +11,15 @@ const STATUS_STYLE = {
 
 function CalendarDaySidebar({ tasks = [] }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+    <div className="flex flex-col gap-2">
       {tasks.map((task) => {
         const s = STATUS_STYLE[task.status] || { bg: '#e2e8f0', color: '#0f172a', label: task.status };
         const time = task.due_date ? format(new Date(task.due_date), 'HH:mm') : null;
         return (
-          <div
-            key={task.id}
-            style={{
-              backgroundColor: 'white',
-              border: '1px solid #e2e8f0',
-              borderLeft: '3px solid ' + s.color,
-              borderRadius: '4px',
-              padding: '4px 6px',
-              fontSize: '11px',
-            }}
-          >
-            {time && <div style={{ color: '#64748b', marginBottom: '2px' }}>{time}</div>}
-            <div style={{ fontWeight: 500, color: '#0f172a', marginBottom: '2px' }}>{task.title}</div>
-            <span
-              style={{
-                backgroundColor: s.bg,
-                color: s.color,
-                padding: '1px 6px',
-                borderRadius: '9999px',
-                fontSize: '10px',
-                fontWeight: 500,
-              }}
-            >
+          <div key={task.id} className="rounded border border-border bg-surface px-1.5 py-1 text-[11px]" style={{ borderLeft: '3px solid ' + s.color }}>
+            {time && <div className="mb-0.5 text-muted">{time}</div>}
+            <div className="mb-0.5 font-medium text-fg">{task.title}</div>
+            <span className="rounded-full px-1.5 text-[10px] font-medium" style={{ backgroundColor: s.bg, color: s.color }}>
               {s.label}
             </span>
           </div>

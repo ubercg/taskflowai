@@ -1,6 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../services/api/client';
 import { toDateInputValue } from '../../utils/dateUtils';
+import { Modal, Input, Textarea, Button } from '../ui';
+
+const LABEL = 'mb-1.5 block text-[13px] font-medium text-fg';
+
+const getProgressColor = (percentage) => {
+  if (percentage < 30) return '#f87171';
+  if (percentage <= 70) return '#fb923c';
+  return '#4ade80';
+};
 
 const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
   const isEdit = !!objective;
@@ -8,7 +17,7 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
     title: '',
     description: '',
     due_date: '',
-    project_id: projectId
+    project_id: projectId,
   });
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,7 +28,7 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
         title: objective.title || '',
         description: objective.description || '',
         due_date: objective.due_date ? toDateInputValue(objective.due_date) : '',
-        project_id: objective.project_id || projectId
+        project_id: objective.project_id || projectId,
       });
     }
   }, [objective, isEdit, projectId]);
@@ -46,102 +55,62 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
     }
   };
 
-  const getProgressColor = (percentage) => {
-    if (percentage < 30) return '#f87171';
-    if (percentage <= 70) return '#fb923c';
-    return '#4ade80';
-  };
-
   const derivedProgress = objective?.progress || 0;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, animation: 'fadeIn 0.2s ease-out' }}>
-      <div style={{ backgroundColor: '#fff', borderRadius: '12px', width: '480px', maxWidth: '90vw', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', animation: 'scaleUp 0.2s ease-out' }}>
+    <Modal open onClose={onClose} className="max-w-lg p-8">
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-fg">{isEdit ? 'Editar OKR' : 'Nuevo OKR'}</h2>
+        <button onClick={onClose} className="text-muted transition-colors hover:text-fg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>{isEdit ? 'Editar OKR' : 'Nuevo OKR'}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
+      {error && (
+        <div className="mb-5 rounded-md border border-status-blocked/40 bg-status-blocked/10 p-3 text-[13px] text-status-blocked">{error}</div>
+      )}
+
+      <form id="objective-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <div>
+          <label className={LABEL}>Título *</label>
+          <Input
+            type="text"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            placeholder="Ej: Incrementar retención un 20%"
+          />
         </div>
 
-        {error && (
-          <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: '#fef2f2', color: '#991b1b', borderRadius: '6px', fontSize: '13px', border: '1px solid #fca5a5' }}>
-            {error}
+        <div>
+          <label className={LABEL}>Descripción</label>
+          <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="min-h-20" />
+        </div>
+
+        {isEdit && (
+          <div>
+            <label className="mb-1.5 flex justify-between text-[13px] font-medium text-fg">
+              <span>Progreso (derivado de tareas)</span>
+              <span className="font-semibold" style={{ color: getProgressColor(derivedProgress) }}>{derivedProgress}%</span>
+            </label>
+            <div className="mt-1 h-2 w-full overflow-hidden rounded bg-border">
+              <div className="h-full" style={{ width: `${derivedProgress}%`, backgroundColor: getProgressColor(derivedProgress) }} />
+            </div>
           </div>
         )}
 
-        <form id="objective-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Título *</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={e => setFormData({...formData, title: e.target.value})}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-              placeholder="Ej: Incrementar retención un 20%"
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Descripción</label>
-            <textarea
-              value={formData.description}
-              onChange={e => setFormData({...formData, description: e.target.value})}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', minHeight: '80px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-            />
-          </div>
-
-          {isEdit && (
-            <div>
-              <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>
-                <span>Progreso (derivado de tareas)</span>
-                <span style={{ color: getProgressColor(derivedProgress), fontWeight: 600 }}>
-                  {derivedProgress}%
-                </span>
-              </label>
-              <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginTop: '4px' }}>
-                <div style={{ height: '100%', width: `${derivedProgress}%`, backgroundColor: getProgressColor(derivedProgress) }} />
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Fecha Límite *</label>
-            <input
-              type="date"
-              value={formData.due_date}
-              onChange={e => setFormData({...formData, due_date: e.target.value})}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-
-        </form>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ padding: '10px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', fontWeight: 500, cursor: 'pointer' }}
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            form="objective-form"
-            disabled={isSubmitting}
-            style={{ padding: '10px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#6366f1', color: '#fff', fontWeight: 500, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1 }}
-          >
-            {isSubmitting ? 'Guardando...' : (isEdit ? 'Guardar OKR' : 'Crear OKR')}
-          </button>
+        <div>
+          <label className={LABEL}>Fecha Límite *</label>
+          <Input type="date" value={formData.due_date} onChange={(e) => setFormData({ ...formData, due_date: e.target.value })} />
         </div>
+      </form>
 
+      <div className="mt-6 flex justify-end gap-3 border-t border-border pt-5">
+        <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+        <Button type="submit" form="objective-form" disabled={isSubmitting}>
+          {isSubmitting ? 'Guardando...' : isEdit ? 'Guardar OKR' : 'Crear OKR'}
+        </Button>
       </div>
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes scaleUp { from { transform: scale(0.97); } to { transform: scale(1); } }
-      `}</style>
-    </div>
+    </Modal>
   );
 };
 

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
-import { getTasks, createTask, updateTask } from '../../services/api';
+import { createTask, updateTask } from '../../services/api';
 import api from '../../services/api/client';
 import { Link } from 'react-router-dom';
+import { cn } from '../../lib/cn';
 
 const getInitials = (name) => {
   if (!name) return '??';
@@ -16,12 +17,12 @@ const ObjectiveTasksPanel = ({ objective, projectId, onClose }) => {
 
   const { data: tasks, mutate } = useSWR(
     `/api/v1/tasks?project_id=${projectId}&objective_id=${objective.id}`,
-    () => api.get(`/api/v1/tasks?project_id=${projectId}`).then(res => res.data.filter(t => t.objective_id === objective.id))
+    () => api.get(`/api/v1/tasks?project_id=${projectId}`).then((res) => res.data.filter((t) => t.objective_id === objective.id)),
   );
 
   const { data: members } = useSWR(
     `/api/v1/projects/${projectId}/members`,
-    () => api.get(`/api/v1/projects/${projectId}/members`).then(res => res.data)
+    () => api.get(`/api/v1/projects/${projectId}/members`).then((res) => res.data),
   );
 
   const handleCreateTask = async (e) => {
@@ -35,12 +36,12 @@ const ObjectiveTasksPanel = ({ objective, projectId, onClose }) => {
         objective_id: objective.id,
         title: newTaskTitle,
         status: 'backlog',
-        type: 'task'
+        type: 'task',
       });
       setNewTaskTitle('');
       mutate();
     } catch (err) {
-      alert("Error creando tarea: " + (err.response?.data?.detail || err.message));
+      alert('Error creando tarea: ' + (err.response?.data?.detail || err.message));
     } finally {
       setIsSubmitting(false);
     }
@@ -49,109 +50,97 @@ const ObjectiveTasksPanel = ({ objective, projectId, onClose }) => {
   const handleAssigneeChange = async (taskId, newAssigneeId) => {
     const assigneeId = newAssigneeId ? Number(newAssigneeId) : null;
     try {
-      mutate(tasks.map(t => t.id === taskId ? { ...t, assignee_id: assigneeId } : t), false);
+      mutate(tasks.map((t) => (t.id === taskId ? { ...t, assignee_id: assigneeId } : t)), false);
       await updateTask(taskId, { assignee_id: assigneeId });
       mutate();
     } catch (err) {
-      alert("Error al asignar tarea");
+      alert('Error al asignar tarea');
       mutate();
     }
   };
 
-  const doneTasks = tasks ? tasks.filter(t => t.status === 'done').length : 0;
+  const doneTasks = tasks ? tasks.filter((t) => t.status === 'done').length : 0;
   const totalTasks = tasks ? tasks.length : 0;
 
   return (
-    <div style={{ backgroundColor: '#f8fafc', padding: '24px', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      
-      {/* Header Inline */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="flex flex-col gap-5 border-t border-border bg-canvas p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#6366f1' }}>↳</span> Tareas del OKR
+          <h3 className="flex items-center gap-2 text-[15px] font-semibold text-fg">
+            <span className="text-accent">↳</span> Tareas del OKR
           </h3>
-          <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+          <p className="mt-1 text-[13px] text-muted">
             {totalTasks > 0 ? `${doneTasks} de ${totalTasks} completadas` : 'Sin tareas aún'}
           </p>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>✕ Cerrar panel</button>
+        <button onClick={onClose} className="text-[13px] text-muted transition-colors hover:text-fg">✕ Cerrar panel</button>
       </div>
 
-      {/* List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {/* Lista */}
+      <div className="flex flex-col gap-2">
         {!tasks ? (
-          <div style={{ fontSize: '13px', color: '#94a3b8' }}>Cargando tareas...</div>
+          <div className="text-[13px] text-faint">Cargando tareas...</div>
         ) : tasks.length === 0 ? (
-          <div style={{ fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>No hay tareas vinculadas a este objetivo.</div>
+          <div className="text-[13px] italic text-faint">No hay tareas vinculadas a este objetivo.</div>
         ) : (
-          tasks.map(task => {
+          tasks.map((task) => {
             const isDone = task.status === 'done';
-            const assignee = members?.find(m => m.id === task.assignee_id);
+            const assignee = members?.find((m) => m.id === task.assignee_id);
 
             return (
-              <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', opacity: isDone ? 0.7 : 1 }}>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'capitalize', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '12px' }}>
+              <div
+                key={task.id}
+                className={cn('flex items-center justify-between rounded-lg border border-border bg-surface p-3', isDone && 'opacity-70')}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-raised px-2 py-0.5 text-[11px] font-semibold capitalize text-muted">
                     {task.status.replace('_', ' ')}
                   </span>
-                  <span style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a', textDecoration: isDone ? 'line-through' : 'none' }}>
-                    {task.title}
-                  </span>
+                  <span className={cn('text-sm font-medium text-fg', isDone && 'line-through')}>{task.title}</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <select
-                    value={task.assignee_id || 'unassigned'}
-                    onChange={(e) => handleAssigneeChange(task.id, e.target.value)}
-                    style={{ 
-                      fontSize: '12px', color: '#0f172a', border: '1px solid #e2e8f0', 
-                      borderRadius: '6px', padding: '4px', outline: 'none', 
-                      backgroundColor: assignee ? assignee.color + '20' : '#f8fafc',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value="unassigned">— Sin asignar</option>
-                    {members?.map(m => (
-                      <option key={m.id} value={m.id}>{getInitials(m.name)} {m.name}</option>
-                    ))}
-                  </select>
-                </div>
-
+                <select
+                  value={task.assignee_id || 'unassigned'}
+                  onChange={(e) => handleAssigneeChange(task.id, e.target.value)}
+                  className="cursor-pointer rounded-md border border-border px-1 py-1 text-xs text-fg outline-none"
+                  style={{ backgroundColor: assignee ? assignee.color + '20' : 'var(--color-canvas)' }}
+                >
+                  <option value="unassigned">— Sin asignar</option>
+                  {members?.map((m) => (
+                    <option key={m.id} value={m.id}>{getInitials(m.name)} {m.name}</option>
+                  ))}
+                </select>
               </div>
             );
           })
         )}
       </div>
 
-      {/* Add Task Form */}
-      <form onSubmit={handleCreateTask} style={{ display: 'flex', gap: '8px' }}>
-        <input 
-          type="text" 
-          placeholder="Escribe el título de una nueva tarea para este OKR..." 
+      {/* Agregar tarea */}
+      <form onSubmit={handleCreateTask} className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Escribe el título de una nueva tarea para este OKR..."
           value={newTaskTitle}
-          onChange={e => setNewTaskTitle(e.target.value)}
-          style={{ flex: 1, padding: '10px 12px', borderRadius: '6px', border: '1px dashed #cbd5e1', fontSize: '13px', outline: 'none', backgroundColor: '#ffffff' }}
+          onChange={(e) => setNewTaskTitle(e.target.value)}
+          className="flex-1 rounded-md border border-dashed border-border bg-surface px-3 py-2.5 text-[13px] text-fg outline-none placeholder:text-faint focus:border-accent"
         />
-        <button 
+        <button
           type="submit"
           disabled={!newTaskTitle.trim() || isSubmitting}
-          style={{ padding: '8px 16px', backgroundColor: '#ffffff', color: '#6366f1', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: (!newTaskTitle.trim() || isSubmitting) ? 'not-allowed' : 'pointer' }}
+          className="rounded-md border border-accent/40 bg-surface px-4 py-2 text-[13px] font-medium text-accent transition-colors hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? '...' : '+ Agregar'}
         </button>
       </form>
 
-      {/* Footer Link */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-        <Link 
-          to={`/projects/${projectId}/board?objective=${objective.id}`}
-          style={{ fontSize: '13px', color: '#6366f1', textDecoration: 'none', fontWeight: 500 }}
-        >
+      {/* Footer */}
+      <div className="mt-2 flex justify-end">
+        <Link to={`/projects/${projectId}/board?objective=${objective.id}`} className="text-[13px] font-medium text-accent hover:text-accent-hover">
           Ver en Kanban →
         </Link>
       </div>
-
     </div>
   );
 };
