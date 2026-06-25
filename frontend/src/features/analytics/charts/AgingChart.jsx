@@ -9,11 +9,34 @@ const getColor = (hours) => {
   return '#f87171'; // Rojo
 };
 
-const AgingChart = () => {
-  const { data, error } = useSWR('/api/v1/metrics/aging', getAgingMetrics, { shouldRetryOnError: false });
-  
-  // Utilizamos los datos del backend, si fallan porque el server aún no lo retorna, no mostramos nada (o empty state)
+/**
+ * Gráfico de aging por status.
+ * El aging es point-in-time (NOW) y solo es significativo para el mes actual.
+ *
+ * @param {{ projectId: number, isCurrentMonth: boolean }} props
+ */
+const AgingChart = ({ projectId, isCurrentMonth = true }) => {
+  const { data, error } = useSWR(
+    projectId && isCurrentMonth ? ['/api/v1/metrics/aging', projectId] : null,
+    () => getAgingMetrics(projectId),
+    { shouldRetryOnError: false }
+  );
+
   const chartData = data || [];
+
+  // Para meses pasados mostrar mensaje informativo
+  if (!isCurrentMonth) {
+    return (
+      <div style={{ height: 320, backgroundColor: '#ffffff', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>Aging (Horas promedio por Status)</h4>
+        <div style={{ height: '80%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px', textAlign: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '20px' }}>ℹ️</span>
+          <span>El aging solo está disponible para el mes actual.</span>
+          <span style={{ fontSize: '12px' }}>Seleccioná el mes en curso para ver datos de aging.</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ height: 320, backgroundColor: '#ffffff', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
@@ -27,18 +50,18 @@ const AgingChart = () => {
           <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, bottom: 20, left: 10 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
             <XAxis type="number" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis 
-              dataKey="status" 
-              type="category" 
-              stroke="#64748b" 
-              fontSize={11} 
-              tickLine={false} 
-              axisLine={false} 
-              width={80} 
+            <YAxis
+              dataKey="status"
+              type="category"
+              stroke="#64748b"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              width={80}
               tickFormatter={(val) => val.replace('_', ' ').toUpperCase()}
             />
-            <Tooltip 
-              cursor={{ fill: '#f8fafc' }} 
+            <Tooltip
+              cursor={{ fill: '#f8fafc' }}
               contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
               formatter={(value) => [`${value} hrs`, "Promedio"]}
             />

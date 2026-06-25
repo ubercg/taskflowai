@@ -701,3 +701,124 @@ class TestNonexistentProjectReturns404Integration:
         resp = pg_client.get("/api/v1/metrics/aging")
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
+
+
+# ---------------------------------------------------------------------------
+# Scenario 6: /velocity/team — org-wide aggregation
+# ---------------------------------------------------------------------------
+
+@pytest.mark.integration
+class TestTeamVelocityIntegration:
+    def test_team_velocity_returns_200_and_list(self, pg_client, pg_raw):
+        """GET /velocity/team must return 200 and a list."""
+        resp = pg_client.get(
+            "/api/v1/metrics/velocity/team"
+            "?start_date=2026-06-01&end_date=2026-07-01"
+        )
+        assert resp.status_code == 200
+        assert isinstance(resp.json(), list)
+
+    def test_team_velocity_aggregates_across_projects(self, pg_client, pg_raw):
+        """
+        A user with completed tasks in two different projects must appear once
+        with the sum of completed tasks from both projects.
+        """
+        pid1 = _seed_project(pg_raw, name="TeamVel_ProjectA")
+        pid2 = _seed_project(pg_raw, name="TeamVel_ProjectB")
+        user_id = _seed_user(pg_raw, name="TeamVelUser", email="teamveluser@test.example")
+
+        start = date(2026, 6, 1)
+        end = date(2026, 7, 1)
+        completed = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
+
+        # 2 tasks in project A
+        for _ in range(2):
+            _seed_task(pg_raw, pid1, status="done", completed_at=completed, assignee_id=user_id)
+
+        # 1 task in project B
+        _seed_task(pg_raw, pid2, status="done", completed_at=completed, assignee_id=user_id)
+
+        try:
+            resp = pg_client.get(
+                f"/api/v1/metrics/velocity/team"
+                f"?start_date={start}&end_date={end}"
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert isinstance(data, list)
+
+            # The user must appear exactly once (GROUP BY u.id)
+            user_rows = [r for r in data if r["user_id"] == user_id]
+            assert len(user_rows) == 1, "User must appear exactly once in team velocity"
+
+            # completed must be the sum across both projects (2 + 1 = 3)
+            assert user_rows[0]["completed"] == 3
+        finally:
+            _cleanup(pg_raw, pid1)
+            _cleanup(pg_raw, pid2)
+
+    def test_team_velocity_active_user_with_no_tasks_appears_with_zeros(self, pg_client, pg_raw):
+        """
+        An active user with no tasks at all must still appear in the result
+        with in_progress=0, completed=0, total_hours=0 (LEFT JOIN behaviour).
+        """
+        # Seed a user with a unique email unlikely to conflict
+        user_id = _seed_user(
+            pg_raw,
+            name="ZeroTasksUser",
+            email="zerotasksuser_teamvel@test.example",
+        )
+
+        try:
+            resp = pg_client.get(
+                "/api/v1/metrics/velocity/team"
+                "?start_date=2026-06-01&end_date=2026-07-01"
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert isinstance(data, list)
+
+            # The user must appear because LEFT JOIN keeps all active users
+            user_rows = [r for r in data if r["user_id"] == user_id]
+            assert len(user_rows) == 1, "Active user with no tasks must appear (LEFT JOIN)"
+            assert user_rows[0]["in_progress"] == 0
+            assert user_rows[0]["completed"] == 0
+            assert user_rows[0]["total_hours"] == 0.0
+        finally:
+            # Remove the seeded user (no project to cleanup, just the user row)
+            pg_raw.execute(text("DELETE FROM users WHERE id = :uid"), {"uid": user_id})
+            pg_raw.commit()
+
+    def test_team_velocity_total_hours_aggregated_across_projects(self, pg_client, pg_raw):
+        """
+        total_hours must sum time_logs across ALL projects for the user
+        (not filtered by a single project_id).
+        """
+        pid1 = _seed_project(pg_raw, name="TeamVel_Hours_A")
+        pid2 = _seed_project(pg_raw, name="TeamVel_Hours_B")
+        user_id = _seed_user(pg_raw, name="TeamVelHoursUser", email="teamvelhours@test.example")
+
+        start = date(2026, 6, 1)
+        end = date(2026, 7, 1)
+
+        task1 = _seed_task(pg_raw, pid1, status="in_progress", assignee_id=user_id)
+        task2 = _seed_task(pg_raw, pid2, status="in_progress", assignee_id=user_id)
+
+        _seed_timelog(pg_raw, task1, user_id, hours=3.0, log_date=date(2026, 6, 10))
+        _seed_timelog(pg_raw, task2, user_id, hours=5.0, log_date=date(2026, 6, 12))
+
+        try:
+            resp = pg_client.get(
+                f"/api/v1/metrics/velocity/team"
+                f"?start_date={start}&end_date={end}"
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+
+            user_rows = [r for r in data if r["user_id"] == user_id]
+            assert len(user_rows) == 1
+            # 3h (project A) + 5h (project B) = 8h total
+            assert abs(user_rows[0]["total_hours"] - 8.0) < 0.01
+        finally:
+            _cleanup(pg_raw, pid1)
+            _cleanup(pg_raw, pid2)
