@@ -6,9 +6,9 @@ import { getVelocity } from '../../../services/api';
 /**
  * Gráfico de velocity por usuario para un proyecto y rango de mes dado.
  *
- * @param {{ projectId: number, startDate: string, endDate: string }} props
+ * @param {{ projectId: number, startDate: string, endDate: string, animate?: boolean }} props
  */
-const VelocityChart = ({ projectId, startDate, endDate }) => {
+const VelocityChart = ({ projectId, startDate, endDate, animate = true }) => {
   const { data, error, isLoading } = useSWR(
     projectId ? ['/api/v1/metrics/velocity', projectId, startDate, endDate] : null,
     () => getVelocity(projectId, startDate, endDate),
@@ -36,7 +36,7 @@ const VelocityChart = ({ projectId, startDate, endDate }) => {
               cursor={{ fill: '#f8fafc' }}
               contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
             />
-            <Bar dataKey="completed" name="Tareas completadas" radius={[4, 4, 0, 0]}>
+            <Bar dataKey="completed" name="Tareas completadas" radius={[4, 4, 0, 0]} isAnimationActive={animate}>
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color || '#6366f1'} />
               ))}

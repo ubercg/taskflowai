@@ -158,17 +158,17 @@ function CalendarPdfReport({ projectId, startDate, endDate, isCurrentMonth, onRe
           marginBottom: '24px',
         }}
       >
-        <KPICard title="Lead Time" value={`${leadTime}h`} subtitle="Promedio desde creación" borderColor="#3b82f6" />
-        <KPICard title="Cycle Time" value={`${cycleTime}h`} subtitle="Promedio desde inicio" borderColor="#8b5cf6" />
+        <KPICard title="Lead Time" value={`${leadTime.toFixed(2)}h`} subtitle="Promedio desde creación" borderColor="#3b82f6" />
+        <KPICard title="Cycle Time" value={`${cycleTime.toFixed(2)}h`} subtitle="Promedio desde inicio" borderColor="#8b5cf6" />
         <KPICard title="Throughput" value={`${throughput}`} subtitle="Tareas completadas / sem" borderColor="#10b981" />
         <KPICard title="WIP Actual" value={`${wipTasks}`} subtitle={isCurrentMonth ? 'Tareas en progreso' : 'Solo mes actual'} borderColor={wipTasks >= 3 ? '#ef4444' : '#eab308'} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-        <BurndownChart projectId={projectId} startDate={startDate} endDate={endDate} />
-        <VelocityChart projectId={projectId} startDate={startDate} endDate={endDate} />
-        <AgingChart projectId={projectId} isCurrentMonth={isCurrentMonth} />
-        <OkrProgressChart projectId={projectId} />
+        <BurndownChart projectId={projectId} startDate={startDate} endDate={endDate} animate={false} />
+        <VelocityChart projectId={projectId} startDate={startDate} endDate={endDate} animate={false} />
+        <AgingChart projectId={projectId} isCurrentMonth={isCurrentMonth} animate={false} />
+        <OkrProgressChart projectId={projectId} animate={false} />
       </div>
     </div>
   );

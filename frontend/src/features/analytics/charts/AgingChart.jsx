@@ -13,9 +13,9 @@ const getColor = (hours) => {
  * Gráfico de aging por status.
  * El aging es point-in-time (NOW) y solo es significativo para el mes actual.
  *
- * @param {{ projectId: number, isCurrentMonth: boolean }} props
+ * @param {{ projectId: number, isCurrentMonth: boolean, animate?: boolean }} props
  */
-const AgingChart = ({ projectId, isCurrentMonth = true }) => {
+const AgingChart = ({ projectId, isCurrentMonth = true, animate = true }) => {
   const { data, error } = useSWR(
     projectId && isCurrentMonth ? ['/api/v1/metrics/aging', projectId] : null,
     () => getAgingMetrics(projectId),
@@ -65,7 +65,7 @@ const AgingChart = ({ projectId, isCurrentMonth = true }) => {
               contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
               formatter={(value) => [`${value} hrs`, "Promedio"]}
             />
-            <Bar dataKey="avg_hours" radius={[0, 4, 4, 0]} barSize={20}>
+            <Bar dataKey="avg_hours" radius={[0, 4, 4, 0]} barSize={20} isAnimationActive={animate}>
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={getColor(entry.avg_hours)} />
               ))}

@@ -5,7 +5,7 @@ import { getObjectives } from '../../../services/api';
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#22c55e', '#06b6d4'];
 
-const OkrProgressChart = ({ projectId }) => {
+const OkrProgressChart = ({ projectId, animate = true }) => {
   const { data, error } = useSWR(
     projectId ? `/api/v1/objectives?project_id=${projectId}` : null, 
     () => getObjectives(projectId), 
@@ -40,12 +40,13 @@ const OkrProgressChart = ({ projectId }) => {
             startAngle={90} 
             endAngle={-270}
           >
-            <RadialBar 
-              minAngle={15} 
-              background 
-              clockWise 
-              dataKey="progress" 
-              cornerRadius={10} 
+            <RadialBar
+              minAngle={15}
+              background
+              clockWise
+              dataKey="progress"
+              cornerRadius={10}
+              isAnimationActive={animate}
             />
             <Tooltip 
               contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
