@@ -1,4 +1,3 @@
-import React from 'react';
 import { format, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -12,57 +11,14 @@ const MonthSelector = ({ value, onChange }) => {
   const handleNext = () => onChange(addMonths(value, 1));
 
   const label = format(value, 'MMMM yyyy', { locale: es });
+  const navBtn =
+    'rounded-md border border-border px-3 py-1.5 text-base leading-none text-muted transition-colors hover:bg-raised hover:text-fg';
 
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-    }}>
-      <button
-        aria-label="Mes anterior"
-        onClick={handlePrev}
-        style={{
-          background: 'none',
-          border: '1px solid #e2e8f0',
-          borderRadius: '6px',
-          padding: '6px 12px',
-          cursor: 'pointer',
-          color: '#475569',
-          fontSize: '16px',
-          lineHeight: 1,
-        }}
-      >
-        ‹
-      </button>
-
-      <span style={{
-        fontSize: '15px',
-        fontWeight: 600,
-        color: '#0f172a',
-        minWidth: '140px',
-        textAlign: 'center',
-        textTransform: 'capitalize',
-      }}>
-        {label}
-      </span>
-
-      <button
-        aria-label="Mes siguiente"
-        onClick={handleNext}
-        style={{
-          background: 'none',
-          border: '1px solid #e2e8f0',
-          borderRadius: '6px',
-          padding: '6px 12px',
-          cursor: 'pointer',
-          color: '#475569',
-          fontSize: '16px',
-          lineHeight: 1,
-        }}
-      >
-        ›
-      </button>
+    <div className="flex items-center gap-3">
+      <button aria-label="Mes anterior" onClick={handlePrev} className={navBtn}>‹</button>
+      <span className="min-w-[140px] text-center text-[15px] font-semibold capitalize text-fg">{label}</span>
+      <button aria-label="Mes siguiente" onClick={handleNext} className={navBtn}>›</button>
     </div>
   );
 };

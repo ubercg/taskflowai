@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
 import { format, startOfMonth, addMonths, isSameMonth } from 'date-fns';
 import { getFlowMetrics, getTasks } from '../../services/api';
@@ -10,33 +10,23 @@ import MonthSelector from './MonthSelector';
 import DailySummary from './DailySummary';
 
 const KPICard = ({ title, value, subtitle, borderColor, alertValue }) => (
-  <div style={{
-    backgroundColor: '#ffffff',
-    padding: '24px',
-    borderRadius: '8px',
-    border: '1px solid #e2e8f0',
-    borderLeft: `4px solid ${borderColor}`,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
-  }}>
-    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-      {title}
-    </span>
-    <div style={{ fontSize: '32px', fontWeight: 700, color: '#0f172a' }}>
-      {value}
-    </div>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>{subtitle}</span>
+  <div
+    className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-6 shadow-soft"
+    style={{ borderLeft: `4px solid ${borderColor}` }}
+  >
+    <span className="text-[13px] font-semibold uppercase tracking-wider text-muted">{title}</span>
+    <div className="text-[32px] font-bold text-fg">{value}</div>
+    <div className="flex items-center gap-2">
+      <span className="text-[13px] font-medium text-muted">{subtitle}</span>
       {alertValue !== undefined && (
-        <div style={{ flex: 1, height: '4px', backgroundColor: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
-          <div style={{
-            height: '100%',
-            width: `${Math.min(alertValue * 33.33, 100)}%`,
-            backgroundColor: alertValue >= 3 ? '#ef4444' : '#22c55e',
-            transition: 'width 0.5s ease'
-          }} />
+        <div className="h-1 flex-1 overflow-hidden rounded-sm bg-border">
+          <div
+            className="h-full transition-all duration-500"
+            style={{
+              width: `${Math.min(alertValue * 33.33, 100)}%`,
+              backgroundColor: alertValue >= 3 ? '#ef4444' : '#22c55e',
+            }}
+          />
         </div>
       )}
     </div>
@@ -46,68 +36,44 @@ const KPICard = ({ title, value, subtitle, borderColor, alertValue }) => (
 const MetricsDashboard = ({ projectId }) => {
   const [month, setMonth] = useState(new Date());
 
-  // Derivar rango del mes seleccionado (rango medio-abierto [start, end))
   const startDate = format(startOfMonth(month), 'yyyy-MM-dd');
   const endDate = format(startOfMonth(addMonths(month, 1)), 'yyyy-MM-dd');
   const isCurrentMonth = isSameMonth(month, new Date());
 
-  // SWR calls en paralelo — claves incluyen rango para evitar colisiones de caché
   const { data: flowMetrics, isLoading: loadingFlow } = useSWR(
     projectId ? ['/api/v1/metrics/flow', projectId, startDate, endDate] : null,
     () => getFlowMetrics(projectId, startDate, endDate),
-    { shouldRetryOnError: false }
+    { shouldRetryOnError: false },
   );
 
   const { data: tasks, isLoading: loadingTasks } = useSWR(
     projectId && isCurrentMonth ? `/api/v1/tasks?project_id=${projectId}` : null,
     () => getTasks({ project_id: projectId }),
-    { shouldRetryOnError: false }
+    { shouldRetryOnError: false },
   );
 
   const isLoading = loadingFlow || (isCurrentMonth && loadingTasks);
 
-  // Calculos / Fallbacks seguros
   const leadTime = flowMetrics?.lead_time_avg_h || 0;
   const cycleTime = flowMetrics?.cycle_time_avg_h || 0;
-  // /flow con rango devuelve "throughput"; sin rango la matview devuelve "throughput_week"
   const throughput = flowMetrics?.throughput ?? flowMetrics?.throughput_week ?? 0;
+  const wipTasks = isCurrentMonth && tasks ? tasks.filter((t) => t.status === 'in_progress').length : null;
 
-  // WIP: solo significativo para el mes actual (snapshot point-in-time)
-  const wipTasks = (isCurrentMonth && tasks) ? tasks.filter(t => t.status === 'in_progress').length : null;
-
-  if (isLoading) return <div style={{ padding: '24px', color: '#64748b' }}>Analizando métricas de flujo...</div>;
+  if (isLoading) return <div className="p-6 text-muted">Analizando métricas de flujo...</div>;
 
   return (
-    <div style={{ backgroundColor: '#f8fafc', padding: '24px', minHeight: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
-      {/* Daily Summary AI Widget */}
+    <div className="flex min-h-full flex-col gap-6 bg-canvas p-6">
       <DailySummary projectId={projectId} />
 
-      {/* Selector de mes */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+      <div className="flex items-center justify-end">
         <MonthSelector value={month} onChange={setMonth} />
       </div>
 
-      {/* 4 KPI Cards (2x2 grid en mobile, fila completa en desktop) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
-        <KPICard
-          title="Lead Time"
-          value={`${leadTime.toFixed(2)}h`}
-          subtitle="Promedio desde creación"
-          borderColor="#3b82f6"
-        />
-        <KPICard
-          title="Cycle Time"
-          value={`${cycleTime.toFixed(2)}h`}
-          subtitle="Promedio desde inicio"
-          borderColor="#8b5cf6"
-        />
-        <KPICard
-          title="Throughput"
-          value={`${throughput}`}
-          subtitle="Tareas completadas / sem"
-          borderColor="#10b981"
-        />
+      {/* 4 KPI Cards */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-6">
+        <KPICard title="Lead Time" value={`${leadTime.toFixed(2)}h`} subtitle="Promedio desde creación" borderColor="#3b82f6" />
+        <KPICard title="Cycle Time" value={`${cycleTime.toFixed(2)}h`} subtitle="Promedio desde inicio" borderColor="#8b5cf6" />
+        <KPICard title="Throughput" value={`${throughput}`} subtitle="Tareas completadas / sem" borderColor="#10b981" />
         <KPICard
           title="WIP Actual"
           value={wipTasks !== null ? `${wipTasks}` : '—'}
@@ -117,8 +83,8 @@ const MetricsDashboard = ({ projectId }) => {
         />
       </div>
 
-      {/* 4 Charts Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', paddingBottom: '32px' }}>
+      {/* 4 Charts */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(450px,1fr))] gap-6 pb-8">
         <BurndownChart projectId={projectId} startDate={startDate} endDate={endDate} />
         <VelocityChart projectId={projectId} startDate={startDate} endDate={endDate} />
         <AgingChart projectId={projectId} isCurrentMonth={isCurrentMonth} />

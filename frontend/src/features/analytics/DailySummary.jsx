@@ -1,34 +1,32 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
 import { useParams } from 'react-router-dom';
 import { getDailySummary } from '../../services/api';
 import api from '../../services/api/client';
-import TaskModal from './../execution/TaskModal'; // Reutilizamos el modal que armamos antes
+import TaskModal from './../execution/TaskModal';
+import { cn } from '../../lib/cn';
 
 const SkeletonSummary = () => (
-  <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-    <div style={{ height: '20px', width: '40%', backgroundColor: '#e2e8f0', borderRadius: '4px', animation: 'pulse 1.5s infinite' }} />
-    <div style={{ height: '14px', width: '100%', backgroundColor: '#e2e8f0', borderRadius: '4px', animation: 'pulse 1.5s infinite' }} />
-    <div style={{ height: '14px', width: '80%', backgroundColor: '#e2e8f0', borderRadius: '4px', animation: 'pulse 1.5s infinite' }} />
+  <div className="flex flex-col gap-3 p-4">
+    <div className="h-5 w-2/5 animate-pulse rounded bg-border" />
+    <div className="h-3.5 w-full animate-pulse rounded bg-border" />
+    <div className="h-3.5 w-4/5 animate-pulse rounded bg-border" />
   </div>
 );
 
 const DailySummary = ({ projectId }) => {
   const { id } = useParams();
   const activeProjectId = projectId || id;
-  const [expandedSection, setExpandedSection] = useState(null); // 'blocked' | 'advanced' | 'risks'
+  const [expandedSection, setExpandedSection] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
 
-  // Clave estable + fetcher con Axios (baseURL → backend :8000). Antes el 2º arg era solo opciones:
-  // SWR usaba fetch() relativo al :3000 y la petición fallaba sin token.
   const { data, error, isLoading, mutate } = useSWR(
     activeProjectId ? ['daily-summary', activeProjectId] : null,
     () => getDailySummary(activeProjectId),
-    { refreshInterval: 0 }
+    { refreshInterval: 0 },
   );
 
   const handleRefresh = async () => {
-    // Forzar refresh en el backend y luego revalidar SWR
     try {
       await api.get(`/api/v1/ai/daily-summary?project_id=${activeProjectId}&refresh=true`);
       mutate();
@@ -38,14 +36,11 @@ const DailySummary = ({ projectId }) => {
     }
   };
 
-  const toggleSection = (section) => {
-    if (expandedSection === section) setExpandedSection(null);
-    else setExpandedSection(section);
-  };
+  const toggleSection = (section) => setExpandedSection((prev) => (prev === section ? null : section));
 
   if (isLoading) {
     return (
-      <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderLeft: '4px solid #6366f1', borderRadius: '8px', minHeight: '120px' }}>
+      <div className="min-h-[120px] rounded-lg border border-border border-l-4 border-l-accent bg-surface">
         <SkeletonSummary />
       </div>
     );
@@ -53,150 +48,86 @@ const DailySummary = ({ projectId }) => {
 
   if (error) {
     return (
-      <div style={{ backgroundColor: '#ffffff', border: '1px solid #fca5a5', borderLeft: '4px solid #ef4444', borderRadius: '8px', padding: '16px' }}>
-        <p style={{ margin: 0, color: '#991b1b', fontSize: '14px', fontWeight: 500 }}>No se pudo generar el resumen inteligente.</p>
-        <button onClick={() => mutate()} style={{ marginTop: '8px', padding: '4px 8px', fontSize: '12px', border: '1px solid #fca5a5', backgroundColor: '#fef2f2', color: '#991b1b', borderRadius: '4px', cursor: 'pointer' }}>Reintentar</button>
+      <div className="rounded-lg border border-status-blocked/40 border-l-4 border-l-status-blocked bg-surface p-4">
+        <p className="text-sm font-medium text-status-blocked">No se pudo generar el resumen inteligente.</p>
+        <button
+          onClick={() => mutate()}
+          className="mt-2 rounded border border-status-blocked/40 bg-status-blocked/10 px-2 py-1 text-xs text-status-blocked"
+        >
+          Reintentar
+        </button>
       </div>
     );
   }
 
   if (!data) return null;
 
+  const categories = [
+    { key: 'blocked', label: 'Bloqueadas', count: data.stats?.blocked_count || data.blocked?.length || 0, tone: 'border-status-blocked/40 bg-status-blocked/10 text-status-blocked' },
+    { key: 'advanced', label: 'Avanzadas', count: data.advanced?.length || 0, tone: 'border-status-done/40 bg-status-done/10 text-status-done' },
+    { key: 'risks', label: 'En Riesgo', count: data.stats?.at_risk_count || data.risks?.length || 0, tone: 'border-priority-medium/40 bg-priority-medium/10 text-priority-medium' },
+  ];
+
   return (
     <>
-      <div style={{ 
-        backgroundColor: '#ffffff', 
-        border: '1px solid #e2e8f0', 
-        borderLeft: '4px solid #6366f1', 
-        borderRadius: '8px', 
-        padding: '16px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-      }}>
+      <div className="rounded-lg border border-border border-l-4 border-l-accent bg-surface p-4 shadow-soft">
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '16px' }}>✨</span>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>Resumen del Día</h3>
-            <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>
-              {new Date(data.generated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-base">✨</span>
+            <h3 className="text-[15px] font-semibold text-fg">Resumen del Día</h3>
+            <span className="text-xs font-medium text-faint">
+              {new Date(data.generated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
-          <button 
+          <button
             onClick={handleRefresh}
-            style={{ background: 'none', border: '1px solid #e2e8f0', padding: '4px 8px', borderRadius: '4px', color: '#64748b', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+            className="flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-muted transition-colors hover:bg-raised hover:text-fg"
           >
             ↻ Actualizar
           </button>
         </div>
 
-        {/* NLP Summary */}
-        <p style={{ 
-          margin: '0 0 16px 0', 
-          fontSize: '14px', 
-          color: '#334155', 
-          lineHeight: '1.5',
-          display: '-webkit-box',
-          WebkitLineClamp: 3,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden'
-        }}>
-          {data.stats?.total_moves === 0 ? "Sin actividad registrada en las últimas 24 horas" : data.summary_text}
+        {/* Resumen NLP */}
+        <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-fg">
+          {data.stats?.total_moves === 0 ? 'Sin actividad registrada en las últimas 24 horas' : data.summary_text}
         </p>
 
-        {/* Categorias (Botones horizontales) */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-          
-          <button 
-            onClick={() => toggleSection('blocked')}
-            style={{ 
-              flex: 1, 
-              padding: '8px', 
-              borderRadius: '6px', 
-              border: expandedSection === 'blocked' ? '1px solid #fca5a5' : '1px solid transparent', 
-              backgroundColor: '#fef2f2', 
-              color: '#991b1b', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center',
-              transition: 'all 0.2s'
-            }}
-          >
-            <span style={{ fontSize: '16px', fontWeight: 700 }}>{data.stats?.blocked_count || data.blocked?.length || 0}</span>
-            <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginTop: '2px' }}>Bloqueadas</span>
-          </button>
-
-          <button 
-            onClick={() => toggleSection('advanced')}
-            style={{ 
-              flex: 1, 
-              padding: '8px', 
-              borderRadius: '6px', 
-              border: expandedSection === 'advanced' ? '1px solid #86efac' : '1px solid transparent', 
-              backgroundColor: '#f0fdf4', 
-              color: '#166534', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center',
-              transition: 'all 0.2s'
-            }}
-          >
-            <span style={{ fontSize: '16px', fontWeight: 700 }}>{data.advanced?.length || 0}</span>
-            <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginTop: '2px' }}>Avanzadas</span>
-          </button>
-
-          <button 
-            onClick={() => toggleSection('risks')}
-            style={{ 
-              flex: 1, 
-              padding: '8px', 
-              borderRadius: '6px', 
-              border: expandedSection === 'risks' ? '1px solid #fde047' : '1px solid transparent', 
-              backgroundColor: '#fefce8', 
-              color: '#854d0e', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center',
-              transition: 'all 0.2s'
-            }}
-          >
-            <span style={{ fontSize: '16px', fontWeight: 700 }}>{data.stats?.at_risk_count || data.risks?.length || 0}</span>
-            <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginTop: '2px' }}>En Riesgo</span>
-          </button>
+        {/* Categorías */}
+        <div className="flex flex-wrap gap-2 border-t border-hairline pt-4">
+          {categories.map((cat) => (
+            <button
+              key={cat.key}
+              onClick={() => toggleSection(cat.key)}
+              className={cn(
+                'flex flex-1 flex-col items-center rounded-md border p-2 transition-all',
+                cat.tone,
+                expandedSection !== cat.key && 'border-transparent',
+              )}
+            >
+              <span className="text-base font-bold">{cat.count}</span>
+              <span className="mt-0.5 text-[11px] font-semibold uppercase">{cat.label}</span>
+            </button>
+          ))}
         </div>
 
-        {/* Listado Expandido */}
+        {/* Listado expandido */}
         {expandedSection && (
-          <div style={{ marginTop: '16px', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
-              Detalle de tareas
-            </h4>
-            
+          <div className="mt-4 rounded-md border border-border bg-canvas p-3">
+            <h4 className="mb-2 text-xs font-semibold uppercase text-muted">Detalle de tareas</h4>
+
             {data[expandedSection].length === 0 ? (
-              <div style={{ fontSize: '13px', color: '#94a3b8' }}>No hay tareas en esta categoría.</div>
+              <div className="text-[13px] text-faint">No hay tareas en esta categoría.</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {data[expandedSection].map(task => (
-                  <div 
+              <div className="flex flex-col gap-2">
+                {data[expandedSection].map((task) => (
+                  <div
                     key={task.task_id}
                     onClick={() => setSelectedTask(task.task_id)}
-                    style={{ 
-                      backgroundColor: '#ffffff', 
-                      padding: '8px 12px', 
-                      borderRadius: '4px', 
-                      border: '1px solid #cbd5e1', 
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px'
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = '#94a3b8'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = '#cbd5e1'}
+                    className="flex cursor-pointer flex-col gap-1 rounded border border-border bg-surface px-3 py-2 transition-colors hover:border-accent"
                   >
-                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#0f172a' }}>{task.title}</span>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    <span className="text-[13px] font-medium text-fg">{task.title}</span>
+                    <span className="text-[11px] text-muted">
                       {expandedSection === 'blocked' && `Tiempo en bloqueo: ${task.blocked_since}`}
                       {expandedSection === 'advanced' && `Movida: ${task.from_status ?? task.from} → ${task.to_status ?? task.to}`}
                       {expandedSection === 'risks' && task.reason}
@@ -209,10 +140,7 @@ const DailySummary = ({ projectId }) => {
         )}
       </div>
 
-      {/* Renderizar Modal si hay click */}
-      {selectedTask && (
-        <TaskModal taskId={selectedTask} onClose={() => setSelectedTask(null)} />
-      )}
+      {selectedTask && <TaskModal taskId={selectedTask} onClose={() => setSelectedTask(null)} />}
     </>
   );
 };
