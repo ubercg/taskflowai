@@ -106,11 +106,11 @@ const KanbanBoard = ({ projectId, onTaskClick, onAddTask }) => {
     }
   };
 
-  if (isLoading || isInitializing) return <div>Cargando Tablero Kanban...</div>;
-  if (error) return <div>Error cargando tareas</div>;
+  if (isLoading || isInitializing) return <div className="text-muted">Cargando Tablero Kanban...</div>;
+  if (error) return <div className="text-status-blocked">Error cargando tareas</div>;
 
   return (
-    <div style={{ display: 'flex', gap: '24px', overflowX: 'auto', paddingBottom: '16px', height: '100%', alignItems: 'stretch' }}>
+    <div className="flex h-full items-stretch gap-6 overflow-x-auto pb-4">
       <WipToast />
       <DragDropContext onDragEnd={onDragEnd}>
         <KanbanColumn columnId="backlog" title="Backlog" tasks={columns.backlog} onTaskClick={onTaskClick} onAddTask={onAddTask} bottleneck={bottlenecks['backlog']} />

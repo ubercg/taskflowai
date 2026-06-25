@@ -1,19 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import { getTask, getTasks, updateTask, deleteTask, getTimeLogs, createTimeLog } from '../../services/api';
 import api from '../../services/api/client';
 import { toDateInputValue, formatCalendarLocale } from '../../utils/dateUtils';
 import Linkify from '../../components/shared/Linkify';
-
 import usePermissions from '../../hooks/usePermissions';
-
 import { useAuth } from '../../store/authStore';
+import { cn } from '../../lib/cn';
 
 const getInitials = (name) => {
   if (!name) return '??';
   const parts = name.split(' ');
   return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
 };
+
+const FIELD =
+  'rounded border border-border bg-canvas px-2 py-1 text-[13px] text-fg outline-none ' +
+  'transition-colors focus:border-accent disabled:cursor-not-allowed disabled:bg-raised disabled:text-muted';
+const META_LABEL = 'text-[13px] text-muted';
+const SECTION_TITLE = 'mb-3 text-sm font-semibold text-fg';
 
 const TaskModal = ({ taskId, onClose }) => {
   const { canAssignTask, canDeleteTask, canLogTime, editableFields } = usePermissions();
@@ -31,44 +37,38 @@ const TaskModal = ({ taskId, onClose }) => {
   const { data: task, error, mutate } = useSWR(
     taskId ? `/api/v1/tasks/${taskId}` : null,
     () => getTask(taskId),
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: false },
   );
 
   const { data: timeLogs, mutate: mutateLogs } = useSWR(
     taskId ? `/api/v1/time-logs?task_id=${taskId}` : null,
-    () => getTimeLogs({ task_id: taskId })
+    () => getTimeLogs({ task_id: taskId }),
   );
 
   const { data: activities } = useSWR(
     taskId ? `/api/v1/tasks/${taskId}/activities` : null,
-    () => api.get(`/api/v1/tasks/${taskId}/activities`).then(res => res.data)
+    () => api.get(`/api/v1/tasks/${taskId}/activities`).then((res) => res.data),
   );
 
-  // URL distinta a TaskListView (solo ?project_id) para no compartir caché SWR.
-  // El backend filtra por parent_id; antes el fetcher filtraba en cliente y colisionaba la clave.
   const { data: subtasks, mutate: mutateSubtasks } = useSWR(
     task?.project_id != null && taskId != null
       ? `/api/v1/tasks?project_id=${task.project_id}&parent_id=${taskId}`
       : null,
-    () =>
-      getTasks({ project_id: task.project_id, parent_id: taskId })
+    () => getTasks({ project_id: task.project_id, parent_id: taskId }),
   );
 
   const { data: members } = useSWR(
     task?.project_id ? `/api/v1/projects/${task.project_id}/members` : null,
-    () => api.get(`/api/v1/projects/${task.project_id}/members`).then(res => res.data)
+    () => api.get(`/api/v1/projects/${task.project_id}/members`).then((res) => res.data),
   );
 
   const { data: objectives } = useSWR(
     task?.project_id ? `/api/v1/objectives?project_id=${task.project_id}` : null,
-    () => api.get(`/api/v1/objectives?project_id=${task.project_id}`).then(res => res.data)
+    () => api.get(`/api/v1/objectives?project_id=${task.project_id}`).then((res) => res.data),
   );
 
   useEffect(() => {
-    // Activar animación de entrada al montar
     requestAnimationFrame(() => setIsOpen(true));
-    
-    // Bloquear scroll del body
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
@@ -85,7 +85,7 @@ const TaskModal = ({ taskId, onClose }) => {
 
   const handleClose = () => {
     setIsOpen(false);
-    setTimeout(onClose, 200); // Esperar que termine la animación
+    setTimeout(onClose, 200);
   };
 
   const handleEstimatedHoursBlur = async () => {
@@ -94,7 +94,7 @@ const TaskModal = ({ taskId, onClose }) => {
     try {
       await updateTask(taskId, { estimated_hours: parsed });
       mutate({ ...task, estimated_hours: parsed }, false);
-    } catch (err) {
+    } catch {
       setEstimatedHours(task?.estimated_hours ?? '');
     }
   };
@@ -105,7 +105,7 @@ const TaskModal = ({ taskId, onClose }) => {
         await updateTask(taskId, { title });
         mutate({ ...task, title }, false);
       } catch (err) {
-        console.error("Error updating title", err);
+        console.error('Error updating title', err);
         setTitle(task?.title || '');
       }
     }
@@ -114,14 +114,13 @@ const TaskModal = ({ taskId, onClose }) => {
   const handleDescriptionChange = (e) => {
     const val = e.target.value;
     setDescription(val);
-
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         await updateTask(taskId, { description: val });
         mutate({ ...task, description: val }, false);
       } catch (err) {
-        console.error("Error auto-saving description", err);
+        console.error('Error auto-saving description', err);
       }
     }, 1000);
   };
@@ -135,12 +134,12 @@ const TaskModal = ({ taskId, onClose }) => {
         project_id: task.project_id,
         title: newSubtaskTitle,
         type: 'subtask',
-        status: 'backlog'
+        status: 'backlog',
       });
       setNewSubtaskTitle('');
       mutateSubtasks();
     } catch (err) {
-      alert("Error al crear subtarea: " + (err.response?.data?.detail || err.message));
+      alert('Error al crear subtarea: ' + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -150,7 +149,7 @@ const TaskModal = ({ taskId, onClose }) => {
       await api.patch(`/api/v1/tasks/${subtask.id}`, { status: newStatus });
       mutateSubtasks();
     } catch (err) {
-      alert("Error al actualizar subtarea: " + (err.response?.data?.detail || err.message));
+      alert('Error al actualizar subtarea: ' + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -163,96 +162,62 @@ const TaskModal = ({ taskId, onClose }) => {
         user_id: user?.id || 1,
         hours: parseFloat(newLogHours),
         description: newLogDesc || null,
-        log_date: new Date().toISOString().split('T')[0]
+        log_date: new Date().toISOString().split('T')[0],
       });
-      // Limpiamos form y recargamos logs y tarea
       setNewLogHours('');
       setNewLogDesc('');
       mutateLogs();
       mutate();
     } catch (err) {
-      alert("Error al registrar tiempo: " + (err.detail || err.message));
+      alert('Error al registrar tiempo: ' + (err.detail || err.message));
     }
   };
+
   const allowedFields = task ? editableFields(task) : [];
   const canEditField = (field) => allowedFields === 'all' || allowedFields.includes(field);
+
   const handleDelete = async () => {
     if (!canDeleteTask) return;
-    if (window.confirm("¿Seguro que quieres eliminar esta tarea de forma permanente?")) {
+    if (window.confirm('¿Seguro que quieres eliminar esta tarea de forma permanente?')) {
       try {
         await deleteTask(taskId);
         handleClose();
-        // Here we'd ideally mutate the list/kanban board via a global SWR config or event
-      } catch (err) {
-        alert("Error al eliminar la tarea");
+      } catch {
+        alert('Error al eliminar la tarea');
       }
     }
   };
 
-  return (
+  return createPortal(
     <>
       {/* Overlay */}
-      <div 
+      <div
         onClick={handleClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.4)',
-          zIndex: 50,
-          opacity: isOpen ? 1 : 0,
-          transition: 'opacity 200ms ease-out'
-        }}
+        className="fixed inset-0 z-50 bg-overlay backdrop-blur-sm transition-opacity duration-200"
+        style={{ opacity: isOpen ? 1 : 0 }}
       />
 
-      {/* Right Panel */}
-      <div data-testid="task-modal" style={{
-        position: 'fixed',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        width: '480px',
-        maxWidth: '100vw',
-        backgroundColor: '#ffffff',
-        boxShadow: '-4px 0 24px rgba(0,0,0,0.1)',
-        zIndex: 51,
-        transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-        transition: 'transform 200ms ease-out',
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
+      {/* Panel derecho */}
+      <div
+        data-testid="task-modal"
+        className="fixed inset-y-0 right-0 z-[51] flex w-[480px] max-w-full flex-col border-l border-border bg-surface shadow-overlay transition-transform duration-200"
+        style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
+      >
         {!task && !error ? (
-          <div data-testid="task-modal" style={{ padding: '24px' }}>Cargando...</div>
+          <div className="p-6 text-muted">Cargando...</div>
         ) : (
           <>
             {/* Header */}
-            <div data-testid="task-modal" style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <input 
-                type="text" 
+            <div className="flex items-start justify-between border-b border-border px-6 py-5">
+              <input
+                type="text"
                 value={title}
                 readOnly={!canEditField('title')}
-                onChange={e => setTitle(e.target.value)}
+                onChange={(e) => setTitle(e.target.value)}
                 onBlur={handleTitleBlur}
-                style={{ 
-                  fontSize: '20px', 
-                  fontWeight: 600, 
-                  color: '#0f172a', 
-                  border: '1px solid transparent',
-                  padding: '4px 8px',
-                  marginLeft: '-8px',
-                  borderRadius: '4px',
-                  width: 'calc(100% - 32px)',
-                  outline: 'none',
-                  transition: 'border-color 0.2s, background-color 0.2s',
-                  backgroundColor: !canEditField('title') ? 'transparent' : undefined
-                }}
-                onFocus={e => {
-                  if (canEditField('title')) {
-                    e.target.style.backgroundColor = '#f8fafc';
-                    e.target.style.borderColor = '#cbd5e1';
-                  }
-                }}
+                className="-ml-2 w-[calc(100%-32px)] rounded border border-transparent px-2 py-1 text-xl font-semibold text-fg outline-none transition-colors read-only:cursor-default focus:border-border focus:bg-canvas"
               />
-              <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+              <button onClick={handleClose} className="text-muted transition-colors hover:text-fg">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -260,41 +225,40 @@ const TaskModal = ({ taskId, onClose }) => {
               </button>
             </div>
 
-            {/* Scrollable Content */}
-            <div data-testid="task-modal" style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-              
-              {/* Metadata Grid */}
-              <div data-testid="task-modal" style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '16px', marginBottom: '32px' }}>
-                <span style={{ color: '#64748b', fontSize: '13px' }}>Estado</span>
-                <select 
+            {/* Contenido scrollable */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* Metadata */}
+              <div className="mb-8 grid grid-cols-[120px_1fr] items-center gap-4">
+                <span className={META_LABEL}>Estado</span>
+                <select
                   disabled={!canEditField('status')}
                   value={task?.status}
-                  onChange={async e => {
+                  onChange={async (e) => {
                     const newStatus = e.target.value;
                     try {
                       await updateTask(taskId, { status: newStatus });
                       mutate({ ...task, status: newStatus }, false);
-                    } catch (err) {}
+                    } catch {}
                   }}
-                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', backgroundColor: !canEditField('status') ? '#f8fafc' : '#fff' }}
+                  className={FIELD}
                 >
                   <option value={task?.status}>{task?.status?.replace('_', ' ')}</option>
                   <option value="in_progress">in progress</option>
                   <option value="done">done</option>
                 </select>
 
-                <span style={{ color: '#64748b', fontSize: '13px' }}>Prioridad</span>
-                <select 
+                <span className={META_LABEL}>Prioridad</span>
+                <select
                   value={task?.priority || 'medium'}
-                  onChange={async e => {
+                  onChange={async (e) => {
                     const newPriority = e.target.value;
                     try {
                       await updateTask(taskId, { priority: newPriority });
                       mutate({ ...task, priority: newPriority }, false);
-                    } catch (err) {}
+                    } catch {}
                   }}
                   disabled={!canEditField('priority')}
-                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', backgroundColor: !canEditField('priority') ? '#f8fafc' : '#fff' }}
+                  className={FIELD}
                 >
                   <option value="critical">Crítica</option>
                   <option value="high">Alta</option>
@@ -302,291 +266,226 @@ const TaskModal = ({ taskId, onClose }) => {
                   <option value="low">Baja</option>
                 </select>
 
-                <span style={{ color: '#64748b', fontSize: '13px' }}>Asignado</span>
-                <select 
+                <span className={META_LABEL}>Asignado</span>
+                <select
                   value={task?.assignee_id || ''}
-                  onChange={async e => {
+                  onChange={async (e) => {
                     const newAssignee = e.target.value ? Number(e.target.value) : null;
                     try {
                       await updateTask(taskId, { assignee_id: newAssignee });
                       mutate({ ...task, assignee_id: newAssignee }, false);
-                    } catch (err) {}
+                    } catch {}
                   }}
                   disabled={!canAssignTask}
-                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', backgroundColor: !canAssignTask ? '#f8fafc' : '#fff' }}
+                  className={FIELD}
                 >
                   <option value="">Sin asignar</option>
-                  {members?.map(m => (
-                    <option key={m.id} value={m.id}>
-                      {getInitials(m.name)} {m.name} — {m.role}
-                    </option>
+                  {members?.map((m) => (
+                    <option key={m.id} value={m.id}>{getInitials(m.name)} {m.name} — {m.role}</option>
                   ))}
                 </select>
 
-                <span style={{ color: '#64748b', fontSize: '13px' }}>Objetivo</span>
-                <select 
+                <span className={META_LABEL}>Objetivo</span>
+                <select
                   value={task?.objective_id || ''}
-                  onChange={async e => {
+                  onChange={async (e) => {
                     const newObjective = e.target.value ? Number(e.target.value) : null;
                     try {
                       await updateTask(taskId, { objective_id: newObjective });
                       mutate({ ...task, objective_id: newObjective }, false);
-                    } catch (err) {}
+                    } catch {}
                   }}
                   disabled={!canEditField('objective_id')}
-                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', backgroundColor: !canEditField('objective_id') ? '#f8fafc' : '#fff' }}
+                  className={FIELD}
                 >
                   <option value="">Sin objetivo</option>
-                  {objectives?.map(o => (
-                    <option key={o.id} value={o.id}>
-                      {o.title}
-                    </option>
-                  ))}
+                  {objectives?.map((o) => <option key={o.id} value={o.id}>{o.title}</option>)}
                 </select>
 
-                <span style={{ color: '#64748b', fontSize: '13px' }}>Vencimiento</span>
+                <span className={META_LABEL}>Vencimiento</span>
                 <input
                   type="date"
                   value={task?.due_date ? toDateInputValue(task.due_date) : ''}
-                  onChange={async e => {
+                  onChange={async (e) => {
                     const newDate = e.target.value || null;
                     try {
                       await updateTask(taskId, { due_date: newDate });
                       mutate({ ...task, due_date: newDate }, false);
-                    } catch (err) {}
+                    } catch {}
                   }}
                   disabled={!canEditField('due_date')}
-                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', backgroundColor: !canEditField('due_date') ? '#f8fafc' : '#fff' }}
+                  className={FIELD}
                 />
 
-                <span style={{ color: '#64748b', fontSize: '13px' }}>Estimación (hs)</span>
+                <span className={META_LABEL}>Estimación (hs)</span>
                 <input
                   type="number"
                   step="0.5"
                   min="0"
                   value={estimatedHours}
-                  onChange={e => setEstimatedHours(e.target.value)}
+                  onChange={(e) => setEstimatedHours(e.target.value)}
                   onBlur={handleEstimatedHoursBlur}
                   disabled={!canEditField('estimated_hours')}
                   placeholder="0.0"
-                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', backgroundColor: !canEditField('estimated_hours') ? '#f8fafc' : '#fff', width: '100px' }}
+                  className={cn(FIELD, 'w-[100px]')}
                 />
               </div>
 
-              {/* Description */}
-              <div data-testid="task-modal" style={{ marginBottom: '32px' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>Descripción</h4>
+              {/* Descripción */}
+              <div className="mb-8">
+                <h4 className={SECTION_TITLE}>Descripción</h4>
 
-                {/* Read-only users: always show a non-editable linkified view */}
                 {!canEditField('description') && (
-                  <div style={{
-                    width: '100%',
-                    minHeight: '120px',
-                    padding: '12px',
-                    borderRadius: '6px',
-                    border: '1px solid #e2e8f0',
-                    fontSize: '14px',
-                    color: description ? '#334155' : '#94a3b8',
-                    fontFamily: 'inherit',
-                    backgroundColor: '#f8fafc',
-                    boxSizing: 'border-box',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                  }}>
-                    {description
-                      ? <Linkify text={description} />
-                      : 'Sin descripción.'}
+                  <div className={cn('min-h-[120px] whitespace-pre-wrap break-words rounded-md border border-border bg-canvas p-3 text-sm', description ? 'text-fg' : 'text-faint')}>
+                    {description ? <Linkify text={description} /> : 'Sin descripción.'}
                   </div>
                 )}
 
-                {/* Editable users — view mode (click to edit) */}
                 {canEditField('description') && !editingDesc && (
                   <div
                     onClick={() => setEditingDesc(true)}
-                    style={{
-                      width: '100%',
-                      minHeight: '120px',
-                      padding: '12px',
-                      borderRadius: '6px',
-                      border: '1px solid #e2e8f0',
-                      fontSize: '14px',
-                      color: description ? '#334155' : '#94a3b8',
-                      fontFamily: 'inherit',
-                      backgroundColor: '#fff',
-                      cursor: 'pointer',
-                      boxSizing: 'border-box',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#818cf8'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                    className={cn('min-h-[120px] cursor-pointer whitespace-pre-wrap break-words rounded-md border border-border bg-surface p-3 text-sm transition-colors hover:border-accent', description ? 'text-fg' : 'text-faint')}
                   >
-                    {description
-                      ? <Linkify text={description} />
-                      : 'Añade una descripción más detallada...'}
+                    {description ? <Linkify text={description} /> : 'Añade una descripción más detallada...'}
                   </div>
                 )}
 
-                {/* Editable users — edit mode (textarea) */}
                 {canEditField('description') && editingDesc && (
                   <textarea
                     autoFocus
                     value={description}
                     onChange={handleDescriptionChange}
                     placeholder="Añade una descripción más detallada..."
-                    style={{
-                      width: '100%',
-                      minHeight: '120px',
-                      padding: '12px',
-                      borderRadius: '6px',
-                      border: '1px solid #818cf8',
-                      fontSize: '14px',
-                      color: '#334155',
-                      resize: 'vertical',
-                      fontFamily: 'inherit',
-                      outline: 'none',
-                      backgroundColor: '#fff',
-                    }}
-                    onFocus={e => { e.target.style.borderColor = '#818cf8'; }}
-                    onBlur={e => {
-                      e.target.style.borderColor = '#e2e8f0';
-                      setEditingDesc(false);
-                    }}
+                    onBlur={() => setEditingDesc(false)}
+                    className="min-h-[120px] w-full resize-y rounded-md border border-accent bg-surface p-3 text-sm text-fg outline-none"
                   />
                 )}
               </div>
 
-              {/* Subtasks */}
-              <div data-testid="task-modal" style={{ marginBottom: '32px' }}>
-                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>Subtareas</h4>
-                <div data-testid="task-modal" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {subtasks?.map(st => (
-                    <div key={st.id} data-testid="task-modal" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input 
-                        type="checkbox" 
+              {/* Subtareas */}
+              <div className="mb-8">
+                <h4 className={SECTION_TITLE}>Subtareas</h4>
+                <div className="flex flex-col gap-2">
+                  {subtasks?.map((st) => (
+                    <div key={st.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
                         checked={st.status === 'done'}
                         onChange={() => handleToggleSubtask(st)}
                         disabled={!canEditField('status')}
+                        className="accent-[var(--color-accent)]"
                       />
-                      <span style={{ fontSize: '14px', color: '#334155', textDecoration: st.status === 'done' ? 'line-through' : 'none' }}>
+                      <span className={cn('text-sm', st.status === 'done' ? 'text-faint line-through' : 'text-fg')}>
                         {st.title}
                       </span>
                     </div>
                   ))}
                   {canEditField('title') && (
-                    <form onSubmit={handleCreateSubtask} style={{ display: 'flex', marginTop: '4px' }}>
-                      <input 
-                        type="text" 
+                    <form onSubmit={handleCreateSubtask} className="mt-1 flex">
+                      <input
+                        type="text"
                         value={newSubtaskTitle}
-                        onChange={e => setNewSubtaskTitle(e.target.value)}
-                        placeholder="+ Añadir subtarea" 
-                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px dashed #cbd5e1', fontSize: '13px', outline: 'none' }} 
+                        onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                        placeholder="+ Añadir subtarea"
+                        className="flex-1 rounded-md border border-dashed border-border bg-transparent px-3 py-2 text-[13px] text-fg outline-none placeholder:text-faint focus:border-accent"
                       />
-                      <button type="submit" style={{ display: 'none' }}>Crear</button>
+                      <button type="submit" className="hidden">Crear</button>
                     </form>
                   )}
                 </div>
               </div>
 
-              {/* Activities (Historial de Cambios) */}
-              <div data-testid="task-modal" style={{ marginBottom: '32px' }}>
-                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>Historial de Actividades</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {/* Historial de actividades */}
+              <div className="mb-8">
+                <h4 className={SECTION_TITLE}>Historial de Actividades</h4>
+                <div className="flex flex-col gap-2">
                   {activities && activities.length > 0 ? (
-                    activities.map(act => (
-                      <div key={act.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px' }}>
-                        <div style={{ color: '#64748b', whiteSpace: 'nowrap' }}>
-                          {new Date(act.created_at).toLocaleDateString()} {new Date(act.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    activities.map((act) => (
+                      <div key={act.id} className="flex items-start gap-2 text-xs">
+                        <div className="whitespace-nowrap text-muted">
+                          {new Date(act.created_at).toLocaleDateString()} {new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
-                        <div style={{ color: '#334155' }}>
-                          <strong style={{ color: '#0f172a' }}>{act.user_name || `U${act.user_id}`}</strong>{' '}
+                        <div className="text-fg">
+                          <strong className="text-fg">{act.user_name || `U${act.user_id}`}</strong>{' '}
                           {act.from_status ? (
-                            <>movió la tarea de <strong style={{ color: '#6366f1' }}>{act.from_status.replace('_', ' ')}</strong> a <strong style={{ color: '#6366f1' }}>{act.to_status.replace('_', ' ')}</strong></>
+                            <>movió la tarea de <strong className="text-accent">{act.from_status.replace('_', ' ')}</strong> a <strong className="text-accent">{act.to_status.replace('_', ' ')}</strong></>
                           ) : (
-                            <>creó la tarea en <strong style={{ color: '#6366f1' }}>{act.to_status.replace('_', ' ')}</strong></>
+                            <>creó la tarea en <strong className="text-accent">{act.to_status.replace('_', ' ')}</strong></>
                           )}
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>No hay actividades registradas.</div>
+                    <div className="text-xs text-faint">No hay actividades registradas.</div>
                   )}
                 </div>
               </div>
 
-              {/* Time Logs */}
+              {/* Registro de tiempo */}
               {canLogTime && (
-              <div>
-                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>Registro de Tiempo</h4>
-                <div data-testid="task-modal" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                  <input 
-                    type="number" 
-                    step="0.5"
-                    min="0"
-                    placeholder="Horas" 
-                    value={newLogHours}
-                    onChange={e => setNewLogHours(e.target.value)}
-                    style={{ width: '80px', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '13px' }} 
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="¿En qué trabajaste?" 
-                    value={newLogDesc}
-                    onChange={e => setNewLogDesc(e.target.value)}
-                    style={{ flex: 1, padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '13px' }} 
-                  />
-                  <button 
-                    onClick={handleLogTime}
-                    disabled={!newLogHours}
-                    style={{ padding: '8px 16px', backgroundColor: newLogHours ? '#6366f1' : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: newLogHours ? 'pointer' : 'not-allowed', fontSize: '13px', fontWeight: 500 }}
-                  >
-                    Registrar
-                  </button>
-                </div>
-                
-                {/* Historial de logs */}
-                {timeLogs && timeLogs.length > 0 ? (
-                  <div data-testid="task-modal" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {timeLogs.slice(0, 5).map(log => (
-                      <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '4px', fontSize: '12px' }}>
-                        <span style={{ color: '#475569' }}>
-                          U{log.user_id} - {formatCalendarLocale(log.log_date)}{log.description && <> (<Linkify text={log.description} />)</>}
-                        </span>
-                        <span style={{ fontWeight: 600, color: '#0f172a' }}>{log.hours}h</span>
-                      </div>
-                    ))}
+                <div>
+                  <h4 className={SECTION_TITLE}>Registro de Tiempo</h4>
+                  <div className="mb-4 flex gap-2">
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      placeholder="Horas"
+                      value={newLogHours}
+                      onChange={(e) => setNewLogHours(e.target.value)}
+                      className={cn(FIELD, 'w-20 py-2')}
+                    />
+                    <input
+                      type="text"
+                      placeholder="¿En qué trabajaste?"
+                      value={newLogDesc}
+                      onChange={(e) => setNewLogDesc(e.target.value)}
+                      className={cn(FIELD, 'flex-1 py-2')}
+                    />
+                    <button
+                      onClick={handleLogTime}
+                      disabled={!newLogHours}
+                      className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-accent-fg transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Registrar
+                    </button>
                   </div>
-                ) : (
-                  <span style={{ fontSize: '12px', color: '#94a3b8' }}>No hay registros de tiempo aún.</span>
-                )}
-              </div>
+
+                  {timeLogs && timeLogs.length > 0 ? (
+                    <div className="flex flex-col gap-2">
+                      {timeLogs.slice(0, 5).map((log) => (
+                        <div key={log.id} className="flex justify-between rounded bg-raised px-3 py-2 text-xs">
+                          <span className="text-muted">
+                            U{log.user_id} - {formatCalendarLocale(log.log_date)}
+                            {log.description && <> (<Linkify text={log.description} />)</>}
+                          </span>
+                          <span className="font-semibold text-fg">{log.hours}h</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-faint">No hay registros de tiempo aún.</span>
+                  )}
+                </div>
               )}
             </div>
 
             {/* Footer */}
             {canDeleteTask && (
-            <div data-testid="task-modal" style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
-              <button 
-                onClick={handleDelete}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#fef2f2',
-                  color: '#dc2626',
-                  border: '1px solid #fca5a5',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  cursor: 'pointer'
-                }}
-              >
-                Eliminar tarea
-              </button>
-            </div>
+              <div className="flex justify-end border-t border-border bg-canvas px-6 py-4">
+                <button
+                  onClick={handleDelete}
+                  className="rounded-md border border-status-blocked/40 bg-status-blocked/10 px-4 py-2 text-[13px] font-medium text-status-blocked transition-colors hover:bg-status-blocked/20"
+                >
+                  Eliminar tarea
+                </button>
+              </div>
             )}
           </>
         )}
       </div>
-    </>
+    </>,
+    document.body,
   );
 };
 
