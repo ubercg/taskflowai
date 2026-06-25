@@ -1,6 +1,7 @@
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from './store/authStore';
 import usePermissions from './hooks/usePermissions';
+import { cn } from './lib/cn';
 
 import ProtectedRoute from './components/shared/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
@@ -76,23 +77,34 @@ const Sidebar = () => {
   }
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-header" style={{ paddingBottom: '12px' }}>
-        TaskFlow
+    <aside className="fixed inset-y-0 left-0 z-30 flex w-60 flex-col border-r border-border bg-surface">
+      <div className="flex items-center gap-2 px-5 pb-3 pt-6">
+        <span className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-sm font-bold text-accent-fg">
+          T
+        </span>
+        <span className="text-lg font-semibold tracking-tight text-fg">TaskFlow</span>
       </div>
-      <nav className="sidebar-nav" style={{ flex: 1 }}>
-        {navItems.map(item => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`nav-item ${location.pathname.startsWith(item.path) ? 'active' : ''}`}
-          >
-            {item.icon}
-            <span>{item.label}</span>
-          </Link>
-        ))}
+      <nav className="flex flex-1 flex-col gap-1 px-3">
+        {navItems.map(item => {
+          const active = location.pathname.startsWith(item.path);
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150',
+                active
+                  ? 'bg-accent-soft font-medium text-accent'
+                  : 'text-muted hover:bg-raised hover:text-fg',
+              )}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
       </nav>
-      
+
       {/* Footer del Sidebar con info de usuario actual */}
       <UserMenu />
     </aside>
@@ -100,9 +112,9 @@ const Sidebar = () => {
 };
 
 const AuthenticatedLayout = ({ children }) => (
-  <div className="app-layout">
+  <div className="flex min-h-screen bg-canvas">
     <Sidebar />
-    <main className="main-content">
+    <main className="ml-60 flex-1 p-8">
       {children}
     </main>
   </div>

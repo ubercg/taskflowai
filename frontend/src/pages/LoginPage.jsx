@@ -1,6 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
+import { Button, Input } from '../components/ui';
+import { cn } from '../lib/cn';
+
+const FEATURES = [
+  { icon: '⚡', label: 'Kanban con límites WIP inteligentes' },
+  { icon: '📊', label: 'Métricas de flujo en tiempo real' },
+  { icon: '🤖', label: 'AI que detecta cuellos de botella' },
+];
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -18,167 +26,96 @@ const LoginPage = () => {
     try {
       await login(email, password);
       navigate(from, { replace: true });
-    } catch (err) {
+    } catch {
       // El error ya está manejado en el store
     }
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100vw' }}>
-      
-      {/* Columna Izquierda (Decorativa) */}
-      <div style={{ 
-        flex: 1, 
-        background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        justifyContent: 'center', 
-        padding: '64px',
-        color: '#fff' 
-      }}>
-        <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-          <h1 style={{ fontSize: '48px', fontWeight: 800, margin: '0 0 16px 0', letterSpacing: '-0.02em' }}>
-            TaskFlow
-          </h1>
-          <p style={{ fontSize: '20px', opacity: 0.9, marginBottom: '48px', lineHeight: 1.5 }}>
-            Motor de ejecución operativa
-          </p>
+    <div className="flex min-h-screen w-screen bg-canvas">
+      {/* Columna izquierda (decorativa) */}
+      <div className="hidden flex-1 flex-col justify-center bg-gradient-to-br from-indigo-600 to-violet-700 p-16 text-white lg:flex">
+        <div className="mx-auto w-full max-w-[480px]">
+          <h1 className="mb-4 text-5xl font-extrabold tracking-tight">TaskFlow</h1>
+          <p className="mb-12 text-xl leading-relaxed opacity-90">Motor de ejecución operativa</p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '12px' }}>
-                <span style={{ fontSize: '20px' }}>⚡</span>
+          <div className="flex flex-col gap-6">
+            {FEATURES.map((f) => (
+              <div key={f.label} className="flex items-center gap-4">
+                <div className="rounded-xl bg-white/20 p-3 text-xl">{f.icon}</div>
+                <span className="text-lg font-medium">{f.label}</span>
               </div>
-              <span style={{ fontSize: '18px', fontWeight: 500 }}>Kanban con límites WIP inteligentes</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '12px' }}>
-                <span style={{ fontSize: '20px' }}>📊</span>
-              </div>
-              <span style={{ fontSize: '18px', fontWeight: 500 }}>Métricas de flujo en tiempo real</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '12px' }}>
-                <span style={{ fontSize: '20px' }}>🤖</span>
-              </div>
-              <span style={{ fontSize: '18px', fontWeight: 500 }}>AI que detecta cuellos de botella</span>
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Columna Derecha (Formulario) */}
-      <div style={{ 
-        flex: 1, 
-        backgroundColor: '#fff', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        padding: '32px'
-      }}>
-        <div style={{ width: '100%', maxWidth: '380px' }}>
-          <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#0f172a', margin: '0 0 8px 0', letterSpacing: '-0.01em' }}>
-            Bienvenido de vuelta
-          </h2>
-          <p style={{ fontSize: '15px', color: '#64748b', margin: '0 0 32px 0' }}>
-            Inicia sesión en tu workspace
-          </p>
+      {/* Columna derecha (formulario) */}
+      <div className="flex flex-1 flex-col items-center justify-center bg-surface p-8">
+        <div className="w-full max-w-[380px]">
+          <h2 className="mb-2 text-2xl font-bold tracking-tight text-fg">Bienvenido de vuelta</h2>
+          <p className="mb-8 text-[15px] text-muted">Inicia sesión en tu workspace</p>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            
-            {/* Input Email */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#334155', marginBottom: '8px' }}>
-                Email
-              </label>
-              <input
+              <label className="mb-2 block text-sm font-medium text-fg">Email</label>
+              <Input
                 type="email"
                 placeholder="tu@email.com"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 autoFocus
                 required
-                style={{
-                  width: '100%', padding: '12px 16px', borderRadius: '8px', 
-                  border: `1px solid ${error ? '#fca5a5' : '#cbd5e1'}`, 
-                  fontSize: '15px', outline: 'none', boxSizing: 'border-box',
-                  transition: 'border-color 0.2s'
-                }}
+                className={cn('py-3', error && 'border-status-blocked')}
               />
             </div>
 
-            {/* Input Contraseña */}
-            <div style={{ position: 'relative' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#334155', marginBottom: '8px' }}>
-                Contraseña
-              </label>
-              <input
+            <div className="relative">
+              <label className="mb-2 block text-sm font-medium text-fg">Contraseña</label>
+              <Input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 required
-                style={{
-                  width: '100%', padding: '12px 48px 12px 16px', borderRadius: '8px', 
-                  border: `1px solid ${error ? '#fca5a5' : '#cbd5e1'}`, 
-                  fontSize: '15px', outline: 'none', boxSizing: 'border-box',
-                  transition: 'border-color 0.2s'
-                }}
+                className={cn('py-3 pr-12', error && 'border-status-blocked')}
               />
-              <button 
+              <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute', right: '16px', top: '38px', background: 'none', border: 'none', 
-                  cursor: 'pointer', color: '#94a3b8', padding: 0
-                }}
+                className="absolute right-4 top-[34px] text-faint hover:text-muted"
               >
                 {showPassword ? '👁️' : '👁️‍🗨️'}
               </button>
             </div>
 
-            {/* Manejo de Errores */}
-            {error && (
-              <p style={{ color: '#ef4444', fontSize: '13px', margin: '0' }}>{error}</p>
-            )}
+            {error && <p className="text-[13px] text-status-blocked">{error}</p>}
 
-            {/* Botón Submit */}
-            <button
+            <Button
               type="submit"
+              size="lg"
               disabled={isLoading || !email || !password}
-              style={{
-                width: '100%', padding: '12px', borderRadius: '8px', border: 'none',
-                backgroundColor: isLoading ? '#a5b4fc' : '#6366f1',
-                color: '#fff', fontSize: '15px', fontWeight: 600, cursor: isLoading ? 'wait' : 'pointer',
-                marginTop: '8px', transition: 'background-color 0.2s'
-              }}
+              className="mt-2 w-full"
             >
               {isLoading ? 'Autenticando...' : 'Iniciar sesión'}
-            </button>
-
+            </Button>
           </form>
 
-          <p style={{ textAlign: 'center', fontSize: '13px', color: '#64748b', marginTop: '24px' }}>
+          <p className="mt-6 text-center text-[13px] text-muted">
             ¿Olvidaste tu contraseña? Contacta al administrador
           </p>
 
-          {/* Demo Credentials Card */}
-          <div style={{ 
-            marginTop: '48px', padding: '16px', backgroundColor: '#f8fafc', 
-            borderRadius: '8px', border: '1px dashed #cbd5e1' 
-          }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Credenciales por defecto
-            </h4>
-            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: '#334155' }}>
-              <li><span style={{ fontWeight: 600 }}>Administrador:</span> admin@taskflow.com / taskflow123</li>
+          <div className="mt-12 rounded-lg border border-dashed border-border bg-canvas p-4">
+            <h4 className="mb-3 text-xs uppercase tracking-wider text-muted">Credenciales por defecto</h4>
+            <ul className="flex flex-col gap-2 text-[13px] text-fg">
+              <li>
+                <span className="font-semibold">Administrador:</span> admin@taskflow.com / taskflow123
+              </li>
             </ul>
           </div>
         </div>
       </div>
-
     </div>
   );
 };

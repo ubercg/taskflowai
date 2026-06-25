@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 const SessionToast = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -6,42 +6,21 @@ const SessionToast = () => {
   useEffect(() => {
     const handleExpired = () => {
       setIsVisible(true);
-      setTimeout(() => {
-        setIsVisible(false);
-      }, 2000);
+      setTimeout(() => setIsVisible(false), 2000);
     };
-
     window.addEventListener('session-expired', handleExpired);
-
-    return () => {
-      window.removeEventListener('session-expired', handleExpired);
-    };
+    return () => window.removeEventListener('session-expired', handleExpired);
   }, []);
 
   if (!isVisible) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: '24px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      zIndex: 9999,
-      backgroundColor: '#fef3c7',
-      border: '1px solid #fbbf24',
-      color: '#92400e',
-      padding: '12px 20px',
-      borderRadius: '8px',
-      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      animation: 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1), fadeOut 0.3s ease-in 1.7s forwards'
-    }}>
-      <span style={{ fontSize: '20px' }}>⏰</span>
-      <p style={{ margin: 0, fontWeight: 500, fontSize: '14px' }}>
-        Tu sesión expiró. Redirigiendo al login...
-      </p>
+    <div
+      className="fixed left-1/2 top-6 z-[9999] flex -translate-x-1/2 items-center gap-3 rounded-lg border border-priority-medium/40 bg-surface px-5 py-3 text-fg shadow-overlay"
+      style={{ animation: 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1), fadeOut 0.3s ease-in 1.7s forwards' }}
+    >
+      <span className="text-xl">⏰</span>
+      <p className="text-sm font-medium">Tu sesión expiró. Redirigiendo al login...</p>
 
       <style>
         {`
