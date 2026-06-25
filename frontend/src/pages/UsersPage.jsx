@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import useSWR from 'swr';
-import { getUsers, getVelocityMetrics } from '../services/api';
+import { getUsers, getTeamVelocity } from '../services/api';
 import UserCard from '../components/users/UserCard';
 import NewUserModal from '../components/users/NewUserModal';
 
@@ -14,7 +14,7 @@ const UsersPage = () => {
     { refreshInterval: 30000 }
   );
   
-  const { data: velocityData } = useSWR('/api/v1/metrics/velocity', getVelocityMetrics, { refreshInterval: 30000, shouldRetryOnError: false });
+  const { data: velocityData } = useSWR('/api/v1/metrics/velocity/team', getTeamVelocity, { refreshInterval: 30000, shouldRetryOnError: false });
 
   const isLoading = !users && !error;
 
