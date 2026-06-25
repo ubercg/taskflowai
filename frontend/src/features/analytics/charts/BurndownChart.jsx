@@ -6,9 +6,9 @@ import { getBurndown } from '../../../services/api';
 /**
  * Gráfico de burndown para un proyecto y rango de mes dado.
  *
- * @param {{ projectId: number, startDate: string, endDate: string }} props
+ * @param {{ projectId: number, startDate: string, endDate: string, animate?: boolean }} props
  */
-const BurndownChart = ({ projectId, startDate, endDate }) => {
+const BurndownChart = ({ projectId, startDate, endDate, animate = true }) => {
   const { data, isLoading } = useSWR(
     projectId ? ['/api/v1/metrics/burndown', projectId, startDate, endDate] : null,
     () => getBurndown(projectId, startDate, endDate),
@@ -38,8 +38,8 @@ const BurndownChart = ({ projectId, startDate, endDate }) => {
               labelStyle={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}
             />
             <Legend iconType="circle" wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }} />
-            <Line type="monotone" dataKey="ideal" name="Ritmo Ideal" stroke="#cbd5e1" strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="real" name="Progreso Real" stroke="#6366f1" strokeWidth={2} />
+            <Line type="monotone" dataKey="ideal" name="Ritmo Ideal" stroke="#cbd5e1" strokeWidth={2} dot={false} isAnimationActive={animate} />
+            <Line type="monotone" dataKey="real" name="Progreso Real" stroke="#6366f1" strokeWidth={2} isAnimationActive={animate} />
           </LineChart>
         </ResponsiveContainer>
       )}

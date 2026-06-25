@@ -92,13 +92,13 @@ const MetricsDashboard = ({ projectId }) => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
         <KPICard
           title="Lead Time"
-          value={`${leadTime}h`}
+          value={`${leadTime.toFixed(2)}h`}
           subtitle="Promedio desde creación"
           borderColor="#3b82f6"
         />
         <KPICard
           title="Cycle Time"
-          value={`${cycleTime}h`}
+          value={`${cycleTime.toFixed(2)}h`}
           subtitle="Promedio desde inicio"
           borderColor="#8b5cf6"
         />
