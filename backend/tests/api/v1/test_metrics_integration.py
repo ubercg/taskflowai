@@ -638,3 +638,66 @@ class TestBurndownIntegration:
                 assert parsed < date(2026, 7, 1)
         finally:
             _cleanup(pg_raw, pid)
+
+
+# ---------------------------------------------------------------------------
+# Scenario 5: nonexistent project_id returns 404 (WARNING-01 fix)
+# ---------------------------------------------------------------------------
+
+# A project_id that is extremely unlikely to collide with seeded data
+_NONEXISTENT_PID = 999_999_999
+
+
+@pytest.mark.integration
+class TestNonexistentProjectReturns404Integration:
+    """
+    Guard _ensure_project_exists fires before Postgres-only SQL.
+    Tests use a seeded project (to prove 200 works) and a nonexistent id.
+    """
+
+    def test_flow_nonexistent_project_returns_404(self, pg_client):
+        """GET /flow with a nonexistent project_id → 404."""
+        resp = pg_client.get(
+            f"/api/v1/metrics/flow"
+            f"?project_id={_NONEXISTENT_PID}&start_date=2026-06-01&end_date=2026-07-01"
+        )
+        assert resp.status_code == 404
+
+    def test_velocity_nonexistent_project_returns_404(self, pg_client):
+        """GET /velocity with a nonexistent project_id → 404."""
+        resp = pg_client.get(
+            f"/api/v1/metrics/velocity"
+            f"?project_id={_NONEXISTENT_PID}&start_date=2026-06-01&end_date=2026-07-01"
+        )
+        assert resp.status_code == 404
+
+    def test_burndown_nonexistent_project_returns_404(self, pg_client):
+        """GET /burndown with a nonexistent project_id → 404."""
+        resp = pg_client.get(
+            f"/api/v1/metrics/burndown"
+            f"?project_id={_NONEXISTENT_PID}&start_date=2026-06-01&end_date=2026-07-01"
+        )
+        assert resp.status_code == 404
+
+    def test_flow_existing_project_still_returns_200(self, pg_client, pg_raw):
+        """Seeded project must still return 200 (guard only fires for nonexistent ids)."""
+        pid = _seed_project(pg_raw, name="Guard_Flow_Test")
+        try:
+            resp = pg_client.get(
+                f"/api/v1/metrics/flow"
+                f"?project_id={pid}&start_date=2026-06-01&end_date=2026-07-01"
+            )
+            assert resp.status_code == 200
+        finally:
+            _cleanup(pg_raw, pid)
+
+    def test_aging_nonexistent_project_returns_404(self, pg_client):
+        """GET /aging with a nonexistent project_id → 404."""
+        resp = pg_client.get(f"/api/v1/metrics/aging?project_id={_NONEXISTENT_PID}")
+        assert resp.status_code == 404
+
+    def test_aging_without_project_id_still_returns_200(self, pg_client):
+        """GET /aging without project_id must return 200 (all-projects path unaffected)."""
+        resp = pg_client.get("/api/v1/metrics/aging")
+        assert resp.status_code == 200
+        assert isinstance(resp.json(), list)

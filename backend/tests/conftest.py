@@ -83,6 +83,31 @@ def client(sqlite_session):
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(scope="function")
+def app_client_no_raise(sqlite_session):
+    """
+    Same as `client` but with raise_server_exceptions=False.
+    Use this when SQLite raises server-side exceptions that would propagate
+    as Python exceptions rather than HTTP 500 responses.
+    """
+    def _override_get_db():
+        try:
+            yield sqlite_session
+        finally:
+            pass
+
+    def _override_require_authenticated():
+        return _MockUser()
+
+    app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[require_authenticated] = _override_require_authenticated
+
+    with TestClient(app, raise_server_exceptions=False) as tc:
+        yield tc
+
+    app.dependency_overrides.clear()
+
+
 # ---------------------------------------------------------------------------
 # PostgreSQL integration tier
 # ---------------------------------------------------------------------------

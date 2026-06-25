@@ -7,6 +7,7 @@ from datetime import datetime, date
 
 from app.db.database import get_db
 from app.core.security import require_manager_or_above, require_authenticated
+from app.models.models import Project
 from app.modules.intelligence.bottleneck import analyze_bottleneck
 
 router = APIRouter()
@@ -20,6 +21,15 @@ def _validate_date_range(start_date: Optional[date], end_date: Optional[date]) -
                 status_code=422,
                 detail="start_date must be strictly before end_date",
             )
+
+
+def _ensure_project_exists(db: Session, project_id: Optional[int]) -> None:
+    """Raise HTTP 404 if project_id is not None and no matching Project row exists."""
+    if project_id is None:
+        return
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
 
 
 @router.get("/flow")
@@ -40,6 +50,7 @@ def get_flow_metrics(
       to_status='in_progress', NOT tasks.start_date.
     """
     _validate_date_range(start_date, end_date)
+    _ensure_project_exists(db, project_id)
 
     if start_date is None or end_date is None:
         # Legacy path: read from matview
@@ -148,6 +159,7 @@ def get_aging(
     project_id is optional — without it, returns data for all projects.
     Date params are accepted for API symmetry but ignored (aging is point-in-time).
     """
+    _ensure_project_exists(db, project_id)
     filters = "AND t.project_id = :project_id" if project_id is not None else ""
     params = {"project_id": project_id} if project_id is not None else {}
     result = db.execute(
@@ -225,6 +237,7 @@ def get_velocity_metrics(
     Users not assigned to any task in the project are excluded.
     """
     _validate_date_range(start_date, end_date)
+    _ensure_project_exists(db, project_id)
 
     # Default to current calendar month if no date range provided
     if start_date is None or end_date is None:
@@ -307,6 +320,7 @@ def get_burndown(
     Empty scope (no tasks with due_date in range) returns a valid series of zeros.
     """
     _validate_date_range(start_date, end_date)
+    _ensure_project_exists(db, project_id)
 
     params = {
         "project_id": project_id,
