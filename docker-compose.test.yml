@@ -1,0 +1,58 @@
+services:
+  db_test:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: taskflow_secret
+      POSTGRES_DB: taskflow_db
+    volumes:
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow -d taskflow_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - test_network
+
+  backend_test:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql://taskflow:taskflow_secret@db_test:5432/taskflow_db
+      SECRET_KEY: test-secret-key-not-for-production
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      db_test:
+        condition: service_healthy
+    networks:
+      - test_network
+    # Installs dev deps at runtime (backend image only has requirements.txt).
+    # Override CMD per target:
+    #   make test-backend             → unit tests only (no Postgres SQL needed)
+    #   make test-backend-integration → integration tests (requires db_test)
+    command: >
+      sh -c "pip install --quiet -r requirements-dev.txt &&
+             pytest -m 'not integration' -q"
+
+  backend_test_integration:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql://taskflow:taskflow_secret@db_test:5432/taskflow_db
+      SECRET_KEY: test-secret-key-not-for-production
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      db_test:
+        condition: service_healthy
+    networks:
+      - test_network
+    command: >
+      sh -c "pip install --quiet -r requirements-dev.txt &&
+             pytest -m 'integration' -q"
+
+networks:
+  test_network:
+    driver: bridge

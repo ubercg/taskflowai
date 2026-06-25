@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import useSWR from 'swr';
+import { format, startOfMonth, addMonths, isSameMonth } from 'date-fns';
 import { getFlowMetrics, getTasks } from '../../services/api';
 import BurndownChart from './charts/BurndownChart';
 import VelocityChart from './charts/VelocityChart';
 import AgingChart from './charts/AgingChart';
 import OkrProgressChart from './charts/OkrProgressChart';
-
+import MonthSelector from './MonthSelector';
 import DailySummary from './DailySummary';
 
 const KPICard = ({ title, value, subtitle, borderColor, alertValue }) => (
@@ -30,9 +31,9 @@ const KPICard = ({ title, value, subtitle, borderColor, alertValue }) => (
       <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>{subtitle}</span>
       {alertValue !== undefined && (
         <div style={{ flex: 1, height: '4px', backgroundColor: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
-          <div style={{ 
-            height: '100%', 
-            width: `${Math.min(alertValue * 33.33, 100)}%`, 
+          <div style={{
+            height: '100%',
+            width: `${Math.min(alertValue * 33.33, 100)}%`,
             backgroundColor: alertValue >= 3 ? '#ef4444' : '#22c55e',
             transition: 'width 0.5s ease'
           }} />
@@ -43,71 +44,84 @@ const KPICard = ({ title, value, subtitle, borderColor, alertValue }) => (
 );
 
 const MetricsDashboard = ({ projectId }) => {
-  // SWR calls en paralelo
+  const [month, setMonth] = useState(new Date());
+
+  // Derivar rango del mes seleccionado (rango medio-abierto [start, end))
+  const startDate = format(startOfMonth(month), 'yyyy-MM-dd');
+  const endDate = format(startOfMonth(addMonths(month, 1)), 'yyyy-MM-dd');
+  const isCurrentMonth = isSameMonth(month, new Date());
+
+  // SWR calls en paralelo — claves incluyen rango para evitar colisiones de caché
   const { data: flowMetrics, isLoading: loadingFlow } = useSWR(
-    projectId ? `/api/v1/metrics/flow?project_id=${projectId}` : null, 
-    () => getFlowMetrics(projectId), 
-    { shouldRetryOnError: false }
-  );
-  
-  const { data: tasks, isLoading: loadingTasks } = useSWR(
-    projectId ? `/api/v1/tasks?project_id=${projectId}` : null, 
-    () => getTasks({ project_id: projectId }), 
+    projectId ? ['/api/v1/metrics/flow', projectId, startDate, endDate] : null,
+    () => getFlowMetrics(projectId, startDate, endDate),
     { shouldRetryOnError: false }
   );
 
-  const isLoading = loadingFlow || loadingTasks;
+  const { data: tasks, isLoading: loadingTasks } = useSWR(
+    projectId && isCurrentMonth ? `/api/v1/tasks?project_id=${projectId}` : null,
+    () => getTasks({ project_id: projectId }),
+    { shouldRetryOnError: false }
+  );
+
+  const isLoading = loadingFlow || (isCurrentMonth && loadingTasks);
 
   // Calculos / Fallbacks seguros
   const leadTime = flowMetrics?.lead_time_avg_h || 0;
   const cycleTime = flowMetrics?.cycle_time_avg_h || 0;
-  const throughput = flowMetrics?.throughput_week || 0;
-  
-  // WIP Actual: Calculado directo desde las tareas cargadas
-  const wipTasks = tasks ? tasks.filter(t => t.status === 'in_progress').length : 0;
+  // /flow con rango devuelve "throughput"; sin rango la matview devuelve "throughput_week"
+  const throughput = flowMetrics?.throughput ?? flowMetrics?.throughput_week ?? 0;
+
+  // WIP: solo significativo para el mes actual (snapshot point-in-time)
+  const wipTasks = (isCurrentMonth && tasks) ? tasks.filter(t => t.status === 'in_progress').length : null;
 
   if (isLoading) return <div style={{ padding: '24px', color: '#64748b' }}>Analizando métricas de flujo...</div>;
 
   return (
     <div style={{ backgroundColor: '#f8fafc', padding: '24px', minHeight: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      
+
       {/* Daily Summary AI Widget */}
       <DailySummary projectId={projectId} />
 
+      {/* Selector de mes */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+        <MonthSelector value={month} onChange={setMonth} />
+      </div>
+
       {/* 4 KPI Cards (2x2 grid en mobile, fila completa en desktop) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
-        <KPICard 
-          title="Lead Time" 
-          value={`${leadTime}h`} 
-          subtitle="Promedio desde creación" 
-          borderColor="#3b82f6" 
+        <KPICard
+          title="Lead Time"
+          value={`${leadTime.toFixed(2)}h`}
+          subtitle="Promedio desde creación"
+          borderColor="#3b82f6"
         />
-        <KPICard 
-          title="Cycle Time" 
-          value={`${cycleTime}h`} 
-          subtitle="Promedio desde inicio" 
-          borderColor="#8b5cf6" 
+        <KPICard
+          title="Cycle Time"
+          value={`${cycleTime.toFixed(2)}h`}
+          subtitle="Promedio desde inicio"
+          borderColor="#8b5cf6"
         />
-        <KPICard 
-          title="Throughput" 
-          value={`${throughput}`} 
-          subtitle="Tareas completadas / sem" 
-          borderColor="#10b981" 
+        <KPICard
+          title="Throughput"
+          value={`${throughput}`}
+          subtitle="Tareas completadas / sem"
+          borderColor="#10b981"
         />
-        <KPICard 
-          title="WIP Actual" 
-          value={`${wipTasks}`} 
-          subtitle="Tareas en progreso" 
-          borderColor={wipTasks >= 3 ? '#ef4444' : '#eab308'}
-          alertValue={wipTasks}
+        <KPICard
+          title="WIP Actual"
+          value={wipTasks !== null ? `${wipTasks}` : '—'}
+          subtitle={wipTasks !== null ? 'Tareas en progreso' : 'Solo mes actual'}
+          borderColor={wipTasks !== null && wipTasks >= 3 ? '#ef4444' : '#eab308'}
+          alertValue={wipTasks !== null ? wipTasks : undefined}
         />
       </div>
 
       {/* 4 Charts Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', paddingBottom: '32px' }}>
-        <BurndownChart projectId={projectId} />
-        <VelocityChart projectId={projectId} />
-        <AgingChart projectId={projectId} />
+        <BurndownChart projectId={projectId} startDate={startDate} endDate={endDate} />
+        <VelocityChart projectId={projectId} startDate={startDate} endDate={endDate} />
+        <AgingChart projectId={projectId} isCurrentMonth={isCurrentMonth} />
         <OkrProgressChart projectId={projectId} />
       </div>
     </div>

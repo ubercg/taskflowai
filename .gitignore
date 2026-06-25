@@ -19,7 +19,7 @@ playwright-report/
 .DS_Store
 .env
 .env.local
+.atl
 
-# Tooling local (no producción)
-.atl/
+# Overrides locales de Docker (desarrollo, no producción)
 docker-compose.override.yml

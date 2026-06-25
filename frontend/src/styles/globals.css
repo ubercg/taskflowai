@@ -97,6 +97,98 @@ ul {
   font-weight: 500;
 }
 
+/* Encabezado solo visible al imprimir el calendario */
+.calendar-print-header {
+  display: none;
+}
+
+/* Tareas que exceden el limite por celda: solo se muestran en el PDF */
+.calendar-print-only-tasks {
+  display: none;
+}
+
+/* Reporte de metricas del PDF: se renderiza fuera de pantalla con ancho fijo
+   para que los charts de Recharts midan y pinten antes de imprimir. */
+.calendar-pdf-report {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 1100px;
+}
+
+/* ============ Exportar calendario a PDF (horizontal) ============ */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  /* Oculta todo el chrome de la app (nav, sidebar, toolbar, etc.) */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Solo el calendario queda visible */
+  .calendar-print-area,
+  .calendar-print-area * {
+    visibility: visible;
+  }
+
+  /* Lleva el calendario al origen de la pagina y lo deja fluir completo */
+  .calendar-print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    overflow: visible !important;
+    border: none !important;
+  }
+
+  /* Elementos marcados como no imprimibles */
+  .calendar-no-print {
+    display: none !important;
+  }
+
+  /* Muestra el encabezado dedicado a la impresion */
+  .calendar-print-header {
+    display: block !important;
+  }
+
+  /* Las celdas crecen para mostrar TODAS las tareas del dia */
+  .calendar-print-area .calendar-cell {
+    overflow: visible !important;
+    min-height: auto !important;
+  }
+
+  /* Expande las tareas extra ocultas en pantalla */
+  .calendar-print-only-tasks {
+    display: block !important;
+  }
+
+  /* El reporte de metricas vuelve al flujo y arranca en una pagina nueva,
+     despues del calendario. */
+  .calendar-pdf-report {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    padding: 0 4mm;
+    page-break-before: always;
+    break-before: page;
+  }
+
+  /* Evita que un chart quede cortado entre dos paginas */
+  .calendar-pdf-report > div {
+    page-break-inside: avoid;
+  }
+
+  /* Respeta los colores de fondo de celdas y tags de estado */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
 /* Main Content */
 .main-content {
   flex: 1;
