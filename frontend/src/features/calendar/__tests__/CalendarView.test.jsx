@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 
 // 1. Setup global mocks before importing components
 vi.mock('../../../services/api', () => ({
@@ -9,14 +9,18 @@ vi.mock('../../../services/api', () => ({
   // Usadas por CalendarPdfReport (bloque de metricas del PDF)
   getFlowMetrics: vi.fn().mockResolvedValue({}),
   getTasks: vi.fn().mockResolvedValue([]),
+  // Slice 3 renamed: getVelocity (projectId-scoped) replaces getVelocityMetrics
+  getVelocity: vi.fn().mockResolvedValue([]),
+  // Alias preserved for backward compat — must also be mocked so imports don't break
   getVelocityMetrics: vi.fn().mockResolvedValue([]),
   getAgingMetrics: vi.fn().mockResolvedValue([]),
+  getBurndown: vi.fn().mockResolvedValue([]),
   getObjectives: vi.fn().mockResolvedValue([]),
 }));
 
 import { SWRConfig } from 'swr';
 import CalendarView from '../CalendarView';
-import { getCalendarTasks } from '../../../services/api';
+import { getCalendarTasks, getVelocity, getBurndown } from '../../../services/api';
 
 describe('CalendarView', () => {
   beforeEach(() => {
@@ -123,6 +127,51 @@ describe('CalendarView', () => {
 
     // print() fires only after the report signals its data is ready.
     await waitFor(() => expect(printSpy).toHaveBeenCalledTimes(1));
+
+    printSpy.mockRestore();
+  });
+
+  it('passes a half-open metrics range (first-of-next-month as end) to velocity and burndown, while calendar-tasks still use the inclusive end-of-month', async () => {
+    // Guard for the date-convention off-by-one: metrics endpoints need [start, end)
+    // where end = first day of next month (exclusive upper bound), NOT end-of-month.
+    // The calendar-tasks endpoint remains day-inclusive (endOfMonth).
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 5, 16)); // June 16, 2026
+
+    getCalendarTasks.mockResolvedValue([]);
+
+    const projectId = 42;
+
+    render(
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <CalendarView projectId={projectId} />
+      </SWRConfig>
+    );
+
+    // Trigger PDF export so CalendarPdfReport mounts and its SWR hooks fire
+    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
+    const exportBtn = await screen.findByRole('button', { name: /exportar pdf/i });
+    fireEvent.click(exportBtn);
+
+    // Wait for the report to appear (CalendarPdfReport mounted)
+    await screen.findByText('Métricas del Proyecto');
+
+    // Half-open range for metrics: start = 2026-06-01, end = 2026-07-01 (first of next month)
+    const metricsStart = format(startOfMonth(new Date(2026, 5, 16)), 'yyyy-MM-dd'); // '2026-06-01'
+    const metricsEnd = format(startOfMonth(addMonths(new Date(2026, 5, 16), 1)), 'yyyy-MM-dd'); // '2026-07-01'
+
+    await waitFor(() => {
+      expect(getVelocity).toHaveBeenCalledWith(projectId, metricsStart, metricsEnd);
+    });
+    await waitFor(() => {
+      expect(getBurndown).toHaveBeenCalledWith(projectId, metricsStart, metricsEnd);
+    });
+
+    // Calendar-tasks must still use the inclusive end-of-month (2026-06-30), NOT 2026-07-01
+    const calendarEnd = format(endOfMonth(new Date(2026, 5, 16)), 'yyyy-MM-dd'); // '2026-06-30'
+    expect(getCalendarTasks).toHaveBeenCalledWith(projectId, metricsStart, calendarEnd);
+    // Explicitly assert it was NOT called with the half-open end
+    expect(getCalendarTasks).not.toHaveBeenCalledWith(projectId, metricsStart, metricsEnd);
 
     printSpy.mockRestore();
   });
