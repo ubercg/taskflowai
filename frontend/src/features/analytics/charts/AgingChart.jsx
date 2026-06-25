@@ -1,12 +1,13 @@
-import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import useSWR from 'swr';
 import { getAgingMetrics } from '../../../services/api';
+import { useChartColors, tooltipStyles, CHART_CARD, CHART_TITLE, CHART_EMPTY } from './chartTheme';
 
+// Color por aging (semántico: verde/amarillo/rojo, válido en ambos temas).
 const getColor = (hours) => {
-  if (hours < 24) return '#4ade80'; // Verde
-  if (hours <= 72) return '#facc15'; // Amarillo
-  return '#f87171'; // Rojo
+  if (hours < 24) return '#4ade80';
+  if (hours <= 72) return '#facc15';
+  return '#f87171';
 };
 
 /**
@@ -15,56 +16,50 @@ const getColor = (hours) => {
  *
  * @param {{ projectId: number, isCurrentMonth: boolean, animate?: boolean }} props
  */
-const AgingChart = ({ projectId, isCurrentMonth = true, animate = true }) => {
-  const { data, error } = useSWR(
+const AgingChart = ({ projectId, isCurrentMonth = true, animate = true, forceTheme }) => {
+  const c = useChartColors(forceTheme);
+  const { data } = useSWR(
     projectId && isCurrentMonth ? ['/api/v1/metrics/aging', projectId] : null,
     () => getAgingMetrics(projectId),
-    { shouldRetryOnError: false }
+    { shouldRetryOnError: false },
   );
 
   const chartData = data || [];
 
-  // Para meses pasados mostrar mensaje informativo
   if (!isCurrentMonth) {
     return (
-      <div style={{ height: 320, backgroundColor: '#ffffff', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>Aging (Horas promedio por Status)</h4>
-        <div style={{ height: '80%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px', textAlign: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '20px' }}>ℹ️</span>
+      <div className={CHART_CARD}>
+        <h4 className={CHART_TITLE}>Aging (Horas promedio por Status)</h4>
+        <div className="flex h-[80%] flex-col items-center justify-center gap-2 text-center text-[13px] text-faint">
+          <span className="text-xl">ℹ️</span>
           <span>El aging solo está disponible para el mes actual.</span>
-          <span style={{ fontSize: '12px' }}>Seleccioná el mes en curso para ver datos de aging.</span>
+          <span className="text-xs">Seleccioná el mes en curso para ver datos de aging.</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ height: 320, backgroundColor: '#ffffff', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-      <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>Aging (Horas promedio por Status)</h4>
+    <div className={CHART_CARD}>
+      <h4 className={CHART_TITLE}>Aging (Horas promedio por Status)</h4>
       {chartData.length === 0 ? (
-        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>
-          No hay datos de aging disponibles.
-        </div>
+        <div className={CHART_EMPTY}>No hay datos de aging disponibles.</div>
       ) : (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, bottom: 20, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-            <XAxis type="number" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={c.grid} />
+            <XAxis type="number" stroke={c.axis} fontSize={12} tickLine={false} axisLine={false} />
             <YAxis
               dataKey="status"
               type="category"
-              stroke="#64748b"
+              stroke={c.axis}
               fontSize={11}
               tickLine={false}
               axisLine={false}
               width={80}
               tickFormatter={(val) => val.replace('_', ' ').toUpperCase()}
             />
-            <Tooltip
-              cursor={{ fill: '#f8fafc' }}
-              contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
-              formatter={(value) => [`${value} hrs`, "Promedio"]}
-            />
+            <Tooltip cursor={{ fill: c.cursor }} {...tooltipStyles(c)} formatter={(value) => [`${value} hrs`, 'Promedio']} />
             <Bar dataKey="avg_hours" radius={[0, 4, 4, 0]} barSize={20} isAnimationActive={animate}>
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={getColor(entry.avg_hours)} />

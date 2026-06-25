@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../services/api/client';
 import { toDateInputValue } from '../../utils/dateUtils';
+import { Modal, Input, Textarea, Select, Button } from '../ui';
+import { cn } from '../../lib/cn';
 
 const EMOJIS = ['🚀', '🏛️', '🤖', '⚡', '🎯', '💡', '🔧', '📦'];
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'];
+
+const LABEL = 'mb-1.5 block text-[13px] font-medium text-fg';
 
 const ProjectFormModal = ({ project, onClose, onSaved }) => {
   const isEdit = !!project;
@@ -14,7 +18,7 @@ const ProjectFormModal = ({ project, onClose, onSaved }) => {
     color: COLORS[0],
     start_date: '',
     end_date: '',
-    status: 'active'
+    status: 'active',
   });
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,7 +32,7 @@ const ProjectFormModal = ({ project, onClose, onSaved }) => {
         color: project.color || COLORS[0],
         start_date: project.start_date ? toDateInputValue(project.start_date) : '',
         end_date: project.end_date ? toDateInputValue(project.end_date) : '',
-        status: project.status || 'active'
+        status: project.status || 'active',
       });
     }
   }, [project, isEdit]);
@@ -37,14 +41,9 @@ const ProjectFormModal = ({ project, onClose, onSaved }) => {
     e.preventDefault();
     setError(null);
 
-    if (!formData.name.trim()) {
-      return setError('El nombre es obligatorio');
-    }
-
-    if (formData.start_date && formData.end_date) {
-      if (new Date(formData.end_date) < new Date(formData.start_date)) {
-        return setError('La fecha fin debe ser posterior al inicio');
-      }
+    if (!formData.name.trim()) return setError('El nombre es obligatorio');
+    if (formData.start_date && formData.end_date && new Date(formData.end_date) < new Date(formData.start_date)) {
+      return setError('La fecha fin debe ser posterior al inicio');
     }
 
     const payload = {
@@ -59,25 +58,13 @@ const ProjectFormModal = ({ project, onClose, onSaved }) => {
 
     setIsSubmitting(true);
     try {
-      let savedProject;
-      if (isEdit) {
-        const res = await api.patch(`/api/v1/projects/${project.id}`, payload);
-        savedProject = res.data;
-      } else {
-        const res = await api.post('/api/v1/projects', payload);
-        savedProject = res.data;
-      }
-      onSaved(savedProject);
+      const res = isEdit
+        ? await api.patch(`/api/v1/projects/${project.id}`, payload)
+        : await api.post('/api/v1/projects', payload);
+      onSaved(res.data);
     } catch (err) {
       const d = err.response?.data?.detail;
-      const msg =
-        typeof d === 'string'
-          ? d
-          : Array.isArray(d)
-            ? d.map((e) => e.msg || JSON.stringify(e)).join(' ')
-            : d
-              ? String(d)
-              : err.message;
+      const msg = typeof d === 'string' ? d : Array.isArray(d) ? d.map((e) => e.msg || JSON.stringify(e)).join(' ') : d ? String(d) : err.message;
       setError(msg || 'Error al guardar el proyecto');
     } finally {
       setIsSubmitting(false);
@@ -85,162 +72,127 @@ const ProjectFormModal = ({ project, onClose, onSaved }) => {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, animation: 'fadeIn 0.2s ease-out' }}>
-      <div style={{ backgroundColor: '#fff', borderRadius: '12px', width: '520px', maxWidth: '90vw', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', animation: 'scaleUp 0.2s ease-out', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>{isEdit ? 'Editar Proyecto' : 'Nuevo Proyecto'}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        </div>
-
-        {/* Live Preview */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: formData.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }}>
-            {formData.icon}
-          </div>
-          <div>
-            <div style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600, marginBottom: '2px' }}>Preview</div>
-            <div style={{ fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>{formData.name || 'Nombre del Proyecto'}</div>
-          </div>
-        </div>
-        
-        {error && (
-          <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: '#fef2f2', color: '#991b1b', borderRadius: '6px', fontSize: '13px', border: '1px solid #fca5a5' }}>
-            {error}
-          </div>
-        )}
-
-        <div style={{ overflowY: 'auto', paddingRight: '8px', flex: 1 }}>
-          <form id="project-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Nombre *</label>
-              <input 
-                type="text" 
-                value={formData.name} 
-                onChange={e => setFormData({...formData, name: e.target.value})} 
-                style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: `1px solid ${error?.includes('nombre') ? '#ef4444' : '#cbd5e1'}`, fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-                placeholder="Ej: Lanzamiento V2"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>
-                <span>Descripción</span>
-                <span style={{ color: '#94a3b8' }}>{formData.description.length}/300</span>
-              </label>
-              <textarea 
-                maxLength={300}
-                value={formData.description} 
-                onChange={e => setFormData({...formData, description: e.target.value})} 
-                style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', minHeight: '80px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-                placeholder="Describe el objetivo general..."
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Icono</label>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {EMOJIS.map(emoji => (
-                  <div 
-                    key={emoji}
-                    onClick={() => setFormData({...formData, icon: emoji})}
-                    style={{ 
-                      width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px',
-                      cursor: 'pointer', borderRadius: '8px', backgroundColor: formData.icon === emoji ? '#e0e7ff' : '#f1f5f9',
-                      border: formData.icon === emoji ? '2px solid #6366f1' : '2px solid transparent', transition: 'all 0.2s'
-                    }}
-                  >
-                    {emoji}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Color</label>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                {COLORS.map(c => (
-                  <div 
-                    key={c}
-                    onClick={() => setFormData({...formData, color: c})}
-                    style={{ 
-                      width: '32px', height: '32px', borderRadius: '50%', backgroundColor: c, cursor: 'pointer', 
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      border: formData.color === c ? '2px solid #0f172a' : '2px solid transparent',
-                      boxShadow: formData.color === c ? '0 0 0 2px #fff inset' : 'none', transition: 'all 0.2s'
-                    }}
-                  >
-                    {formData.color === c && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Fecha Inicio</label>
-                <input 
-                  type="date" 
-                  value={formData.start_date} 
-                  onChange={e => setFormData({...formData, start_date: e.target.value})} 
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Fecha Fin estimada</label>
-                <input 
-                  type="date" 
-                  value={formData.end_date} 
-                  onChange={e => setFormData({...formData, end_date: e.target.value})} 
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-            </div>
-
-            {isEdit && (
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Estado</label>
-                <select 
-                  value={formData.status} 
-                  onChange={e => setFormData({...formData, status: e.target.value})} 
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff' }}
-                >
-                  <option value="active">Activo</option>
-                  <option value="on_hold">En Pausa</option>
-                  <option value="completed">Completado</option>
-                  <option value="archived">Archivado</option>
-                </select>
-              </div>
-            )}
-          </form>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
-          <button 
-            type="button" 
-            onClick={onClose} 
-            style={{ padding: '10px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', fontWeight: 500, cursor: 'pointer' }}
-          >
-            Cancelar
-          </button>
-          <button 
-            type="submit"
-            form="project-form"
-            disabled={isSubmitting} 
-            style={{ padding: '10px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#6366f1', color: '#fff', fontWeight: 500, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1 }}
-          >
-            {isSubmitting ? 'Guardando...' : (isEdit ? 'Guardar Cambios' : 'Crear Proyecto')}
-          </button>
-        </div>
-
+    <Modal open onClose={onClose} className="flex max-w-xl flex-col p-8">
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-fg">{isEdit ? 'Editar Proyecto' : 'Nuevo Proyecto'}</h2>
+        <button onClick={onClose} className="text-muted transition-colors hover:text-fg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes scaleUp { from { transform: scale(0.97); } to { transform: scale(1); } }
-      `}</style>
-    </div>
+
+      {/* Preview en vivo */}
+      <div className="mb-6 flex items-center gap-4 rounded-lg border border-border bg-canvas p-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-2xl" style={{ backgroundColor: formData.color }}>
+          {formData.icon}
+        </div>
+        <div>
+          <div className="mb-0.5 text-xs font-semibold uppercase text-muted">Preview</div>
+          <div className="text-base font-semibold text-fg">{formData.name || 'Nombre del Proyecto'}</div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-5 rounded-md border border-status-blocked/40 bg-status-blocked/10 p-3 text-[13px] text-status-blocked">{error}</div>
+      )}
+
+      <div className="flex-1 overflow-y-auto pr-2">
+        <form id="project-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <div>
+            <label className={LABEL}>Nombre *</label>
+            <Input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className={cn(error?.includes('nombre') && 'border-status-blocked')}
+              placeholder="Ej: Lanzamiento V2"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 flex justify-between text-[13px] font-medium text-fg">
+              <span>Descripción</span>
+              <span className="text-faint">{formData.description.length}/300</span>
+            </label>
+            <Textarea
+              maxLength={300}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="min-h-20"
+              placeholder="Describe el objetivo general..."
+            />
+          </div>
+
+          <div>
+            <label className={LABEL}>Icono</label>
+            <div className="flex flex-wrap gap-2">
+              {EMOJIS.map((emoji) => (
+                <div
+                  key={emoji}
+                  onClick={() => setFormData({ ...formData, icon: emoji })}
+                  className={cn(
+                    'flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border-2 text-xl transition-all',
+                    formData.icon === emoji ? 'border-accent bg-accent-soft' : 'border-transparent bg-raised',
+                  )}
+                >
+                  {emoji}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className={LABEL}>Color</label>
+            <div className="flex gap-3">
+              {COLORS.map((c) => (
+                <div
+                  key={c}
+                  onClick={() => setFormData({ ...formData, color: c })}
+                  className={cn(
+                    'flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 transition-all',
+                    formData.color === c ? 'border-fg' : 'border-transparent',
+                  )}
+                  style={{ backgroundColor: c }}
+                >
+                  {formData.color === c && (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className={LABEL}>Fecha Inicio</label>
+              <Input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
+            </div>
+            <div className="flex-1">
+              <label className={LABEL}>Fecha Fin estimada</label>
+              <Input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+            </div>
+          </div>
+
+          {isEdit && (
+            <div>
+              <label className={LABEL}>Estado</label>
+              <Select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                <option value="active">Activo</option>
+                <option value="on_hold">En Pausa</option>
+                <option value="completed">Completado</option>
+                <option value="archived">Archivado</option>
+              </Select>
+            </div>
+          )}
+        </form>
+      </div>
+
+      <div className="mt-6 flex justify-end gap-3 border-t border-border pt-5">
+        <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+        <Button type="submit" form="project-form" disabled={isSubmitting}>
+          {isSubmitting ? 'Guardando...' : isEdit ? 'Guardar Cambios' : 'Crear Proyecto'}
+        </Button>
+      </div>
+    </Modal>
   );
 };
 

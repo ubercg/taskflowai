@@ -1,100 +1,160 @@
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
 
-:root {
-  --font-family: 'Geist', sans-serif;
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --surface: #f8fafc;
-  --sidebar-bg: #ffffff;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --border-color: #e2e8f0;
+/* Habilita el prefijo dark: por atributo data-theme (no por prefers-color-scheme),
+   para que el toggle del themeStore controle el tema. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-  /* Status Colors */
+/* ============================================================
+   Design tokens (Tailwind v4, CSS-first).
+   @theme inline expone las utilidades (bg-surface, text-muted, ...)
+   apuntando a variables crudas que redefinimos por tema más abajo.
+   Así el cambio dark/light es 100% runtime vía data-theme.
+   ============================================================ */
+@theme inline {
+  --font-sans: 'Geist', sans-serif;
+
+  /* Superficies */
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-overlay: var(--overlay);
+
+  /* Bordes */
+  --color-border: var(--border);
+  --color-hairline: var(--hairline);
+
+  /* Texto */
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  /* Acento de marca (indigo) */
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-fg);
+
+  /* Estados Kanban */
+  --color-status-backlog: var(--status-backlog);
+  --color-status-todo: var(--status-todo);
+  --color-status-in_progress: var(--status-in_progress);
+  --color-status-review: var(--status-review);
+  --color-status-done: var(--status-done);
+  --color-status-blocked: var(--status-blocked);
+
+  /* Prioridades */
+  --color-priority-critical: var(--priority-critical);
+  --color-priority-high: var(--priority-high);
+  --color-priority-medium: var(--priority-medium);
+  --color-priority-low: var(--priority-low);
+
+  /* Radios */
+  --radius-card: 0.75rem;
+  --radius-input: 0.5rem;
+
+  /* Sombras (profundidad sutil estilo Raycast) */
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-raised: 0 8px 30px rgba(0, 0, 0, 0.12);
+  --shadow-overlay: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- Valores por tema ---------- */
+
+/* Light (default / fallback) */
+:root,
+[data-theme="light"] {
+  --canvas: #f8fafc;
+  --surface: #ffffff;
+  --raised: #ffffff;
+  --overlay: rgba(15, 23, 42, 0.40);
+
+  --border: #e2e8f0;
+  --hairline: #eef2f6;
+
+  --fg: #0f172a;
+  --muted: #64748b;
+  --faint: #94a3b8;
+
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-soft: rgba(99, 102, 241, 0.10);
+  --accent-fg: #ffffff;
+
   --status-backlog: #94a3b8;
   --status-todo: #cbd5e1;
   --status-in_progress: #3b82f6;
   --status-review: #a855f7;
   --status-done: #22c55e;
   --status-blocked: #ef4444;
+
+  --priority-critical: #ef4444;
+  --priority-high: #f97316;
+  --priority-medium: #eab308;
+  --priority-low: #94a3b8;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* Dark (Raycast-like: near-black, off-white, profundidad sutil) */
+[data-theme="dark"] {
+  --canvas: #0a0a0a;
+  --surface: #161616;
+  --raised: #1f1f1f;
+  --overlay: rgba(0, 0, 0, 0.60);
+
+  --border: #2a2a2a;
+  --hairline: #1f1f1f;
+
+  --fg: #ededed;
+  --muted: #a1a1a1;
+  --faint: #6b6b6b;
+
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-soft: rgba(99, 102, 241, 0.16);
+  --accent-fg: #ffffff;
+
+  --status-backlog: #94a3b8;
+  --status-todo: #64748b;
+  --status-in_progress: #3b82f6;
+  --status-review: #a855f7;
+  --status-done: #22c55e;
+  --status-blocked: #ef4444;
+
+  --priority-critical: #ef4444;
+  --priority-high: #f97316;
+  --priority-medium: #eab308;
+  --priority-low: #6b7280;
 }
 
-body {
-  font-family: var(--font-family);
-  background-color: var(--surface);
-  color: var(--text-main);
-  -webkit-font-smoothing: antialiased;
+@keyframes drawer-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
-a {
-  text-decoration: none;
-  color: inherit;
-}
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-ul {
-  list-style: none;
-}
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--canvas);
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
 
-/* Layout App */
-.app-layout {
-  display: flex;
-  min-height: 100vh;
-}
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
 
-/* Sidebar */
-.sidebar {
-  width: 240px;
-  background-color: var(--sidebar-bg);
-  border-right: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-}
-
-.sidebar-header {
-  padding: 24px 20px;
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: var(--text-main);
-  letter-spacing: -0.02em;
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  padding: 0 12px;
-  gap: 4px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  transition: all 0.15s ease;
-}
-
-.nav-item:hover {
-  background-color: rgba(0, 0, 0, 0.03);
-  color: var(--text-main);
-}
-
-.nav-item.active {
-  background-color: rgba(99, 102, 241, 0.1);
-  color: var(--primary);
-  font-weight: 500;
+  ul {
+    list-style: none;
+  }
 }
 
 /* Encabezado solo visible al imprimir el calendario */
@@ -121,6 +181,21 @@ ul {
   @page {
     size: A4 landscape;
     margin: 8mm;
+  }
+
+  /* El PDF siempre se imprime en claro, sin importar el tema activo. */
+  .calendar-print-area,
+  .calendar-pdf-report {
+    --canvas: #f8fafc;
+    --surface: #ffffff;
+    --raised: #f1f5f9;
+    --fg: #0f172a;
+    --muted: #64748b;
+    --faint: #94a3b8;
+    --border: #e2e8f0;
+    --hairline: #eef2f6;
+    background-color: #ffffff;
+    color: #0f172a;
   }
 
   /* Oculta todo el chrome de la app (nav, sidebar, toolbar, etc.) */
@@ -187,12 +262,4 @@ ul {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-}
-
-/* Main Content */
-.main-content {
-  flex: 1;
-  margin-left: 240px;
-  padding: 32px;
-  background-color: var(--surface);
 }

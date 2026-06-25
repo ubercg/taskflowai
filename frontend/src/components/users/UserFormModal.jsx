@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createAdminUser, updateAdminUser } from '../../services/api';
+import { Modal, Input, Select, Button } from '../ui';
+import { cn } from '../../lib/cn';
 
 const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#f97316'];
+const LABEL = 'mb-1.5 block text-[13px] font-medium text-fg';
 
 const getInitials = (name) => {
   if (!name) return '';
@@ -10,25 +13,13 @@ const getInitials = (name) => {
 };
 
 const UserFormModal = ({ user, onClose, onSaved }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: 'developer',
-    color: COLORS[0],
-    is_active: true
-  });
+  const [formData, setFormData] = useState({ name: '', email: '', role: 'developer', color: COLORS[0], is_active: true });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (user) {
-      setFormData({
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        color: user.color,
-        is_active: user.is_active
-      });
+      setFormData({ name: user.name, email: user.email, role: user.role, color: user.color, is_active: user.is_active });
     }
   }, [user]);
 
@@ -36,18 +27,11 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
     e.preventDefault();
     setError('');
 
-    if (formData.name.trim().length < 3) {
-      return setError('El nombre debe tener al menos 3 caracteres.');
-    }
-    
-    if (!formData.email.trim()) {
-      return setError('El email es obligatorio.');
-    }
-    
+    if (formData.name.trim().length < 3) return setError('El nombre debe tener al menos 3 caracteres.');
+    if (!formData.email.trim()) return setError('El email es obligatorio.');
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      return setError('Formato de correo inválido.');
-    }
+    if (!emailRegex.test(formData.email)) return setError('Formato de correo inválido.');
 
     setIsSubmitting(true);
     try {
@@ -60,14 +44,7 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
       onSaved();
     } catch (err) {
       const d = err.response?.data?.detail;
-      const msg =
-        typeof d === 'string'
-          ? d
-          : Array.isArray(d)
-            ? d.map((e) => e.msg || JSON.stringify(e)).join(' ')
-            : d
-              ? String(d)
-              : err.message;
+      const msg = typeof d === 'string' ? d : Array.isArray(d) ? d.map((e) => e.msg || JSON.stringify(e)).join(' ') : d ? String(d) : err.message;
       setError(msg || 'Error al guardar el usuario.');
     } finally {
       setIsSubmitting(false);
@@ -77,87 +54,61 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
   const isEdit = !!user;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, animation: 'fadeIn 0.2s ease-out' }}>
-      <div data-testid="user-form-modal" style={{ backgroundColor: '#fff', borderRadius: '12px', width: '480px', maxWidth: '90vw', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', animation: 'scaleUp 0.2s ease-out' }}>
-        <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: 600 }}>{isEdit ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
-        
+    <Modal open onClose={onClose} className="max-w-lg p-8">
+      <div data-testid="user-form-modal">
+        <h2 className="mb-6 text-xl font-semibold text-fg">{isEdit ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
+
         {error && (
-          <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: '#fef2f2', color: '#991b1b', borderRadius: '6px', fontSize: '13px', border: '1px solid #fca5a5' }}>
-            {error}
-          </div>
+          <div className="mb-5 rounded-md border border-status-blocked/40 bg-status-blocked/10 p-3 text-[13px] text-status-blocked">{error}</div>
         )}
-        
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '8px' }}>
-            <div style={{ 
-              width: '56px', height: '56px', borderRadius: '50%', backgroundColor: formData.color, 
-              display: 'flex', alignItems: 'center', justifyContent: 'center', 
-              color: '#fff', fontSize: '20px', fontWeight: 600, flexShrink: 0
-            }}>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <div className="mb-2 flex items-center gap-6">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-xl font-semibold text-white" style={{ backgroundColor: formData.color }}>
               {getInitials(formData.name) || '??'}
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Nombre completo *</label>
-              <input 
-                type="text" 
-                value={formData.name} 
-                onChange={e => setFormData({...formData, name: e.target.value})} 
-                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} 
-                placeholder="Ej: Jane Doe" 
-              />
+            <div className="flex-1">
+              <label className={LABEL}>Nombre completo *</label>
+              <Input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ej: Jane Doe" />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Email *</label>
-            <input 
-              type="email" 
-              value={formData.email} 
-              onChange={e => setFormData({...formData, email: e.target.value})} 
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} 
-              placeholder="jane@example.com" 
-            />
+            <label className={LABEL}>Email *</label>
+            <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="jane@example.com" />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Rol de sistema</label>
-            <select 
-              value={formData.role} 
-              onChange={e => setFormData({...formData, role: e.target.value})} 
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', backgroundColor: '#fff' }}
-            >
+            <label className={LABEL}>Rol de sistema</label>
+            <Select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
               <option value="admin">⚡ Admin</option>
               <option value="manager">🎯 Manager</option>
               <option value="developer">💻 Developer</option>
               <option value="viewer">👁 Viewer</option>
-            </select>
+            </Select>
           </div>
 
           {isEdit && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', color: '#334155' }}>
+            <label className="flex cursor-pointer items-center gap-2.5 text-sm text-fg">
               <input
                 type="checkbox"
                 checked={formData.is_active}
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                style={{ width: '16px', height: '16px', accentColor: '#6366f1' }}
+                className="h-4 w-4 accent-[var(--color-accent)]"
               />
               Usuario activo (puede iniciar sesión)
             </label>
           )}
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Color de Avatar</label>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              {COLORS.map(c => (
-                <div 
+            <label className={LABEL}>Color de Avatar</label>
+            <div className="flex gap-3">
+              {COLORS.map((c) => (
+                <div
                   key={c}
-                  onClick={() => setFormData({...formData, color: c})}
-                  style={{ 
-                    width: '32px', height: '32px', borderRadius: '50%', backgroundColor: c, cursor: 'pointer', 
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: formData.color === c ? '2px solid #0f172a' : '2px solid transparent',
-                    boxShadow: formData.color === c ? '0 0 0 2px #fff inset' : 'none'
-                  }}
+                  onClick={() => setFormData({ ...formData, color: c })}
+                  className={cn('flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 transition-all', formData.color === c ? 'border-fg' : 'border-transparent')}
+                  style={{ backgroundColor: c }}
                 >
                   {formData.color === c && (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -166,31 +117,14 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
               ))}
             </div>
           </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
-            <button 
-              type="button" 
-              onClick={onClose} 
-              style={{ padding: '10px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', fontWeight: 500, cursor: 'pointer' }}
-            >
-              Cancelar
-            </button>
-            <button 
-              type="submit" 
-              disabled={isSubmitting} 
-              style={{ padding: '10px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#6366f1', color: '#fff', fontWeight: 500, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1 }}
-            >
-              {isSubmitting ? 'Guardando...' : (isEdit ? 'Guardar Cambios' : 'Crear Usuario')}
-            </button>
+
+          <div className="mt-4 flex justify-end gap-3">
+            <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Guardando...' : isEdit ? 'Guardar Cambios' : 'Crear Usuario'}</Button>
           </div>
         </form>
       </div>
-
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes scaleUp { from { transform: scale(0.95); } to { transform: scale(1); } }
-      `}</style>
-    </div>
+    </Modal>
   );
 };
 

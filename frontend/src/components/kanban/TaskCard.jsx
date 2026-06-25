@@ -1,7 +1,7 @@
-import React from 'react';
 import { parseDateOnly, formatCalendarShortEs } from '../../utils/dateUtils';
+import { cn } from '../../lib/cn';
 
-// Helpers para colores e iconos
+// Colores de prioridad (se aplican inline porque el borde y el punto son dinámicos)
 const PRIORITY_COLORS = {
   critical: '#ef4444',
   high: '#f97316',
@@ -16,6 +16,8 @@ const getInitials = (name) => {
   return name.substring(0, 2).toUpperCase();
 };
 
+// Estado de fecha límite. Devuelve colores literales: los tests verifican el
+// color inline del badge (toHaveStyle), por lo que NO migran a clases Tailwind.
 const getDueDateStatus = (dueDateStr) => {
   if (!dueDateStr) return null;
   const due = parseDateOnly(dueDateStr);
@@ -25,210 +27,95 @@ const getDueDateStatus = (dueDateStr) => {
   const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const diffTime = dueDay - today;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.ceil((dueDay - today) / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0) return { color: '#ef4444', bg: '#fee2e2' }; // Vencido (Rojo)
-  if (diffDays <= 3) return { color: '#d97706', bg: '#fef3c7' }; // Pronto (Amarillo)
-  return { color: '#64748b', bg: '#f1f5f9' }; // Futuro (Gris)
+  if (diffDays < 0) return { color: '#ef4444', bg: '#fee2e2' }; // Vencido
+  if (diffDays <= 3) return { color: '#d97706', bg: '#fef3c7' }; // Pronto
+  return { color: '#64748b', bg: '#f1f5f9' }; // Futuro
 };
 
-const TaskCard = ({ task, onMove, onOpen, isDragging, provided }) => {
-  // Aseguramos valores por defecto para no romper el render
+const TaskCard = ({ task, onOpen, isDragging, provided }) => {
   const priority = task.priority || 'medium';
   const priorityColor = PRIORITY_COLORS[priority] || PRIORITY_COLORS.medium;
   const hasSubtasks = task.subtasks && task.subtasks.length > 0;
-  
-  // Cálculo de subtareas
+
   let subtasksProgress = 0;
-  let subtasksDone = 0;
   if (hasSubtasks) {
-    subtasksDone = task.subtasks.filter(st => st.status === 'done').length;
+    const subtasksDone = task.subtasks.filter((st) => st.status === 'done').length;
     subtasksProgress = (subtasksDone / task.subtasks.length) * 100;
   }
 
-  // Lógica de horas
   const logged = parseFloat(task.logged_hours || 0);
   const estimated = task.estimated_hours ? parseFloat(task.estimated_hours) : null;
   const isOvertime = estimated !== null && logged > estimated;
 
-  // Lógica de fechas
   const dueDateStatus = getDueDateStatus(task.due_date);
 
-  const cardStyle = {
-    backgroundColor: '#ffffff',
-    borderTop: `1px solid ${isDragging ? '#818cf8' : '#e2e8f0'}`,
-    borderRight: `1px solid ${isDragging ? '#818cf8' : '#e2e8f0'}`,
-    borderBottom: `1px solid ${isDragging ? '#818cf8' : '#e2e8f0'}`,
-    borderLeft: `3px solid ${priorityColor}`,
-    borderRadius: '8px',
-    padding: '12px',
-    boxShadow: isDragging 
-      ? '0 8px 24px rgba(0,0,0,0.15)' 
-      : '0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1)',
-    cursor: isDragging ? 'grabbing' : 'grab',
-    transition: 'border-top-color 0.2s, border-right-color 0.2s, border-bottom-color 0.2s, box-shadow 0.2s',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-    position: 'relative',
-    userSelect: 'none',
-    ...provided?.draggableProps.style,
-  };
-
   return (
-    <div 
+    <div
       ref={provided?.innerRef}
       {...provided?.draggableProps}
       {...provided?.dragHandleProps}
       data-testid="task-card"
-      style={cardStyle} 
       onClick={() => onOpen && onOpen(task.id)}
-      onMouseEnter={(e) => {
-        if (!isDragging) {
-          e.currentTarget.style.borderTopColor = '#818cf8';
-          e.currentTarget.style.borderRightColor = '#818cf8';
-          e.currentTarget.style.borderBottomColor = '#818cf8';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isDragging) {
-          e.currentTarget.style.borderTopColor = '#e2e8f0';
-          e.currentTarget.style.borderRightColor = '#e2e8f0';
-          e.currentTarget.style.borderBottomColor = '#e2e8f0';
-        }
-      }}
+      className={cn(
+        'relative flex select-none flex-col gap-2 rounded-lg bg-surface p-3',
+        'border border-border shadow-soft transition-all duration-150',
+        'cursor-grab active:cursor-grabbing hover:border-accent',
+        isDragging && 'border-accent shadow-raised',
+      )}
+      style={{ borderLeft: `3px solid ${priorityColor}`, ...provided?.draggableProps?.style }}
     >
-      {/* Header: Tags & Priority */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', flex: 1 }}>
-          {/* OKR Chip */}
+      {/* Header: chips & prioridad */}
+      <div className="flex items-start justify-between">
+        <div className="flex flex-1 flex-wrap gap-1">
           {task.objective_id && (
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              backgroundColor: '#ede9fe',
-              color: '#5b21b6',
-              padding: '2px 6px',
-              borderRadius: '12px',
-              fontSize: '10px',
-              fontWeight: 600,
-            }}>
+            <span className="inline-flex items-center gap-1 rounded-full bg-status-review/15 px-1.5 py-0.5 text-[10px] font-semibold text-status-review">
               🎯 OKR #{task.objective_id}
             </span>
           )}
-          
-          {/* Due Date Badge */}
+
           {task.due_date && dueDateStatus && (
-            <span style={{
-              backgroundColor: dueDateStatus.bg,
-              color: dueDateStatus.color,
-              padding: '2px 6px',
-              borderRadius: '12px',
-              fontSize: '10px',
-              fontWeight: 600,
-            }}>
+            <span
+              className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+              style={{ backgroundColor: dueDateStatus.bg, color: dueDateStatus.color }}
+            >
               {formatCalendarShortEs(task.due_date)}
             </span>
           )}
         </div>
 
-        {/* Priority Badge */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '4px',
-          marginLeft: '8px',
-          flexShrink: 0
-        }}>
-          <div style={{ 
-            width: '8px', 
-            height: '8px', 
-            borderRadius: '50%', 
-            backgroundColor: priorityColor 
-          }} />
-          <span style={{ 
-            fontSize: '11px', 
-            color: '#64748b', 
-            fontWeight: 500,
-            textTransform: 'capitalize' 
-          }}>
-            {priority}
-          </span>
+        <div className="ml-2 flex shrink-0 items-center gap-1">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: priorityColor }} />
+          <span className="text-[11px] font-medium capitalize text-muted">{priority}</span>
         </div>
       </div>
 
-      {/* Title */}
-      <h4 style={{ 
-        margin: '4px 0', 
-        fontSize: '14px', 
-        fontWeight: 500, 
-        color: '#0f172a',
-        lineHeight: '1.4',
-        display: '-webkit-box',
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: 'vertical',
-        overflow: 'hidden',
-        wordBreak: 'break-word'
-      }}>
+      {/* Título */}
+      <h4 className="my-1 line-clamp-2 break-words text-sm font-medium leading-snug text-fg">
         {task.title}
       </h4>
 
-      {/* Footer: Assignee & Hours */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'flex-end',
-        marginTop: '4px'
-      }}>
-        {/* Assignee Avatar */}
+      {/* Footer: responsable & horas */}
+      <div className="mt-1 flex items-end justify-between">
         {task.assignee ? (
-          <div 
+          <div
             title={task.assignee.name}
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '50%',
-              backgroundColor: task.assignee.color || '#e2e8f0',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '10px',
-              fontWeight: 600,
-              boxShadow: '0 0 0 1px #ffffff'
-            }}
+            className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white ring-1 ring-surface"
+            style={{ backgroundColor: task.assignee.color || 'var(--color-faint)' }}
           >
             {getInitials(task.assignee.name)}
           </div>
         ) : (
-          <div style={{
-            width: '24px',
-            height: '24px',
-            borderRadius: '50%',
-            backgroundColor: '#f1f5f9',
-            border: '1px dashed #cbd5e1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-border bg-raised">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-faint">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
           </div>
         )}
 
-        {/* Hours */}
-        <div style={{ 
-          fontSize: '11px', 
-          fontWeight: 500,
-          color: isOvertime ? '#ef4444' : '#64748b',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}>
+        <div className={cn('flex items-center gap-1 text-[11px] font-medium', isOvertime ? 'text-status-blocked' : 'text-muted')}>
           {isOvertime && (
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
@@ -236,33 +123,21 @@ const TaskCard = ({ task, onMove, onOpen, isDragging, provided }) => {
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
           )}
-          {estimated !== null ? (
-            <span>{logged}h / {estimated}h</span>
-          ) : (
-            <span>{logged}h registradas</span>
-          )}
+          {estimated !== null ? <span>{logged}h / {estimated}h</span> : <span>{logged}h registradas</span>}
         </div>
       </div>
 
-      {/* Subtasks Progress Bar */}
+      {/* Barra de progreso de subtareas */}
       {hasSubtasks && (
-        <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '4px',
-          backgroundColor: '#f1f5f9',
-          borderBottomLeftRadius: '7px',
-          borderBottomRightRadius: '7px',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            height: '100%',
-            width: `${subtasksProgress}%`,
-            backgroundColor: subtasksProgress === 100 ? '#22c55e' : (subtasksProgress > 0 ? '#3b82f6' : '#cbd5e1'),
-            transition: 'width 0.3s ease, background-color 0.3s ease'
-          }} />
+        <div className="absolute inset-x-0 bottom-0 h-1 overflow-hidden rounded-b-[7px] bg-raised">
+          <div
+            className="h-full transition-all duration-300"
+            style={{
+              width: `${subtasksProgress}%`,
+              backgroundColor:
+                subtasksProgress === 100 ? '#22c55e' : subtasksProgress > 0 ? '#3b82f6' : '#cbd5e1',
+            }}
+          />
         </div>
       )}
     </div>

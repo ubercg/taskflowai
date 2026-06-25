@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import { getProject, getObjectives, getProjectMetrics } from '../services/api';
 import api from '../services/api/client';
@@ -10,11 +10,19 @@ import ObjectiveFormModal from '../components/projects/ObjectiveFormModal';
 import MembersPanel from '../components/projects/MembersPanel';
 import ObjectiveTasksPanel from '../components/projects/ObjectiveTasksPanel';
 import { formatCalendarLocale } from '../utils/dateUtils';
+import { Button } from '../components/ui';
+import { cn } from '../lib/cn';
 
 const getInitials = (name) => {
   if (!name) return '??';
   const parts = name.split(' ');
   return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
+};
+
+const getProgressColor = (percentage) => {
+  if (percentage < 30) return '#f87171';
+  if (percentage <= 70) return '#fb923c';
+  return '#4ade80';
 };
 
 const ProjectDetailPage = () => {
@@ -28,67 +36,46 @@ const ProjectDetailPage = () => {
   const [editingObjective, setEditingObjective] = useState(null);
   const [expandedObjectiveId, setExpandedObjectiveId] = useState(null);
 
-  // Data fetching
-  const { data: project, mutate: mutateProject } = useSWR(
-    `/api/v1/projects/${id}`,
-    () => getProject(id)
-  );
-
-  const { data: objectives, mutate: mutateObjectives } = useSWR(
-    `/api/v1/objectives?project_id=${id}`,
-    () => getObjectives(id)
-  );
-
+  const { data: project, mutate: mutateProject } = useSWR(`/api/v1/projects/${id}`, () => getProject(id));
+  const { data: objectives, mutate: mutateObjectives } = useSWR(`/api/v1/objectives?project_id=${id}`, () => getObjectives(id));
   const { data: members } = useSWR(
     `/api/v1/projects/${id}/members`,
-    () => api.get(`/api/v1/projects/${id}/members`).then(res => res.data),
-    { fallbackData: [] } // Fallback empty array para cuando el backend se actualice en P2
+    () => api.get(`/api/v1/projects/${id}/members`).then((res) => res.data),
+    { fallbackData: [] },
   );
+  const { data: metricsData } = useSWR('/api/v1/metrics/projects', () => getProjectMetrics());
 
-  const { data: metricsData } = useSWR(
-    '/api/v1/metrics/projects',
-    () => getProjectMetrics()
-  );
-
-  const projectMetrics = Array.isArray(metricsData) 
-    ? metricsData.find(m => m.project_id === Number(id)) 
+  const projectMetrics = Array.isArray(metricsData)
+    ? metricsData.find((m) => m.project_id === Number(id))
     : { total_tasks: 0, completed_tasks: 0, in_progress_tasks: 0, blocked_tasks: 0 };
 
   if (!project) {
-    return <div style={{ padding: '32px', color: '#64748b' }}>Cargando proyecto...</div>;
+    return <div className="p-8 text-muted">Cargando proyecto...</div>;
   }
 
-  const getProgressColor = (percentage) => {
-    if (percentage < 30) return '#f87171';
-    if (percentage <= 70) return '#fb923c';
-    return '#4ade80';
-  };
-
   return (
-    <div style={{ padding: '0 16px', maxWidth: '1400px', margin: '0 auto' }}>
-      {/* Container 70/30 */}
-      <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        
-        {/* Columna Izquierda (70%) */}
-        <div style={{ flex: '1 1 600px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
-          {/* Header del Proyecto */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '32px', position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: project.color || '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', flexShrink: 0 }}>
+    <div className="mx-auto max-w-[1400px] px-4">
+      <div className="flex flex-wrap items-start gap-6">
+        {/* Columna izquierda (70%) */}
+        <div className="flex flex-[1_1_600px] flex-col gap-6">
+          {/* Header del proyecto */}
+          <div className="relative rounded-xl border border-border bg-surface p-8">
+            <div className="mb-4 flex items-center gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-3xl" style={{ backgroundColor: project.color || '#6366f1' }}>
                 {project.icon || '🚀'}
               </div>
               <div>
-                <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em' }}>{project.name}</h1>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
-                  <span style={{ 
-                    backgroundColor: project.status === 'active' ? '#dcfce7' : '#f1f5f9', 
-                    color: project.status === 'active' ? '#16a34a' : '#64748b', 
-                    padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, textTransform: 'capitalize' 
-                  }}>
+                <h1 className="text-[28px] font-bold tracking-tight text-fg">{project.name}</h1>
+                <div className="mt-2 flex items-center gap-3">
+                  <span
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-xs font-semibold capitalize',
+                      project.status === 'active' ? 'bg-status-done/15 text-status-done' : 'bg-raised text-muted',
+                    )}
+                  >
                     {project.status?.replace('_', ' ') || 'Active'}
                   </span>
-                  <span style={{ fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span className="flex items-center gap-1 text-[13px] text-muted">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                     Creado el {new Date(project.created_at).toLocaleDateString()}
                   </span>
@@ -96,199 +83,160 @@ const ProjectDetailPage = () => {
               </div>
             </div>
 
-            <p style={{ fontSize: '15px', color: '#334155', lineHeight: 1.6, margin: '0 0 24px 0' }}>
+            <p className="mb-6 text-[15px] leading-relaxed text-fg">
               {project.description || 'Sin descripción proporcionada para este proyecto.'}
             </p>
 
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div className="flex gap-3">
               <Can permission={canEditProject}>
-                <button 
-                  onClick={() => setShowEditProject(true)}
-                  style={{ padding: '8px 16px', backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
+                <Button variant="secondary" size="sm" onClick={() => setShowEditProject(true)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                   Editar Proyecto
-                </button>
+                </Button>
               </Can>
-              <button 
-                onClick={() => navigate(`/projects/${id}/board`)}
-                style={{ padding: '8px 16px', backgroundColor: '#6366f1', color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(99, 102, 241, 0.2)' }}
-              >
-                Ir al Kanban →
-              </button>
+              <Button size="sm" onClick={() => navigate(`/projects/${id}/board`)}>Ir al Kanban →</Button>
             </div>
           </div>
 
-          {/* Objetivos (OKRs) Section */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#0f172a' }}>Objetivos (OKRs)</h2>
+          {/* Objetivos (OKRs) */}
+          <div className="rounded-xl border border-border bg-surface p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-fg">Objetivos (OKRs)</h2>
               <Can permission={canEditProject}>
-                <button 
+                <button
                   onClick={() => { setEditingObjective(null); setShowObjectiveForm(true); }}
-                  style={{ padding: '6px 12px', backgroundColor: '#f8fafc', color: '#6366f1', border: '1px solid #e0e7ff', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                  className="rounded-md border border-accent/40 bg-canvas px-3 py-1.5 text-xs font-semibold text-accent transition-colors hover:bg-accent-soft"
                 >
                   + Nuevo Objetivo
                 </button>
               </Can>
             </div>
 
-            {(!objectives || objectives.length === 0) ? (
-              <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8', border: '1px dashed #e2e8f0', borderRadius: '8px' }}>
+            {!objectives || objectives.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border p-8 text-center text-faint">
                 No hay objetivos estratégicos definidos aún.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {objectives.map(obj => (
-                  <div key={obj.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-                    <div 
+              <div className="flex flex-col gap-3">
+                {objectives.map((obj) => (
+                  <div key={obj.id} className="overflow-hidden rounded-lg border border-border">
+                    <div
                       onClick={() => setExpandedObjectiveId(expandedObjectiveId === obj.id ? null : obj.id)}
-                      style={{ padding: '16px', backgroundColor: expandedObjectiveId === obj.id ? '#f8fafc' : '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px', transition: 'background-color 0.2s' }}
+                      className={cn('flex cursor-pointer items-center gap-4 p-4 transition-colors', expandedObjectiveId === obj.id ? 'bg-raised' : 'bg-surface')}
                     >
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#1e293b' }}>{obj.title}</h3>
-                          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>{obj.progress || 0}%</span>
+                      <div className="flex-1">
+                        <div className="mb-2 flex items-center justify-between">
+                          <h3 className="text-[15px] font-semibold text-fg">{obj.title}</h3>
+                          <span className="text-xs font-medium text-muted">{obj.progress || 0}%</span>
                         </div>
-                        <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${obj.progress || 0}%`, backgroundColor: getProgressColor(obj.progress || 0) }} />
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-border">
+                          <div className="h-full" style={{ width: `${obj.progress || 0}%`, backgroundColor: getProgressColor(obj.progress || 0) }} />
                         </div>
                       </div>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'right' }}>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-right text-xs text-muted">
                           <div>Vence</div>
-                          <div style={{ fontWeight: 500, color: '#334155' }}>{formatCalendarLocale(obj.due_date)}</div>
+                          <div className="font-medium text-fg">{formatCalendarLocale(obj.due_date)}</div>
                         </div>
                         <Can permission={canEditProject}>
                           <button
                             onClick={(e) => { e.stopPropagation(); setEditingObjective(obj); setShowObjectiveForm(true); }}
                             title="Editar objetivo"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px', display: 'flex', alignItems: 'center' }}
+                            className="flex p-1 text-faint transition-colors hover:text-fg"
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                           </button>
                         </Can>
                         {obj.owner_id ? (
-                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#cbd5e1', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600 }}>
-                            {/* Dummy fallback in case owner isn't expanded by backend */}
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-faint text-[11px] font-semibold text-white">
                             U{obj.owner_id}
                           </div>
                         ) : (
-                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#f1f5f9', border: '1px dashed #cbd5e1' }} />
+                          <div className="h-8 w-8 rounded-full border border-dashed border-border bg-raised" />
                         )}
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" style={{ transform: expandedObjectiveId === obj.id ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
+                        <svg
+                          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                          className={cn('text-faint transition-transform duration-200', expandedObjectiveId === obj.id && 'rotate-180')}
+                        >
                           <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
                       </div>
                     </div>
-                    
+
                     {expandedObjectiveId === obj.id && (
-                      <ObjectiveTasksPanel 
-                        objective={obj} 
-                        projectId={id} 
-                        onClose={() => setExpandedObjectiveId(null)} 
-                      />
+                      <ObjectiveTasksPanel objective={obj} projectId={id} onClose={() => setExpandedObjectiveId(null)} />
                     )}
                   </div>
                 ))}
               </div>
             )}
           </div>
-
         </div>
 
-        {/* Columna Derecha (30%) */}
-        <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
-          {/* Widget Equipo */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>Equipo</h3>
+        {/* Columna derecha (30%) */}
+        <div className="flex flex-[1_1_300px] flex-col gap-6">
+          {/* Equipo */}
+          <div className="rounded-xl border border-border bg-surface p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-fg">Equipo</h3>
               <Can permission={canEditProject}>
-                <button 
-                  onClick={() => setShowMembersPanel(true)}
-                  style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
-                >
+                <button onClick={() => setShowMembersPanel(true)} className="text-[13px] font-medium text-accent hover:text-accent-hover">
                   + Administrar
                 </button>
               </Can>
             </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {members?.map(member => (
-                <div key={member.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: member.color || '#cbd5e1', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600 }}>
+
+            <div className="flex flex-col gap-3">
+              {members?.map((member) => (
+                <div key={member.id} className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-semibold text-white" style={{ backgroundColor: member.color || 'var(--color-faint)' }}>
                     {getInitials(member.name)}
                   </div>
-                  <div style={{ flex: 1, overflow: 'hidden' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                      {member.name}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>
-                      {member.role}
-                    </div>
+                  <div className="flex-1 overflow-hidden">
+                    <div className="truncate text-sm font-medium text-fg">{member.name}</div>
+                    <div className="text-xs text-muted">{member.role}</div>
                   </div>
                 </div>
               ))}
-              {members?.length === 0 && (
-                <span style={{ fontSize: '13px', color: '#94a3b8' }}>Sin miembros asignados.</span>
-              )}
+              {members?.length === 0 && <span className="text-[13px] text-faint">Sin miembros asignados.</span>}
             </div>
           </div>
 
-          {/* Widget Resumen Rápido */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>Resumen Rápido</h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                <div style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a' }}>{projectMetrics?.total_tasks || 0}</div>
-                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 500, textTransform: 'uppercase' }}>Total</div>
+          {/* Resumen rápido */}
+          <div className="rounded-xl border border-border bg-surface p-6">
+            <h3 className="mb-4 text-base font-semibold text-fg">Resumen Rápido</h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-lg border border-border bg-canvas p-4">
+                <div className="text-2xl font-bold text-fg">{projectMetrics?.total_tasks || 0}</div>
+                <div className="text-xs font-medium uppercase text-muted">Total</div>
               </div>
-              <div style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '8px', border: '1px solid #dcfce7' }}>
-                <div style={{ fontSize: '24px', fontWeight: 700, color: '#16a34a' }}>{projectMetrics?.completed_tasks || 0}</div>
-                <div style={{ fontSize: '12px', color: '#15803d', fontWeight: 500, textTransform: 'uppercase' }}>Hechas</div>
+              <div className="rounded-lg border border-status-done/20 bg-status-done/10 p-4">
+                <div className="text-2xl font-bold text-status-done">{projectMetrics?.completed_tasks || 0}</div>
+                <div className="text-xs font-medium uppercase text-status-done">Hechas</div>
               </div>
-              <div style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '8px', border: '1px solid #dbeafe' }}>
-                <div style={{ fontSize: '24px', fontWeight: 700, color: '#2563eb' }}>{projectMetrics?.in_progress_tasks || 0}</div>
-                <div style={{ fontSize: '12px', color: '#1e40af', fontWeight: 500, textTransform: 'uppercase' }}>WIP</div>
+              <div className="rounded-lg border border-status-in_progress/20 bg-status-in_progress/10 p-4">
+                <div className="text-2xl font-bold text-status-in_progress">{projectMetrics?.in_progress_tasks || 0}</div>
+                <div className="text-xs font-medium uppercase text-status-in_progress">WIP</div>
               </div>
-              <div style={{ backgroundColor: '#fef2f2', padding: '16px', borderRadius: '8px', border: '1px solid #fee2e2' }}>
-                <div style={{ fontSize: '24px', fontWeight: 700, color: '#dc2626' }}>{projectMetrics?.blocked_tasks || 0}</div>
-                <div style={{ fontSize: '12px', color: '#991b1b', fontWeight: 500, textTransform: 'uppercase' }}>Bloqueo</div>
+              <div className="rounded-lg border border-status-blocked/20 bg-status-blocked/10 p-4">
+                <div className="text-2xl font-bold text-status-blocked">{projectMetrics?.blocked_tasks || 0}</div>
+                <div className="text-xs font-medium uppercase text-status-blocked">Bloqueo</div>
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
       {/* Modales */}
       {showEditProject && (
-        <ProjectFormModal 
-          project={project} 
-          onClose={() => setShowEditProject(false)} 
-          onSaved={() => { mutateProject(); setShowEditProject(false); }} 
-        />
+        <ProjectFormModal project={project} onClose={() => setShowEditProject(false)} onSaved={() => { mutateProject(); setShowEditProject(false); }} />
       )}
-
       {showObjectiveForm && (
-        <ObjectiveFormModal 
-          projectId={id}
-          objective={editingObjective}
-          onClose={() => setShowObjectiveForm(false)}
-          onSaved={() => { mutateObjectives(); setShowObjectiveForm(false); }}
-        />
+        <ObjectiveFormModal projectId={id} objective={editingObjective} onClose={() => setShowObjectiveForm(false)} onSaved={() => { mutateObjectives(); setShowObjectiveForm(false); }} />
       )}
-
-      {showMembersPanel && (
-        <MembersPanel 
-          projectId={id}
-          onClose={() => setShowMembersPanel(false)}
-        />
-      )}
-
+      {showMembersPanel && <MembersPanel projectId={id} onClose={() => setShowMembersPanel(false)} />}
     </div>
   );
 };

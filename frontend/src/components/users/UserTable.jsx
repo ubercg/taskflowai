@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { cn } from '../../lib/cn';
 
-const ROLE_COLORS = {
-  admin: { bg: '#e0e7ff', text: '#4f46e5' }, // indigo
-  manager: { bg: '#dbeafe', text: '#2563eb' }, // blue
-  developer: { bg: '#dcfce7', text: '#16a34a' }, // green
-  viewer: { bg: '#f1f5f9', text: '#475569' } // slate
+const ROLE_BADGE = {
+  admin: 'bg-accent-soft text-accent',
+  manager: 'bg-status-in_progress/15 text-status-in_progress',
+  developer: 'bg-status-done/15 text-status-done',
+  viewer: 'bg-raised text-muted',
 };
 
 const getInitials = (name) => {
@@ -16,18 +17,12 @@ const getInitials = (name) => {
 const UserTable = ({ users, onEdit, onToggle, onViewTasks, onDelete, currentUserId, loading }) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-  const sortedUsers = React.useMemo(() => {
-    let sortableItems = [...users];
+  const sortedUsers = useMemo(() => {
+    const sortableItems = [...users];
     if (sortConfig.key !== null) {
       sortableItems.sort((a, b) => {
-        let aVal = a[sortConfig.key];
-        let bVal = b[sortConfig.key];
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
+        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
@@ -36,17 +31,17 @@ const UserTable = ({ users, onEdit, onToggle, onViewTasks, onDelete, currentUser
 
   const requestSort = (key) => {
     let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
     setSortConfig({ key, direction });
   };
 
+  const sortArrow = (key) => (sortConfig.key === key ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '');
+
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} style={{ height: '60px', backgroundColor: '#f8fafc', borderRadius: '8px', animation: 'pulse 1.5s infinite ease-in-out' }} />
+      <div className="flex flex-col gap-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="h-[60px] animate-pulse rounded-lg bg-raised" />
         ))}
       </div>
     );
@@ -54,117 +49,73 @@ const UserTable = ({ users, onEdit, onToggle, onViewTasks, onDelete, currentUser
 
   if (!users || users.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '64px', color: '#64748b', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        No se encontraron usuarios.
-      </div>
+      <div className="rounded-lg border border-border bg-surface p-16 text-center text-muted">No se encontraron usuarios.</div>
     );
   }
 
+  const th = 'cursor-pointer select-none px-4 py-4 text-[13px] font-semibold text-muted';
+
   return (
-    <div style={{ overflowX: 'auto', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
-        <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+    <div className="overflow-x-auto rounded-lg border border-border bg-surface">
+      <table className="w-full min-w-[800px] border-collapse text-left">
+        <thead className="border-b border-border bg-raised">
           <tr>
-            <th onClick={() => requestSort('name')} style={{ padding: '16px', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer', userSelect: 'none' }}>
-              Avatar + Nombre {sortConfig.key === 'name' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
-            </th>
-            <th onClick={() => requestSort('email')} style={{ padding: '16px', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer', userSelect: 'none' }}>
-              Email {sortConfig.key === 'email' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
-            </th>
-            <th onClick={() => requestSort('role')} style={{ padding: '16px', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer', userSelect: 'none' }}>
-              Rol {sortConfig.key === 'role' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
-            </th>
-            <th onClick={() => requestSort('is_active')} style={{ padding: '16px', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer', userSelect: 'none' }}>
-              Estado {sortConfig.key === 'is_active' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
-            </th>
-            <th style={{ padding: '16px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
-              WIP
-            </th>
-            <th style={{ padding: '16px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
-              Proyectos
-            </th>
-            <th style={{ padding: '16px', fontSize: '13px', fontWeight: 600, color: '#475569', textAlign: 'right' }}>
-              Acciones
-            </th>
+            <th onClick={() => requestSort('name')} className={th}>Avatar + Nombre {sortArrow('name')}</th>
+            <th onClick={() => requestSort('email')} className={th}>Email {sortArrow('email')}</th>
+            <th onClick={() => requestSort('role')} className={th}>Rol {sortArrow('role')}</th>
+            <th onClick={() => requestSort('is_active')} className={th}>Estado {sortArrow('is_active')}</th>
+            <th className="px-4 py-4 text-[13px] font-semibold text-muted">WIP</th>
+            <th className="px-4 py-4 text-[13px] font-semibold text-muted">Proyectos</th>
+            <th className="px-4 py-4 text-right text-[13px] font-semibold text-muted">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {sortedUsers.map(user => {
-            const rColor = ROLE_COLORS[user.role] || ROLE_COLORS.viewer;
+          {sortedUsers.map((user) => {
             const wip = user.assigned_tasks_count || 0;
             const isWipExceeded = wip >= 3;
 
             return (
-              <tr key={user.id} style={{ 
-                borderBottom: '1px solid #f1f5f9',
-                transition: 'background-color 0.15s',
-                opacity: user.is_active ? 1 : 0.5,
-              }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                <td style={{ padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: user.color || '#6366f1', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600 }}>
+              <tr key={user.id} className={cn('border-b border-hairline transition-colors hover:bg-raised', !user.is_active && 'opacity-50')}>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white" style={{ backgroundColor: user.color || '#6366f1' }}>
                       {getInitials(user.name)}
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a' }}>
-                      {user.name}
-                    </div>
+                    <div className="text-sm font-medium text-fg">{user.name}</div>
                   </div>
                 </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <span style={{ fontSize: '13px', color: '#64748b' }}>{user.email}</span>
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <span data-testid="role-badge" style={{ backgroundColor: rColor.bg, color: rColor.text, padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, textTransform: 'capitalize' }}>
+                <td className="px-4 py-3"><span className="text-[13px] text-muted">{user.email}</span></td>
+                <td className="px-4 py-3">
+                  <span data-testid="role-badge" className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize', ROLE_BADGE[user.role] || ROLE_BADGE.viewer)}>
                     {user.role}
                   </span>
                 </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <span style={{ 
-                    display: 'inline-flex', alignItems: 'center', gap: '6px',
-                    backgroundColor: user.is_active ? '#dcfce7' : '#f1f5f9', 
-                    color: user.is_active ? '#16a34a' : '#64748b', 
-                    padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600 
-                  }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: user.is_active ? '#22c55e' : '#94a3b8' }}></span>
+                <td className="px-4 py-3">
+                  <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold', user.is_active ? 'bg-status-done/15 text-status-done' : 'bg-raised text-muted')}>
+                    <span className={cn('h-1.5 w-1.5 rounded-full', user.is_active ? 'bg-status-done' : 'bg-faint')} />
                     {user.is_active ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <span style={{ 
-                    backgroundColor: isWipExceeded ? '#fef2f2' : 'transparent',
-                    color: isWipExceeded ? '#ef4444' : '#475569',
-                    padding: '2px 8px', borderRadius: '12px', fontSize: '13px', fontWeight: isWipExceeded ? 600 : 400
-                  }}>
+                <td className="px-4 py-3">
+                  <span className={cn('rounded-full px-2 py-0.5 text-[13px]', isWipExceeded ? 'bg-status-blocked/10 font-semibold text-status-blocked' : 'text-muted')}>
                     {wip}
                   </span>
                 </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <span style={{ fontSize: '13px', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <td className="px-4 py-3">
+                  <span className="flex items-center gap-1 text-[13px] text-muted">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
                     -
                   </span>
                 </td>
-                <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                    <button onClick={() => onEdit(user)} title="Editar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}>
-                      ✏️
-                    </button>
-                    <button data-testid="btn-view-tasks" onClick={() => onViewTasks(user)} title="Ver tareas" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}>
-                      👁
-                    </button>
-                    <button data-testid="btn-toggle-user" onClick={() => onToggle(user)} title={user.is_active ? 'Desactivar' : 'Activar'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => onEdit(user)} title="Editar" className="p-1 text-muted transition-colors hover:text-fg">✏️</button>
+                    <button data-testid="btn-view-tasks" onClick={() => onViewTasks(user)} title="Ver tareas" className="p-1 text-muted transition-colors hover:text-fg">👁</button>
+                    <button data-testid="btn-toggle-user" onClick={() => onToggle(user)} title={user.is_active ? 'Desactivar' : 'Activar'} className="p-1 text-muted transition-colors hover:text-fg">
                       {user.is_active ? '⏸' : '🔄'}
                     </button>
                     {onDelete && user.id !== currentUserId && (
-                      <button
-                        type="button"
-                        data-testid="btn-delete-user"
-                        onClick={() => onDelete(user)}
-                        title="Eliminar usuario"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', padding: '4px' }}
-                      >
+                      <button type="button" data-testid="btn-delete-user" onClick={() => onDelete(user)} title="Eliminar usuario" className="p-1 text-status-blocked transition-colors hover:text-status-blocked/80">
                         🗑
                       </button>
                     )}
