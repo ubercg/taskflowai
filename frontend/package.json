@@ -12,21 +12,24 @@
   "dependencies": {
     "@hello-pangea/dnd": "^16.6.0",
     "axios": "^1.6.8",
+    "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.30.3",
     "recharts": "^2.12.5",
     "swr": "^2.2.5",
+    "tailwind-merge": "^3.6.0",
     "zustand": "^4.5.2"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "4.60.1",
-    "@rollup/rollup-linux-x64-musl": "4.60.1",
     "@rollup/rollup-darwin-arm64": "4.60.1",
-    "@rollup/rollup-darwin-x64": "4.60.1"
+    "@rollup/rollup-darwin-x64": "4.60.1",
+    "@rollup/rollup-linux-x64-gnu": "4.60.1",
+    "@rollup/rollup-linux-x64-musl": "4.60.1"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.1",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.5.0",
@@ -34,6 +37,7 @@
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.2.0",
     "jsdom": "^24.1.0",
+    "tailwindcss": "^4.3.1",
     "vite": "^5.0.0",
     "vitest": "^1.6.0"
   }
