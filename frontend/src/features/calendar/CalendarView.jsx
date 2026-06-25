@@ -120,8 +120,16 @@ function CalendarView({ projectId, onTaskClick }) {
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
+  // Rango para /tasks/calendar: inclusivo hasta el último día del mes (p.ej. 2026-06-30)
   const startDate = format(monthStart, 'yyyy-MM-dd');
   const endDate = format(monthEnd, 'yyyy-MM-dd');
+
+  // Rango medio-abierto [start, end) para endpoints de métricas — el backend espera
+  // end = primer día del mes siguiente (límite superior exclusivo), no fin de mes.
+  // Ver ADR-3 en el diseño de monthly-metrics.
+  const metricsStart = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
+  const metricsEnd = format(startOfMonth(addMonths(currentMonth, 1)), 'yyyy-MM-dd');
+  const isCurrentMonth = isSameMonth(currentMonth, new Date());
 
   const { data: tasks = [], error, isLoading } = useSWR(
     projectId ? ['/api/v1/tasks/calendar', projectId, startDate, endDate] : null,
@@ -436,7 +444,13 @@ function CalendarView({ projectId, onTaskClick }) {
 
         {/* Bloque de metricas para el PDF: se monta solo al exportar */}
         {preparingPdf && (
-          <CalendarPdfReport projectId={projectId} onReady={handleReportReady} />
+          <CalendarPdfReport
+            projectId={projectId}
+            startDate={metricsStart}
+            endDate={metricsEnd}
+            isCurrentMonth={isCurrentMonth}
+            onReady={handleReportReady}
+          />
         )}
       </div>
     </div>
