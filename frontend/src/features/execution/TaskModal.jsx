@@ -3,6 +3,7 @@ import useSWR from 'swr';
 import { getTask, getTasks, updateTask, deleteTask, getTimeLogs, createTimeLog } from '../../services/api';
 import api from '../../services/api/client';
 import { toDateInputValue, formatCalendarLocale } from '../../utils/dateUtils';
+import Linkify from '../../components/shared/Linkify';
 
 import usePermissions from '../../hooks/usePermissions';
 
@@ -24,6 +25,7 @@ const TaskModal = ({ taskId, onClose }) => {
   const [newLogHours, setNewLogHours] = useState('');
   const [newLogDesc, setNewLogDesc] = useState('');
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [editingDesc, setEditingDesc] = useState(false);
   const saveTimeoutRef = useRef(null);
 
   const { data: task, error, mutate } = useSWR(
@@ -374,27 +376,84 @@ const TaskModal = ({ taskId, onClose }) => {
               {/* Description */}
               <div data-testid="task-modal" style={{ marginBottom: '32px' }}>
                 <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>Descripción</h4>
-                <textarea 
-                  value={description}
-                  onChange={handleDescriptionChange}
-                  readOnly={!canEditField('description')}
-                  placeholder="Añade una descripción más detallada..."
-                  style={{
+
+                {/* Read-only users: always show a non-editable linkified view */}
+                {!canEditField('description') && (
+                  <div style={{
                     width: '100%',
                     minHeight: '120px',
                     padding: '12px',
                     borderRadius: '6px',
                     border: '1px solid #e2e8f0',
                     fontSize: '14px',
-                    color: '#334155',
-                    resize: 'vertical',
+                    color: description ? '#334155' : '#94a3b8',
                     fontFamily: 'inherit',
-                    outline: 'none',
-                    backgroundColor: !canEditField('description') ? '#f8fafc' : '#fff'
-                  }}
-                  onFocus={e => { if (canEditField('description')) e.target.style.borderColor = '#818cf8'} }
-                  onBlur={e => { if (canEditField('description')) e.target.style.borderColor = '#e2e8f0'} }
-                />
+                    backgroundColor: '#f8fafc',
+                    boxSizing: 'border-box',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}>
+                    {description
+                      ? <Linkify text={description} />
+                      : 'Sin descripción.'}
+                  </div>
+                )}
+
+                {/* Editable users — view mode (click to edit) */}
+                {canEditField('description') && !editingDesc && (
+                  <div
+                    onClick={() => setEditingDesc(true)}
+                    style={{
+                      width: '100%',
+                      minHeight: '120px',
+                      padding: '12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      color: description ? '#334155' : '#94a3b8',
+                      fontFamily: 'inherit',
+                      backgroundColor: '#fff',
+                      cursor: 'pointer',
+                      boxSizing: 'border-box',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#818cf8'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                  >
+                    {description
+                      ? <Linkify text={description} />
+                      : 'Añade una descripción más detallada...'}
+                  </div>
+                )}
+
+                {/* Editable users — edit mode (textarea) */}
+                {canEditField('description') && editingDesc && (
+                  <textarea
+                    autoFocus
+                    value={description}
+                    onChange={handleDescriptionChange}
+                    placeholder="Añade una descripción más detallada..."
+                    style={{
+                      width: '100%',
+                      minHeight: '120px',
+                      padding: '12px',
+                      borderRadius: '6px',
+                      border: '1px solid #818cf8',
+                      fontSize: '14px',
+                      color: '#334155',
+                      resize: 'vertical',
+                      fontFamily: 'inherit',
+                      outline: 'none',
+                      backgroundColor: '#fff',
+                    }}
+                    onFocus={e => { e.target.style.borderColor = '#818cf8'; }}
+                    onBlur={e => {
+                      e.target.style.borderColor = '#e2e8f0';
+                      setEditingDesc(false);
+                    }}
+                  />
+                )}
               </div>
 
               {/* Subtasks */}
@@ -490,7 +549,9 @@ const TaskModal = ({ taskId, onClose }) => {
                   <div data-testid="task-modal" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {timeLogs.slice(0, 5).map(log => (
                       <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '4px', fontSize: '12px' }}>
-                        <span style={{ color: '#475569' }}>U{log.user_id} - {formatCalendarLocale(log.log_date)} {log.description && `(${log.description})`}</span>
+                        <span style={{ color: '#475569' }}>
+                          U{log.user_id} - {formatCalendarLocale(log.log_date)}{log.description && <> (<Linkify text={log.description} />)</>}
+                        </span>
                         <span style={{ fontWeight: 600, color: '#0f172a' }}>{log.hours}h</span>
                       </div>
                     ))}
