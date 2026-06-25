@@ -245,20 +245,51 @@ export const getProjectMetrics = () => api.get('/api/v1/metrics/projects').then(
 export const getGlobalSummary = () => api.get('/api/v1/metrics/summary').then(res => res.data); // ✓ EXISTÍA (era getMetrics)
 
 /**
+ * @param {number} projectId
+ * @param {string} [startDate] - ISO date YYYY-MM-DD (start_date, inclusive)
+ * @param {string} [endDate] - ISO date YYYY-MM-DD (end_date, exclusive)
  * @returns {Promise<any>}
  */
-export const getVelocity = () => api.get('/api/v1/metrics/velocity').then(res => res.data); // ✓ EXISTÍA (era getVelocityMetrics)
+export const getVelocity = (projectId, startDate, endDate) => {
+  const params = { project_id: projectId };
+  if (startDate) params.start_date = startDate;
+  if (endDate) params.end_date = endDate;
+  return api.get('/api/v1/metrics/velocity', { params }).then(res => res.data);
+}; // actualizado: project_id requerido + rango opcional
 
 /**
  * @param {number} projectId
+ * @param {string} [startDate] - ISO date YYYY-MM-DD (start_date, inclusive)
+ * @param {string} [endDate] - ISO date YYYY-MM-DD (end_date, exclusive)
  * @returns {Promise<any>}
  */
-export const getFlowMetrics = (projectId) => api.get('/api/v1/metrics/flow', { params: { project_id: projectId } }).then(res => res.data); // ✓ EXISTÍA
+export const getFlowMetrics = (projectId, startDate, endDate) => {
+  const params = { project_id: projectId };
+  if (startDate) params.start_date = startDate;
+  if (endDate) params.end_date = endDate;
+  return api.get('/api/v1/metrics/flow', { params }).then(res => res.data);
+}; // actualizado: rango opcional
 
 /**
+ * @param {number} [projectId]
  * @returns {Promise<any>}
  */
-export const getAgingMetrics = () => api.get('/api/v1/metrics/aging').then(res => res.data); // ✓ EXISTÍA
+export const getAgingMetrics = (projectId) => {
+  const params = {};
+  if (projectId) params.project_id = projectId;
+  return api.get('/api/v1/metrics/aging', { params }).then(res => res.data);
+}; // actualizado: forward project_id
+
+/**
+ * @param {number} projectId
+ * @param {string} startDate - ISO date YYYY-MM-DD (start_date, inclusive)
+ * @param {string} endDate - ISO date YYYY-MM-DD (end_date, exclusive)
+ * @returns {Promise<Array<{date: string, ideal: number, real: number}>>}
+ */
+export const getBurndown = (projectId, startDate, endDate) =>
+  api.get('/api/v1/metrics/burndown', {
+    params: { project_id: projectId, start_date: startDate, end_date: endDate },
+  }).then(res => res.data); // NUEVO
 
 /**
  * @param {number} projectId
