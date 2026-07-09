@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     # Contraseña inicial al crear usuarios (deben cambiarla desde el perfil)
     DEFAULT_NEW_USER_PASSWORD: str = "taskflow123"
+    # API key compartida con SIGAO BFF (integración Proyectos Estratégicos)
+    SIGAO_API_KEY: str = ""
 
     def model_post_init(self, __context: object) -> None:
         # Fail-safe: si no se definió SECRET_KEY, generamos una aleatoria en vez
