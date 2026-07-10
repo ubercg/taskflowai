@@ -21,13 +21,17 @@ _PROGRESS_SELECT = """
         o.description,
         o.due_date,
         o.created_at,
-        COALESCE(
-            ROUND(
-                100.0 * SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END)
-                / NULLIF(COUNT(t.id), 0)
-            )::int,
-            0
-        ) AS progress
+        o.mode,
+        CASE
+            WHEN o.mode = 'manual' THEN COALESCE(o.progress_pct, 0)
+            ELSE COALESCE(
+                ROUND(
+                    100.0 * SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END)
+                    / NULLIF(COUNT(t.id), 0)
+                )::int,
+                0
+            )
+        END AS progress
     FROM objectives o
     LEFT JOIN tasks t ON t.objective_id = o.id
     WHERE {where}
