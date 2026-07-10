@@ -32,6 +32,7 @@ class TestKpiHitoCrud:
 
             create = sigao_pg_client.post(
                 f"{BASE}/objectives/{oid}/hitos",
+                params={"project_id": pid},
                 json={"title": "Hito 1"},
                 headers=sigao_headers(),
             )
@@ -41,12 +42,15 @@ class TestKpiHitoCrud:
             hito_id = hito["id"]
 
             before = sigao_pg_client.get(
-                f"{BASE}/objectives/{oid}", headers=sigao_headers()
+                f"{BASE}/objectives/{oid}",
+                params={"project_id": pid},
+                headers=sigao_headers(),
             )
             assert before.json()["progress"] == 0
 
             complete = sigao_pg_client.patch(
                 f"{BASE}/objectives/{oid}/hitos/{hito_id}",
+                params={"project_id": pid},
                 json={"completed": True},
                 headers=sigao_headers(),
             )
@@ -54,17 +58,23 @@ class TestKpiHitoCrud:
             assert complete.json()["completed"] is True
 
             after = sigao_pg_client.get(
-                f"{BASE}/objectives/{oid}", headers=sigao_headers()
+                f"{BASE}/objectives/{oid}",
+                params={"project_id": pid},
+                headers=sigao_headers(),
             )
             assert after.json()["progress"] == 100
 
             delete = sigao_pg_client.delete(
-                f"{BASE}/objectives/{oid}/hitos/{hito_id}", headers=sigao_headers()
+                f"{BASE}/objectives/{oid}/hitos/{hito_id}",
+                params={"project_id": pid},
+                headers=sigao_headers(),
             )
             assert delete.status_code == 204
 
             final = sigao_pg_client.get(
-                f"{BASE}/objectives/{oid}", headers=sigao_headers()
+                f"{BASE}/objectives/{oid}",
+                params={"project_id": pid},
+                headers=sigao_headers(),
             )
             assert final.json()["hitos"] == []
         finally:
@@ -110,6 +120,7 @@ class TestKpiHitoCrud:
             oid = seed_objective(pg_raw, pid, mode="manual")
             resp = sigao_pg_client.post(
                 f"{BASE}/objectives/{oid}/hitos",
+                params={"project_id": pid},
                 json={"title": "Should not be allowed"},
                 headers=sigao_headers(),
             )

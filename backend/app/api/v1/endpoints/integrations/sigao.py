@@ -56,16 +56,15 @@ def _resolve_kpi_due_date(project: Project) -> datetime:
     return datetime.now(timezone.utc) + timedelta(days=90)
 
 
-def _get_objective_or_404(
-    db: Session, objective_id: int, project_id: int | None = None
-) -> Objective:
+def _get_objective_or_404(db: Session, objective_id: int, project_id: int) -> Objective:
     obj = db.query(Objective).filter(Objective.id == objective_id).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Objective not found")
-    # Compound scoping (defense-in-depth): when the caller passes its own
-    # project_id, the objective must actually belong to that project —
-    # mirrors how native `project_kpis` already compound-scope by (id, project_id).
-    if project_id is not None and obj.project_id != project_id:
+    # Compound scoping (mandatory): the objective must actually belong to the
+    # caller's project — mirrors how native `project_kpis` already
+    # compound-scope by (id, project_id). `project_id` is a required query
+    # param on every objective_id-keyed route, so this check always runs.
+    if obj.project_id != project_id:
         raise HTTPException(status_code=404, detail="Objective not found")
     return obj
 
@@ -370,8 +369,12 @@ def create_kpi_objective(
 
 
 @router.get("/objectives/{objective_id}", response_model=KpiObjectiveResponse)
-def get_kpi_objective(objective_id: int, db: Session = Depends(get_db)):
-    _get_objective_or_404(db, objective_id)
+def get_kpi_objective(
+    objective_id: int,
+    project_id: int = Query(..., description="Caller's project id for compound scoping"),
+    db: Session = Depends(get_db),
+):
+    _get_objective_or_404(db, objective_id, project_id)
     return _build_kpi_objective_response(db, objective_id)
 
 
@@ -379,9 +382,10 @@ def get_kpi_objective(objective_id: int, db: Session = Depends(get_db)):
 def update_kpi_objective(
     objective_id: int,
     payload: KpiObjectiveUpdate,
+    project_id: int = Query(..., description="Caller's project id for compound scoping"),
     db: Session = Depends(get_db),
 ):
-    objective = _get_objective_or_404(db, objective_id)
+    objective = _get_objective_or_404(db, objective_id, project_id)
     data = payload.model_dump(exclude_unset=True)
     actor_name = data.pop("actor_name", None)
     for key, value in data.items():
@@ -403,8 +407,8 @@ def update_kpi_objective(
 @router.delete("/objectives/{objective_id}", status_code=204)
 def delete_kpi_objective(
     objective_id: int,
-    project_id: int | None = Query(
-        None, description="Caller's project id for compound scoping"
+    project_id: int = Query(
+        ..., description="Caller's project id for compound scoping"
     ),
     db: Session = Depends(get_db),
 ):
@@ -420,8 +424,8 @@ def delete_kpi_objective(
 def update_kpi_objective_progress(
     objective_id: int,
     payload: KpiObjectiveProgressUpdate,
-    project_id: int | None = Query(
-        None, description="Caller's project id for compound scoping"
+    project_id: int = Query(
+        ..., description="Caller's project id for compound scoping"
     ),
     db: Session = Depends(get_db),
 ):
@@ -465,8 +469,8 @@ def update_kpi_objective_progress(
 )
 def list_kpi_hitos(
     objective_id: int,
-    project_id: int | None = Query(
-        None, description="Caller's project id for compound scoping"
+    project_id: int = Query(
+        ..., description="Caller's project id for compound scoping"
     ),
     db: Session = Depends(get_db),
 ):
@@ -488,8 +492,8 @@ def list_kpi_hitos(
 def create_kpi_hito(
     objective_id: int,
     payload: KpiHitoCreate,
-    project_id: int | None = Query(
-        None, description="Caller's project id for compound scoping"
+    project_id: int = Query(
+        ..., description="Caller's project id for compound scoping"
     ),
     db: Session = Depends(get_db),
 ):
@@ -532,8 +536,8 @@ def update_kpi_hito(
     objective_id: int,
     task_id: int,
     payload: KpiHitoUpdate,
-    project_id: int | None = Query(
-        None, description="Caller's project id for compound scoping"
+    project_id: int = Query(
+        ..., description="Caller's project id for compound scoping"
     ),
     db: Session = Depends(get_db),
 ):
@@ -563,8 +567,8 @@ def update_kpi_hito(
 def delete_kpi_hito(
     objective_id: int,
     task_id: int,
-    project_id: int | None = Query(
-        None, description="Caller's project id for compound scoping"
+    project_id: int = Query(
+        ..., description="Caller's project id for compound scoping"
     ),
     db: Session = Depends(get_db),
 ):
@@ -591,8 +595,8 @@ def delete_kpi_hito(
 )
 def list_objective_comments(
     objective_id: int,
-    project_id: int | None = Query(
-        None, description="Caller's project id for compound scoping"
+    project_id: int = Query(
+        ..., description="Caller's project id for compound scoping"
     ),
     db: Session = Depends(get_db),
 ):
@@ -614,8 +618,8 @@ def list_objective_comments(
 def create_objective_comment(
     objective_id: int,
     payload: ObjectiveCommentCreate,
-    project_id: int | None = Query(
-        None, description="Caller's project id for compound scoping"
+    project_id: int = Query(
+        ..., description="Caller's project id for compound scoping"
     ),
     db: Session = Depends(get_db),
 ):

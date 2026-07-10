@@ -29,6 +29,7 @@ class TestObjectiveComments:
 
             first = sigao_pg_client.post(
                 f"{BASE}/objectives/{oid}/comments",
+                params={"project_id": pid},
                 json={"body": "first update"},
                 headers=sigao_headers(),
             )
@@ -36,13 +37,16 @@ class TestObjectiveComments:
 
             second = sigao_pg_client.post(
                 f"{BASE}/objectives/{oid}/comments",
+                params={"project_id": pid},
                 json={"body": "second update", "actor_name": "Ana"},
                 headers=sigao_headers(),
             )
             assert second.status_code == 201
 
             listing = sigao_pg_client.get(
-                f"{BASE}/objectives/{oid}/comments", headers=sigao_headers()
+                f"{BASE}/objectives/{oid}/comments",
+                params={"project_id": pid},
+                headers=sigao_headers(),
             )
             assert listing.status_code == 200
             bodies = [c["body"] for c in listing.json()]
@@ -59,6 +63,7 @@ class TestObjectiveComments:
 
             resp = sigao_pg_client.patch(
                 f"{BASE}/objectives/{oid}/progress",
+                params={"project_id": pid},
                 json={
                     "progress_pct": 50,
                     "comment": "moving along",
@@ -69,7 +74,9 @@ class TestObjectiveComments:
             assert resp.status_code == 200
 
             listing = sigao_pg_client.get(
-                f"{BASE}/objectives/{oid}/comments", headers=sigao_headers()
+                f"{BASE}/objectives/{oid}/comments",
+                params={"project_id": pid},
+                headers=sigao_headers(),
             )
             data = listing.json()
             assert len(data) == 1
@@ -87,13 +94,16 @@ class TestObjectiveComments:
 
             resp = sigao_pg_client.patch(
                 f"{BASE}/objectives/{oid}/progress",
+                params={"project_id": pid},
                 json={"progress_pct": 20},
                 headers=sigao_headers(),
             )
             assert resp.status_code == 200
 
             listing = sigao_pg_client.get(
-                f"{BASE}/objectives/{oid}/comments", headers=sigao_headers()
+                f"{BASE}/objectives/{oid}/comments",
+                params={"project_id": pid},
+                headers=sigao_headers(),
             )
             assert listing.json() == []
         finally:

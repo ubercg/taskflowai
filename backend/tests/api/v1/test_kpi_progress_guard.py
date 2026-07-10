@@ -31,6 +31,7 @@ class TestKpiProgressGuard:
             oid = seed_objective(pg_raw, pid, mode="milestone")
             resp = sigao_pg_client.patch(
                 f"{BASE}/objectives/{oid}/progress",
+                params={"project_id": pid},
                 json={"progress_pct": 60},
                 headers=sigao_headers(),
             )
@@ -46,6 +47,7 @@ class TestKpiProgressGuard:
             oid = seed_objective(pg_raw, pid, mode="manual", progress_pct=10)
             resp = sigao_pg_client.patch(
                 f"{BASE}/objectives/{oid}/progress",
+                params={"project_id": pid},
                 json={"progress_pct": 75},
                 headers=sigao_headers(),
             )
@@ -76,7 +78,9 @@ class TestKpiProgressGuard:
             assert resp.status_code == 404
 
             unchanged = sigao_pg_client.get(
-                f"{BASE}/objectives/{oid_b}", headers=sigao_headers()
+                f"{BASE}/objectives/{oid_b}",
+                params={"project_id": pid_b},
+                headers=sigao_headers(),
             )
             assert unchanged.json()["progress"] == 10
         finally:
