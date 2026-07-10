@@ -19,13 +19,14 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: 3000,
       allowedHosts: ['201.147.245.201', 'localhost'],
-      // Required so the browser (on https://localhost/taskflow/) reaches the
-      // Vite HMR websocket through SIGAO's TLS proxy instead of :3000 directly.
+      // Behind SIGAO at http(s)://host/taskflow/: HMR must use the public
+      // origin port. Do NOT set `path` to the base — Vite already prefixes
+      // with `base`, and path=/taskflow/ produced /taskflow/taskflow/.
+      // Default to ws/:80 (HTTP prod). Override with VITE_HMR_* for TLS.
       hmr: base !== '/'
         ? {
-            protocol: 'wss',
-            clientPort: 443,
-            path: `${base.replace(/\/$/, '')}/`,
+            protocol: process.env.VITE_HMR_PROTOCOL || 'ws',
+            clientPort: Number(process.env.VITE_HMR_CLIENT_PORT || 80),
           }
         : undefined,
       proxy: {
