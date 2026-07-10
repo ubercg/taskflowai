@@ -44,6 +44,11 @@ services:
       SECRET_KEY: test-secret-key-not-for-production
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
+    volumes:
+      # test_migration_002_idempotent.py resolves docker/migrations/*.sql via
+      # Path(__file__).resolve().parents[4], which expects /docker at the
+      # container root — mount it so that path resolves inside the container.
+      - ./docker:/docker:ro
     depends_on:
       db_test:
         condition: service_healthy

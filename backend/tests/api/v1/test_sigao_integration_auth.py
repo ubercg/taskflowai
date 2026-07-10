@@ -85,7 +85,10 @@ class TestSigaoCreateIdempotent:
         )
         assert second.status_code == 200
         assert second.json()["id"] == first_id
-        assert len(second.json()["kpis"]) == 1
+        # ADR-11/ADR-16: initial_kpi now provisions an Objective, not a
+        # ProjectKpi row — SigaoProjectResponse.kpis stays empty for the
+        # SIGAO-created principal KPI.
+        assert second.json()["kpis"] == []
 
     def test_create_records_project_event(self, client):
         uid = str(uuid.uuid4())

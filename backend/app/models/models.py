@@ -37,6 +37,11 @@ class MilestoneStatus(str, enum.Enum):
     completed = "completed"
 
 
+class ObjectiveMode(str, enum.Enum):
+    manual = "manual"
+    milestone = "milestone"
+
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -136,6 +141,19 @@ class Objective(Base):
     title = Column(String(255), nullable=False)
     description = Column(String, nullable=True)
     due_date = Column(DateTime(timezone=True), nullable=False)
+    mode = Column(String(20), nullable=False, default=ObjectiveMode.milestone.value)
+    progress_pct = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ObjectiveComment(Base):
+    __tablename__ = "objective_comments"
+    id = Column(Integer, primary_key=True, index=True)
+    objective_id = Column(
+        Integer, ForeignKey("objectives.id", ondelete="CASCADE"), nullable=False
+    )
+    body = Column(String, nullable=False)
+    actor_name = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

@@ -50,6 +50,10 @@ CREATE TABLE objectives (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     due_date TIMESTAMPTZ NOT NULL,
+    mode VARCHAR(20) NOT NULL DEFAULT 'milestone'
+        CHECK (mode IN ('manual', 'milestone')),
+    progress_pct INT
+        CHECK (progress_pct IS NULL OR (progress_pct BETWEEN 0 AND 100)),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -70,6 +74,14 @@ CREATE TABLE tasks (
     due_date TIMESTAMPTZ,
     start_date TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE objective_comments (
+    id SERIAL PRIMARY KEY,
+    objective_id INT NOT NULL REFERENCES objectives(id) ON DELETE CASCADE,
+    body TEXT NOT NULL,
+    actor_name VARCHAR(255),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -136,6 +148,7 @@ CREATE INDEX idx_activities_created_at ON activities(created_at);
 CREATE INDEX idx_time_logs_task_id ON time_logs(task_id);
 CREATE INDEX idx_time_logs_user_id ON time_logs(user_id);
 CREATE INDEX idx_objectives_project_id ON objectives(project_id);
+CREATE INDEX ix_objective_comments_objective ON objective_comments(objective_id, created_at DESC);
 CREATE INDEX ix_project_kpis_project ON project_kpis(project_id, sort_order);
 CREATE INDEX ix_milestones_project ON milestones(project_id, sort_order);
 CREATE INDEX ix_project_events_project_created ON project_events(project_id, created_at DESC);

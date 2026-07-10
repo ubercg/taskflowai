@@ -102,6 +102,7 @@ class ObjectiveResponse(ObjectiveBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     created_at: datetime
+    mode: str = "milestone"
     progress: int = 0  # Derived server-side; default 0 when no tasks exist
 
 
