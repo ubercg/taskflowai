@@ -17,7 +17,12 @@ export const useAuthStore = create(persist(
         params.append('username', email)
         params.append('password', password)
 
-        const base = import.meta.env.VITE_API_URL ?? ''
+        const base = (
+          import.meta.env.VITE_API_URL ??
+          (import.meta.env.BASE_URL && import.meta.env.BASE_URL !== '/'
+            ? import.meta.env.BASE_URL.replace(/\/$/, '')
+            : '')
+        )
         const response = await axios.post(
           `${base}/api/v1/auth/login`,
           params,

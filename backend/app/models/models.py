@@ -8,6 +8,8 @@ from sqlalchemy import (
     DECIMAL,
     DateTime,
     Date,
+    JSON,
+    Uuid,
     text,
 )
 from sqlalchemy.sql import func
@@ -28,6 +30,16 @@ class ProjectStatus(str, enum.Enum):
     on_hold = "on_hold"
     completed = "completed"
     archived = "archived"
+
+
+class MilestoneStatus(str, enum.Enum):
+    pending = "pending"
+    completed = "completed"
+
+
+class ObjectiveMode(str, enum.Enum):
+    manual = "manual"
+    milestone = "milestone"
 
 
 class User(Base):
@@ -66,6 +78,57 @@ class Project(Base):
     status = Column(SQLEnum(ProjectStatus), default=ProjectStatus.active)
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
+    external_uuid = Column(Uuid(as_uuid=True), unique=True, nullable=True, index=True)
+    project_type = Column(String(50), nullable=True)
+    responsible_name = Column(String(255), nullable=True)
+    budget_total = Column(DECIMAL(14, 2), default=0)
+    budget_spent = Column(DECIMAL(14, 2), default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ProjectKpi(Base):
+    __tablename__ = "project_kpis"
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(
+        Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    name = Column(String(255), nullable=False)
+    unit = Column(String(50), nullable=True)
+    target_value = Column(DECIMAL(14, 4), nullable=False)
+    current_value = Column(DECIMAL(14, 4), default=0)
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class Milestone(Base):
+    __tablename__ = "milestones"
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(
+        Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    title = Column(String(255), nullable=False)
+    due_date = Column(Date, nullable=False)
+    status = Column(
+        SQLEnum(MilestoneStatus), default=MilestoneStatus.pending, nullable=False
+    )
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ProjectEvent(Base):
+    __tablename__ = "project_events"
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(
+        Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    event_type = Column(String(50), nullable=False)
+    actor_name = Column(String(255), nullable=True)
+    summary = Column(String, nullable=False)
+    payload = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -78,6 +141,19 @@ class Objective(Base):
     title = Column(String(255), nullable=False)
     description = Column(String, nullable=True)
     due_date = Column(DateTime(timezone=True), nullable=False)
+    mode = Column(String(20), nullable=False, default=ObjectiveMode.milestone.value)
+    progress_pct = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ObjectiveComment(Base):
+    __tablename__ = "objective_comments"
+    id = Column(Integer, primary_key=True, index=True)
+    objective_id = Column(
+        Integer, ForeignKey("objectives.id", ondelete="CASCADE"), nullable=False
+    )
+    body = Column(String, nullable=False)
+    actor_name = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

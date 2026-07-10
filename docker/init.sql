@@ -29,6 +29,11 @@ CREATE TABLE projects (
     status project_status NOT NULL DEFAULT 'active',
     start_date DATE,
     end_date DATE,
+    external_uuid UUID UNIQUE,
+    project_type VARCHAR(50),
+    responsible_name VARCHAR(255),
+    budget_total NUMERIC(14,2) DEFAULT 0,
+    budget_spent NUMERIC(14,2) DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -45,6 +50,10 @@ CREATE TABLE objectives (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     due_date TIMESTAMPTZ NOT NULL,
+    mode VARCHAR(20) NOT NULL DEFAULT 'milestone'
+        CHECK (mode IN ('manual', 'milestone')),
+    progress_pct INT
+        CHECK (progress_pct IS NULL OR (progress_pct BETWEEN 0 AND 100)),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -68,6 +77,14 @@ CREATE TABLE tasks (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE objective_comments (
+    id SERIAL PRIMARY KEY,
+    objective_id INT NOT NULL REFERENCES objectives(id) ON DELETE CASCADE,
+    body TEXT NOT NULL,
+    actor_name VARCHAR(255),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE time_logs (
     id SERIAL PRIMARY KEY,
     task_id INT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
@@ -88,6 +105,39 @@ CREATE TABLE activities (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE project_kpis (
+    id SERIAL PRIMARY KEY,
+    project_id INT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    unit VARCHAR(50),
+    target_value NUMERIC(14,4) NOT NULL CHECK (target_value > 0),
+    current_value NUMERIC(14,4) NOT NULL DEFAULT 0,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE milestones (
+    id SERIAL PRIMARY KEY,
+    project_id INT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    due_date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    completed_at TIMESTAMPTZ,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE project_events (
+    id SERIAL PRIMARY KEY,
+    project_id INT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    event_type VARCHAR(50) NOT NULL,
+    actor_name VARCHAR(255),
+    summary TEXT NOT NULL,
+    payload JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Índices usados por analytics, daily summary y listados
 CREATE INDEX idx_tasks_project_id ON tasks(project_id);
 CREATE INDEX idx_tasks_assignee_id ON tasks(assignee_id);
@@ -98,6 +148,11 @@ CREATE INDEX idx_activities_created_at ON activities(created_at);
 CREATE INDEX idx_time_logs_task_id ON time_logs(task_id);
 CREATE INDEX idx_time_logs_user_id ON time_logs(user_id);
 CREATE INDEX idx_objectives_project_id ON objectives(project_id);
+CREATE INDEX ix_objective_comments_objective ON objective_comments(objective_id, created_at DESC);
+CREATE INDEX ix_project_kpis_project ON project_kpis(project_id, sort_order);
+CREATE INDEX ix_milestones_project ON milestones(project_id, sort_order);
+CREATE INDEX ix_project_events_project_created ON project_events(project_id, created_at DESC);
+CREATE INDEX idx_projects_external_uuid ON projects(external_uuid);
 
 -- 3. Vista: agregados por proyecto (ProjectsPage, métricas)
 CREATE VIEW project_metrics AS
