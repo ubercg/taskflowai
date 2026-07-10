@@ -137,3 +137,85 @@ class SigaoProjectResponse(BaseModel):
     created_at: datetime
     kpis: list[ProjectKpiResponse] = []
     milestones: list[MilestoneResponse] = []
+
+
+# --- Hitos del KPI (Task under Objective) ---
+# Naming firewall (ADR-15): NEVER reuse "milestone" naming here — Hitos del
+# proyecto (native `Milestone`) and Hitos del KPI (`Task.objective_id`) are
+# distinct concepts with distinct schemas/lifecycles.
+class KpiHitoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    objective_id: int
+    title: str
+    completed: bool  # derived: status == 'done'
+    completed_at: Optional[datetime] = None
+    position: int = 0
+    created_at: datetime
+
+
+class KpiHitoCreate(BaseModel):
+    title: str
+    position: Optional[int] = 0
+    actor_name: Optional[str] = None
+
+
+class KpiHitoUpdate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    title: Optional[str] = None
+    completed: Optional[bool] = None
+    position: Optional[int] = None
+    actor_name: Optional[str] = None
+
+
+# --- Objective comments (manual trail) ---
+class ObjectiveCommentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    objective_id: int
+    body: str
+    actor_name: Optional[str] = None
+    created_at: datetime
+
+
+class ObjectiveCommentCreate(BaseModel):
+    body: str = Field(min_length=1)
+    actor_name: Optional[str] = None
+
+
+# --- KPI-objective (Objective acting as a SIGAO KPI) ---
+class KpiObjectiveCreate(BaseModel):
+    title: str
+    mode: str = Field(default="manual", pattern="^(manual|milestone)$")
+    description: Optional[str] = None
+    due_date: Optional[datetime] = None  # optional; native objectives require it
+    progress_pct: Optional[int] = Field(default=0, ge=0, le=100)  # manual seed only
+    actor_name: Optional[str] = None
+
+
+class KpiObjectiveUpdate(BaseModel):
+    """Rename / retarget only — `mode` is immutable once set (Invariant 9)."""
+
+    model_config = ConfigDict(extra="ignore")
+    title: Optional[str] = None
+    description: Optional[str] = None
+    actor_name: Optional[str] = None
+
+
+class KpiObjectiveProgressUpdate(BaseModel):
+    progress_pct: int = Field(ge=0, le=100)
+    comment: Optional[str] = None  # optional trail entry
+    actor_name: Optional[str] = None
+
+
+class KpiObjectiveResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    project_id: int
+    title: str
+    description: Optional[str] = None
+    mode: str  # 'manual' | 'milestone'
+    progress: int  # resolved (stored OR derived)
+    hitos: list[KpiHitoResponse] = []
+    comments: list[ObjectiveCommentResponse] = []
+    created_at: datetime
