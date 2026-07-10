@@ -51,6 +51,9 @@ services:
       context: ./frontend
     expose:
       - "3000"
+    environment:
+      # Served behind SIGAO at https://localhost/taskflow/ (see root nginx).
+      VITE_BASE_PATH: /taskflow/
     # No fijar VITE_API_URL: el navegador debe usar la misma origen que la app
     # (p. ej. http://IP-SERVIDOR/) para que /api vaya a Nginx → backend.
     volumes:

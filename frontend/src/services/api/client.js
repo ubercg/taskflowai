@@ -2,9 +2,16 @@ import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
 
 // Vacío = misma origen que la página (vital detrás de Nginx o en IP pública).
-// Solo define VITE_API_URL si el front y la API no comparten host (p. ej. puertos distintos en local).
+// Con Vite `base` (/taskflow/) prefixamos la API para que no choque con SIGAO /api.
+const baseURL = (
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.BASE_URL && import.meta.env.BASE_URL !== '/'
+    ? import.meta.env.BASE_URL.replace(/\/$/, '')
+    : '')
+)
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? '',
+  baseURL,
   timeout: 10000,
 });
 
@@ -21,11 +28,12 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && window.location.pathname !== '/login') {
+    const loginPath = `${baseURL}/login` || '/login';
+    if (error.response?.status === 401 && window.location.pathname !== loginPath) {
       window.dispatchEvent(new CustomEvent('session-expired'));
       setTimeout(() => {
         useAuthStore.getState().logout();
-        window.location.href = '/login';
+        window.location.href = loginPath;
       }, 2000);
     }
     
