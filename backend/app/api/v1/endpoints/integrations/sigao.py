@@ -56,9 +56,16 @@ def _resolve_kpi_due_date(project: Project) -> datetime:
     return datetime.now(timezone.utc) + timedelta(days=90)
 
 
-def _get_objective_or_404(db: Session, objective_id: int) -> Objective:
+def _get_objective_or_404(
+    db: Session, objective_id: int, project_id: int | None = None
+) -> Objective:
     obj = db.query(Objective).filter(Objective.id == objective_id).first()
     if not obj:
+        raise HTTPException(status_code=404, detail="Objective not found")
+    # Compound scoping (defense-in-depth): when the caller passes its own
+    # project_id, the objective must actually belong to that project —
+    # mirrors how native `project_kpis` already compound-scope by (id, project_id).
+    if project_id is not None and obj.project_id != project_id:
         raise HTTPException(status_code=404, detail="Objective not found")
     return obj
 
@@ -116,6 +123,47 @@ def _apply_status(project: Project, status: str | None) -> None:
         project.status = ProjectStatus(status)
 
 
+def _seed_kpi_hitos(
+    db: Session, project_id: int, objective_id: int, hito_titles: list[str]
+) -> None:
+    """Seed initial Hitos del KPI for a milestone-mode Objective, atomically.
+
+    Each Task is added and flushed individually (single-row INSERT) rather
+    than left for SQLAlchemy's batched multi-row "insertmanyvalues" flush:
+    the ORM-declared enum type name (`taskstatus`, derived from the Python
+    `TaskStatus` class) doesn't match the actual Postgres enum type name
+    (`task_status`, from docker/init.sql); Postgres can infer/cast the
+    per-row scalar bind in a single-row INSERT but not in a batched
+    multi-row VALUES insert. Deferring the commit to the caller (instead of
+    committing per row) keeps the whole objective+hitos creation in ONE
+    transaction: if any row fails, nothing is committed and the caller's
+    session rollback (on `db.close()`) discards the objective and any
+    already-flushed hitos too — no orphan objective/tasks persist.
+    """
+    for position, title in enumerate(hito_titles):
+        clean_title = str(title).strip() if title else ""
+        if not clean_title:
+            continue
+        if len(clean_title) > 255:
+            # Belt-and-suspenders: schema validation already rejects this at
+            # the request boundary (422), this guards any internal caller.
+            raise HTTPException(
+                status_code=422,
+                detail="El título del hito no puede superar 255 caracteres",
+            )
+        db.add(
+            Task(
+                project_id=project_id,
+                objective_id=objective_id,
+                title=clean_title,
+                status=TaskStatus.todo,
+                type=TaskType.task,
+                position=position,
+            )
+        )
+        db.flush()
+
+
 @router.post("/projects", response_model=SigaoProjectResponse)
 def create_sigao_project(
     payload: SigaoProjectCreate,
@@ -147,15 +195,34 @@ def create_sigao_project(
     if payload.initial_kpi:
         # ADR-11/ADR-16: the SIGAO KPI path provisions an Objective(mode),
         # not a ProjectKpi row. `project_kpis` stays for TaskFlow-native use.
+        mode = payload.initial_kpi.mode if payload.initial_kpi.mode in ("manual", "milestone") else "manual"
+        progress_pct = (
+            payload.initial_kpi.progress_pct
+            if mode == "manual"
+            else None
+        )
+        if mode == "manual" and progress_pct is None:
+            progress_pct = 0
         kpi_objective = Objective(
             project_id=project.id,
             title=payload.initial_kpi.name,
             description=None,
             due_date=_resolve_kpi_due_date(project),
-            mode="manual",
-            progress_pct=0,
+            mode=mode,
+            progress_pct=progress_pct,
         )
         db.add(kpi_objective)
+        db.flush()
+
+        # Seed initial Hitos del KPI (milestone mode only) INSIDE the same
+        # transaction as project+objective — atomic: if a hito insert fails,
+        # nothing here has been committed yet, so no orphan project/objective
+        # persists (Fix #1: was previously committed piecemeal, one hito at a
+        # time, after the project+objective were already committed).
+        if mode == "milestone" and payload.initial_kpi.hitos:
+            _seed_kpi_hitos(
+                db, project.id, kpi_objective.id, list(payload.initial_kpi.hitos)
+            )
 
     record_project_event(
         db,
@@ -166,6 +233,7 @@ def create_sigao_project(
     )
     db.commit()
     db.refresh(project)
+
     return build_sigao_project_response(db, project)
 
 
@@ -285,6 +353,11 @@ def create_kpi_objective(
     db.add(objective)
     db.flush()
 
+    # Same atomic seeding path as create_sigao_project (Fix #1): objective +
+    # hitos land in a single transaction, one commit below.
+    if payload.mode == "milestone" and payload.hitos:
+        _seed_kpi_hitos(db, project.id, objective.id, list(payload.hitos))
+
     record_project_event(
         db,
         project_id=project.id,
@@ -328,8 +401,14 @@ def update_kpi_objective(
 
 
 @router.delete("/objectives/{objective_id}", status_code=204)
-def delete_kpi_objective(objective_id: int, db: Session = Depends(get_db)):
-    objective = _get_objective_or_404(db, objective_id)
+def delete_kpi_objective(
+    objective_id: int,
+    project_id: int | None = Query(
+        None, description="Caller's project id for compound scoping"
+    ),
+    db: Session = Depends(get_db),
+):
+    objective = _get_objective_or_404(db, objective_id, project_id)
     db.delete(objective)
     db.commit()
     return None
@@ -341,9 +420,12 @@ def delete_kpi_objective(objective_id: int, db: Session = Depends(get_db)):
 def update_kpi_objective_progress(
     objective_id: int,
     payload: KpiObjectiveProgressUpdate,
+    project_id: int | None = Query(
+        None, description="Caller's project id for compound scoping"
+    ),
     db: Session = Depends(get_db),
 ):
-    objective = _get_objective_or_404(db, objective_id)
+    objective = _get_objective_or_404(db, objective_id, project_id)
     if objective.mode != "manual":
         # Derived (milestone) progress is never hand-set — ADR-11/ADR-12.
         raise HTTPException(
@@ -381,8 +463,14 @@ def update_kpi_objective_progress(
 @router.get(
     "/objectives/{objective_id}/hitos", response_model=list[KpiHitoResponse]
 )
-def list_kpi_hitos(objective_id: int, db: Session = Depends(get_db)):
-    _get_objective_or_404(db, objective_id)
+def list_kpi_hitos(
+    objective_id: int,
+    project_id: int | None = Query(
+        None, description="Caller's project id for compound scoping"
+    ),
+    db: Session = Depends(get_db),
+):
+    _get_objective_or_404(db, objective_id, project_id)
     tasks = (
         db.query(Task)
         .filter(Task.objective_id == objective_id)
@@ -400,9 +488,12 @@ def list_kpi_hitos(objective_id: int, db: Session = Depends(get_db)):
 def create_kpi_hito(
     objective_id: int,
     payload: KpiHitoCreate,
+    project_id: int | None = Query(
+        None, description="Caller's project id for compound scoping"
+    ),
     db: Session = Depends(get_db),
 ):
-    objective = _get_objective_or_404(db, objective_id)
+    objective = _get_objective_or_404(db, objective_id, project_id)
     if objective.mode != "milestone":
         raise HTTPException(
             status_code=400,
@@ -441,9 +532,12 @@ def update_kpi_hito(
     objective_id: int,
     task_id: int,
     payload: KpiHitoUpdate,
+    project_id: int | None = Query(
+        None, description="Caller's project id for compound scoping"
+    ),
     db: Session = Depends(get_db),
 ):
-    objective = _get_objective_or_404(db, objective_id)
+    objective = _get_objective_or_404(db, objective_id, project_id)
     if objective.mode != "milestone":
         raise HTTPException(
             status_code=400,
@@ -466,8 +560,15 @@ def update_kpi_hito(
 
 
 @router.delete("/objectives/{objective_id}/hitos/{task_id}", status_code=204)
-def delete_kpi_hito(objective_id: int, task_id: int, db: Session = Depends(get_db)):
-    objective = _get_objective_or_404(db, objective_id)
+def delete_kpi_hito(
+    objective_id: int,
+    task_id: int,
+    project_id: int | None = Query(
+        None, description="Caller's project id for compound scoping"
+    ),
+    db: Session = Depends(get_db),
+):
+    objective = _get_objective_or_404(db, objective_id, project_id)
     if objective.mode != "milestone":
         raise HTTPException(
             status_code=400,
@@ -488,8 +589,14 @@ def delete_kpi_hito(objective_id: int, task_id: int, db: Session = Depends(get_d
     "/objectives/{objective_id}/comments",
     response_model=list[ObjectiveCommentResponse],
 )
-def list_objective_comments(objective_id: int, db: Session = Depends(get_db)):
-    _get_objective_or_404(db, objective_id)
+def list_objective_comments(
+    objective_id: int,
+    project_id: int | None = Query(
+        None, description="Caller's project id for compound scoping"
+    ),
+    db: Session = Depends(get_db),
+):
+    _get_objective_or_404(db, objective_id, project_id)
     comments = (
         db.query(ObjectiveComment)
         .filter(ObjectiveComment.objective_id == objective_id)
@@ -507,9 +614,12 @@ def list_objective_comments(objective_id: int, db: Session = Depends(get_db)):
 def create_objective_comment(
     objective_id: int,
     payload: ObjectiveCommentCreate,
+    project_id: int | None = Query(
+        None, description="Caller's project id for compound scoping"
+    ),
     db: Session = Depends(get_db),
 ):
-    objective = _get_objective_or_404(db, objective_id)
+    objective = _get_objective_or_404(db, objective_id, project_id)
     comment = ObjectiveComment(
         objective_id=objective.id,
         body=payload.body,

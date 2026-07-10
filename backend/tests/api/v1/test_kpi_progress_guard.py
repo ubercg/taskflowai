@@ -55,3 +55,30 @@ class TestKpiProgressGuard:
             assert data["progress"] == 75
         finally:
             cleanup(pg_raw, pid)
+
+    def test_progress_update_scoped_to_wrong_project_returns_404_and_does_not_mutate(
+        self, sigao_pg_client, pg_raw
+    ):
+        """Fix #3: objective↔project compound scoping — an objective that
+        belongs to project B must 404 when the caller addresses it via
+        project A's project_id, and must not be mutated."""
+        pid_a = seed_project(pg_raw, "Scope_Guard_Project_A")
+        pid_b = seed_project(pg_raw, "Scope_Guard_Project_B")
+        try:
+            oid_b = seed_objective(pg_raw, pid_b, mode="manual", progress_pct=10)
+
+            resp = sigao_pg_client.patch(
+                f"{BASE}/objectives/{oid_b}/progress",
+                params={"project_id": pid_a},
+                json={"progress_pct": 90},
+                headers=sigao_headers(),
+            )
+            assert resp.status_code == 404
+
+            unchanged = sigao_pg_client.get(
+                f"{BASE}/objectives/{oid_b}", headers=sigao_headers()
+            )
+            assert unchanged.json()["progress"] == 10
+        finally:
+            cleanup(pg_raw, pid_a)
+            cleanup(pg_raw, pid_b)

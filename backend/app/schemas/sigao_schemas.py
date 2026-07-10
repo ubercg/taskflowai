@@ -5,11 +5,31 @@ from uuid import UUID
 from decimal import Decimal
 
 
+# Hito title is stored on `Task.title`, a `String(255)` column — reject
+# over-long titles at the schema boundary with a clean 422 instead of
+# letting a mid-loop DB failure surface as a 500.
+HITO_TITLE_MAX_LENGTH = 255
+
+
 class InitialKpiCreate(BaseModel):
     name: str
-    target_value: Decimal = Field(gt=0)
+    mode: str = "manual"  # manual | milestone (ADR-16: SIGAO create seeds mode)
+    progress_pct: Optional[int] = Field(default=0, ge=0, le=100)
+    # Legacy numeric fields kept optional for older SIGAO clients; ignored by Objective path.
+    target_value: Optional[Decimal] = Field(default=None, gt=0)
     current_value: Decimal = Field(default=Decimal("0"), ge=0)
     unit: Optional[str] = None
+    hitos: list[str] = Field(default_factory=list)  # initial Hitos del KPI (milestone only)
+
+    @field_validator("hitos")
+    @classmethod
+    def hitos_title_max_length(cls, value: list[str]) -> list[str]:
+        for title in value:
+            if title and len(str(title).strip()) > HITO_TITLE_MAX_LENGTH:
+                raise ValueError(
+                    f"El título del hito no puede superar {HITO_TITLE_MAX_LENGTH} caracteres"
+                )
+        return value
 
 
 class SigaoProjectCreate(BaseModel):
@@ -155,14 +175,14 @@ class KpiHitoResponse(BaseModel):
 
 
 class KpiHitoCreate(BaseModel):
-    title: str
+    title: str = Field(max_length=HITO_TITLE_MAX_LENGTH)
     position: Optional[int] = 0
     actor_name: Optional[str] = None
 
 
 class KpiHitoUpdate(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    title: Optional[str] = None
+    title: Optional[str] = Field(default=None, max_length=HITO_TITLE_MAX_LENGTH)
     completed: Optional[bool] = None
     position: Optional[int] = None
     actor_name: Optional[str] = None
@@ -190,7 +210,18 @@ class KpiObjectiveCreate(BaseModel):
     description: Optional[str] = None
     due_date: Optional[datetime] = None  # optional; native objectives require it
     progress_pct: Optional[int] = Field(default=0, ge=0, le=100)  # manual seed only
+    hitos: list[str] = Field(default_factory=list)  # initial Hitos del KPI (milestone only)
     actor_name: Optional[str] = None
+
+    @field_validator("hitos")
+    @classmethod
+    def hitos_title_max_length(cls, value: list[str]) -> list[str]:
+        for title in value:
+            if title and len(str(title).strip()) > HITO_TITLE_MAX_LENGTH:
+                raise ValueError(
+                    f"El título del hito no puede superar {HITO_TITLE_MAX_LENGTH} caracteres"
+                )
+        return value
 
 
 class KpiObjectiveUpdate(BaseModel):
