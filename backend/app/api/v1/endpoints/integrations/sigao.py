@@ -1,12 +1,34 @@
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api.v1.endpoints.objectives import _PROGRESS_SELECT
 from app.core.sigao_auth import verify_sigao_api_key
 from app.db.database import get_db
-from app.models.models import Milestone, Project, ProjectKpi, ProjectStatus
+from app.models.models import (
+    Milestone,
+    Objective,
+    ObjectiveComment,
+    Project,
+    ProjectKpi,
+    ProjectStatus,
+    Task,
+    TaskStatus,
+    TaskType,
+)
 from app.schemas.sigao_schemas import (
+    KpiHitoCreate,
+    KpiHitoResponse,
+    KpiHitoUpdate,
+    KpiObjectiveCreate,
+    KpiObjectiveProgressUpdate,
+    KpiObjectiveResponse,
+    KpiObjectiveUpdate,
+    ObjectiveCommentCreate,
+    ObjectiveCommentResponse,
     SigaoProjectCreate,
     SigaoProjectResponse,
     SigaoProjectUpdate,
@@ -18,6 +40,75 @@ from app.services.sigao_projects import (
 )
 
 router = APIRouter(dependencies=[Depends(verify_sigao_api_key)])
+
+
+# ---------------------------------------------------------------------------
+# KPI-objective helpers
+# ---------------------------------------------------------------------------
+
+
+def _resolve_kpi_due_date(project: Project) -> datetime:
+    """Default due_date for a KPI-objective: project.end_date, else NOW()+90d."""
+    if project.end_date:
+        return datetime.combine(project.end_date, datetime.min.time()).replace(
+            tzinfo=timezone.utc
+        )
+    return datetime.now(timezone.utc) + timedelta(days=90)
+
+
+def _get_objective_or_404(db: Session, objective_id: int) -> Objective:
+    obj = db.query(Objective).filter(Objective.id == objective_id).first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Objective not found")
+    return obj
+
+
+def _task_to_hito(task: Task) -> KpiHitoResponse:
+    status_value = (
+        task.status.value if isinstance(task.status, TaskStatus) else str(task.status)
+    )
+    return KpiHitoResponse(
+        id=task.id,
+        objective_id=task.objective_id,
+        title=task.title,
+        completed=status_value == TaskStatus.done.value,
+        completed_at=task.completed_at,
+        position=task.position or 0,
+        created_at=task.created_at,
+    )
+
+
+def _build_kpi_objective_response(db: Session, objective_id: int) -> KpiObjectiveResponse:
+    row = db.execute(
+        text(_PROGRESS_SELECT.format(where="o.id = :objective_id")),
+        {"objective_id": objective_id},
+    ).mappings().first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Objective not found")
+
+    hitos = (
+        db.query(Task)
+        .filter(Task.objective_id == objective_id)
+        .order_by(Task.position, Task.id)
+        .all()
+    )
+    comments = (
+        db.query(ObjectiveComment)
+        .filter(ObjectiveComment.objective_id == objective_id)
+        .order_by(ObjectiveComment.created_at.desc())
+        .all()
+    )
+    return KpiObjectiveResponse(
+        id=row["id"],
+        project_id=row["project_id"],
+        title=row["title"],
+        description=row["description"],
+        mode=row["mode"],
+        progress=row["progress"],
+        hitos=[_task_to_hito(t) for t in hitos],
+        comments=[ObjectiveCommentResponse.model_validate(c) for c in comments],
+        created_at=row["created_at"],
+    )
 
 
 def _apply_status(project: Project, status: str | None) -> None:
@@ -54,15 +145,17 @@ def create_sigao_project(
     db.flush()
 
     if payload.initial_kpi:
-        kpi = ProjectKpi(
+        # ADR-11/ADR-16: the SIGAO KPI path provisions an Objective(mode),
+        # not a ProjectKpi row. `project_kpis` stays for TaskFlow-native use.
+        kpi_objective = Objective(
             project_id=project.id,
-            name=payload.initial_kpi.name,
-            unit=payload.initial_kpi.unit,
-            target_value=payload.initial_kpi.target_value,
-            current_value=payload.initial_kpi.current_value,
-            sort_order=0,
+            title=payload.initial_kpi.name,
+            description=None,
+            due_date=_resolve_kpi_due_date(project),
+            mode="manual",
+            progress_pct=0,
         )
-        db.add(kpi)
+        db.add(kpi_objective)
 
     record_project_event(
         db,
@@ -134,3 +227,295 @@ def delete_sigao_project(external_uuid: UUID, db: Session = Depends(get_db)):
     db.delete(project)
     db.commit()
     return None
+
+
+# ---------------------------------------------------------------------------
+# KPI-objectives (SIGAO KPI ⇒ TaskFlow Objective, mode-split)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/projects/{external_uuid}/objectives",
+    response_model=list[KpiObjectiveResponse],
+)
+def list_kpi_objectives(external_uuid: UUID, db: Session = Depends(get_db)):
+    project = get_project_by_external_uuid(db, external_uuid)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    ids = [
+        row.id
+        for row in db.query(Objective.id)
+        .filter(Objective.project_id == project.id)
+        .order_by(Objective.created_at.desc())
+        .all()
+    ]
+    return [_build_kpi_objective_response(db, oid) for oid in ids]
+
+
+@router.post(
+    "/projects/{external_uuid}/objectives",
+    response_model=KpiObjectiveResponse,
+    status_code=201,
+)
+def create_kpi_objective(
+    external_uuid: UUID,
+    payload: KpiObjectiveCreate,
+    db: Session = Depends(get_db),
+):
+    project = get_project_by_external_uuid(db, external_uuid)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    due_date = payload.due_date or _resolve_kpi_due_date(project)
+    # progress_pct is only settable for manual mode (Invariant 9);
+    # milestone-mode objectives always derive progress from Hitos del KPI.
+    if payload.mode == "manual":
+        progress_pct = payload.progress_pct if payload.progress_pct is not None else 0
+    else:
+        progress_pct = None
+
+    objective = Objective(
+        project_id=project.id,
+        title=payload.title,
+        description=payload.description,
+        due_date=due_date,
+        mode=payload.mode,
+        progress_pct=progress_pct,
+    )
+    db.add(objective)
+    db.flush()
+
+    record_project_event(
+        db,
+        project_id=project.id,
+        event_type="kpi_objective_created",
+        summary=f"KPI «{objective.title}» ({objective.mode}) creado",
+        actor_name=payload.actor_name,
+    )
+    db.commit()
+    return _build_kpi_objective_response(db, objective.id)
+
+
+@router.get("/objectives/{objective_id}", response_model=KpiObjectiveResponse)
+def get_kpi_objective(objective_id: int, db: Session = Depends(get_db)):
+    _get_objective_or_404(db, objective_id)
+    return _build_kpi_objective_response(db, objective_id)
+
+
+@router.patch("/objectives/{objective_id}", response_model=KpiObjectiveResponse)
+def update_kpi_objective(
+    objective_id: int,
+    payload: KpiObjectiveUpdate,
+    db: Session = Depends(get_db),
+):
+    objective = _get_objective_or_404(db, objective_id)
+    data = payload.model_dump(exclude_unset=True)
+    actor_name = data.pop("actor_name", None)
+    for key, value in data.items():
+        setattr(objective, key, value)
+
+    if data:
+        record_project_event(
+            db,
+            project_id=objective.project_id,
+            event_type="kpi_objective_updated",
+            summary=f"KPI «{objective.title}» actualizado",
+            actor_name=actor_name,
+            payload={"fields": list(data.keys())},
+        )
+    db.commit()
+    return _build_kpi_objective_response(db, objective_id)
+
+
+@router.delete("/objectives/{objective_id}", status_code=204)
+def delete_kpi_objective(objective_id: int, db: Session = Depends(get_db)):
+    objective = _get_objective_or_404(db, objective_id)
+    db.delete(objective)
+    db.commit()
+    return None
+
+
+@router.patch(
+    "/objectives/{objective_id}/progress", response_model=KpiObjectiveResponse
+)
+def update_kpi_objective_progress(
+    objective_id: int,
+    payload: KpiObjectiveProgressUpdate,
+    db: Session = Depends(get_db),
+):
+    objective = _get_objective_or_404(db, objective_id)
+    if objective.mode != "manual":
+        # Derived (milestone) progress is never hand-set — ADR-11/ADR-12.
+        raise HTTPException(
+            status_code=409,
+            detail="El progreso de un KPI por hitos se deriva de los hitos, no se edita manualmente",
+        )
+
+    objective.progress_pct = payload.progress_pct
+    if payload.comment:
+        db.add(
+            ObjectiveComment(
+                objective_id=objective.id,
+                body=payload.comment,
+                actor_name=payload.actor_name,
+            )
+        )
+
+    record_project_event(
+        db,
+        project_id=objective.project_id,
+        event_type="kpi_progress_updated",
+        summary=f"KPI «{objective.title}» actualizado a {payload.progress_pct}%",
+        actor_name=payload.actor_name,
+        payload={"objective_id": objective.id, "progress_pct": payload.progress_pct},
+    )
+    db.commit()
+    return _build_kpi_objective_response(db, objective_id)
+
+
+# ---------------------------------------------------------------------------
+# Hitos del KPI (Task rows under a milestone-mode Objective)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/objectives/{objective_id}/hitos", response_model=list[KpiHitoResponse]
+)
+def list_kpi_hitos(objective_id: int, db: Session = Depends(get_db)):
+    _get_objective_or_404(db, objective_id)
+    tasks = (
+        db.query(Task)
+        .filter(Task.objective_id == objective_id)
+        .order_by(Task.position, Task.id)
+        .all()
+    )
+    return [_task_to_hito(t) for t in tasks]
+
+
+@router.post(
+    "/objectives/{objective_id}/hitos",
+    response_model=KpiHitoResponse,
+    status_code=201,
+)
+def create_kpi_hito(
+    objective_id: int,
+    payload: KpiHitoCreate,
+    db: Session = Depends(get_db),
+):
+    objective = _get_objective_or_404(db, objective_id)
+    if objective.mode != "milestone":
+        raise HTTPException(
+            status_code=400,
+            detail="Los hitos solo aplican a KPIs en modo por hitos",
+        )
+
+    task = Task(
+        project_id=objective.project_id,
+        objective_id=objective.id,
+        title=payload.title,
+        status=TaskStatus.todo,
+        type=TaskType.task,
+        position=payload.position or 0,
+    )
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    return _task_to_hito(task)
+
+
+def _get_kpi_hito_or_404(db: Session, objective_id: int, task_id: int) -> Task:
+    task = (
+        db.query(Task)
+        .filter(Task.id == task_id, Task.objective_id == objective_id)
+        .first()
+    )
+    if not task:
+        raise HTTPException(status_code=404, detail="Hito not found")
+    return task
+
+
+@router.patch(
+    "/objectives/{objective_id}/hitos/{task_id}", response_model=KpiHitoResponse
+)
+def update_kpi_hito(
+    objective_id: int,
+    task_id: int,
+    payload: KpiHitoUpdate,
+    db: Session = Depends(get_db),
+):
+    objective = _get_objective_or_404(db, objective_id)
+    if objective.mode != "milestone":
+        raise HTTPException(
+            status_code=400,
+            detail="Los hitos solo aplican a KPIs en modo por hitos",
+        )
+    task = _get_kpi_hito_or_404(db, objective_id, task_id)
+
+    data = payload.model_dump(exclude_unset=True)
+    data.pop("actor_name", None)
+    if "completed" in data:
+        completed = data.pop("completed")
+        task.status = TaskStatus.done if completed else TaskStatus.todo
+        task.completed_at = datetime.now(timezone.utc) if completed else None
+    for key, value in data.items():
+        setattr(task, key, value)
+
+    db.commit()
+    db.refresh(task)
+    return _task_to_hito(task)
+
+
+@router.delete("/objectives/{objective_id}/hitos/{task_id}", status_code=204)
+def delete_kpi_hito(objective_id: int, task_id: int, db: Session = Depends(get_db)):
+    objective = _get_objective_or_404(db, objective_id)
+    if objective.mode != "milestone":
+        raise HTTPException(
+            status_code=400,
+            detail="Los hitos solo aplican a KPIs en modo por hitos",
+        )
+    task = _get_kpi_hito_or_404(db, objective_id, task_id)
+    db.delete(task)
+    db.commit()
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Objective comments (manual-mode trail)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/objectives/{objective_id}/comments",
+    response_model=list[ObjectiveCommentResponse],
+)
+def list_objective_comments(objective_id: int, db: Session = Depends(get_db)):
+    _get_objective_or_404(db, objective_id)
+    comments = (
+        db.query(ObjectiveComment)
+        .filter(ObjectiveComment.objective_id == objective_id)
+        .order_by(ObjectiveComment.created_at.desc())
+        .all()
+    )
+    return comments
+
+
+@router.post(
+    "/objectives/{objective_id}/comments",
+    response_model=ObjectiveCommentResponse,
+    status_code=201,
+)
+def create_objective_comment(
+    objective_id: int,
+    payload: ObjectiveCommentCreate,
+    db: Session = Depends(get_db),
+):
+    objective = _get_objective_or_404(db, objective_id)
+    comment = ObjectiveComment(
+        objective_id=objective.id,
+        body=payload.body,
+        actor_name=payload.actor_name,
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return comment
