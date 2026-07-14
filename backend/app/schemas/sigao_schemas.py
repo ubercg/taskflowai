@@ -1,5 +1,11 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-from typing import Optional
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
+from typing import Literal, Optional
 from datetime import date, datetime
 from uuid import UUID
 from decimal import Decimal
@@ -12,8 +18,8 @@ HITO_TITLE_MAX_LENGTH = 255
 
 
 class InitialKpiCreate(BaseModel):
-    name: str
-    mode: str = "manual"  # manual | milestone (ADR-16: SIGAO create seeds mode)
+    name: str = Field(min_length=1)
+    mode: Literal["manual", "milestone"] = "manual"
     progress_pct: Optional[int] = Field(default=0, ge=0, le=100)
     # Legacy numeric fields kept optional for older SIGAO clients; ignored by Objective path.
     target_value: Optional[Decimal] = Field(default=None, gt=0)
@@ -21,15 +27,40 @@ class InitialKpiCreate(BaseModel):
     unit: Optional[str] = None
     hitos: list[str] = Field(default_factory=list)  # initial Hitos del KPI (milestone only)
 
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, value: str) -> str:
+        cleaned = value.strip() if value else ""
+        if not cleaned:
+            raise ValueError("El nombre del KPI no puede estar vacío")
+        return cleaned
+
     @field_validator("hitos")
     @classmethod
-    def hitos_title_max_length(cls, value: list[str]) -> list[str]:
+    def normalize_hitos(cls, value: list[str]) -> list[str]:
+        cleaned: list[str] = []
         for title in value:
-            if title and len(str(title).strip()) > HITO_TITLE_MAX_LENGTH:
+            if title is None:
+                continue
+            stripped = str(title).strip()
+            if not stripped:
+                continue
+            if len(stripped) > HITO_TITLE_MAX_LENGTH:
                 raise ValueError(
                     f"El título del hito no puede superar {HITO_TITLE_MAX_LENGTH} caracteres"
                 )
-        return value
+            cleaned.append(stripped)
+        return cleaned
+
+    @model_validator(mode="after")
+    def validate_mode_hitos(self) -> "InitialKpiCreate":
+        if self.mode == "milestone" and not self.hitos:
+            raise ValueError(
+                "Un KPI en modo milestone requiere al menos un hito con título no vacío"
+            )
+        if self.mode == "manual" and self.hitos:
+            raise ValueError("Un KPI en modo manual no puede incluir hitos")
+        return self
 
 
 class SigaoProjectCreate(BaseModel):
@@ -43,7 +74,7 @@ class SigaoProjectCreate(BaseModel):
     budget_total: Decimal = Field(default=Decimal("0"), ge=0)
     budget_spent: Decimal = Field(default=Decimal("0"), ge=0)
     status: Optional[str] = "active"
-    initial_kpi: Optional[InitialKpiCreate] = None
+    initial_kpis: list[InitialKpiCreate] = Field(min_length=1)
     actor_name: Optional[str] = None
 
     @field_validator("start_date", "end_date", mode="before")
