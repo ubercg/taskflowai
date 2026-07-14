@@ -20,6 +20,7 @@ from app.models.models import (
     TaskType,
 )
 from app.schemas.sigao_schemas import (
+    InitialKpiCreate,
     KpiHitoCreate,
     KpiHitoResponse,
     KpiHitoUpdate,
@@ -163,6 +164,36 @@ def _seed_kpi_hitos(
         db.flush()
 
 
+def _seed_initial_kpi_objective(
+    db: Session, project: Project, kpi: InitialKpiCreate
+) -> Objective:
+    """Seed one Objective (+ optional milestone hitos) inside the caller's TX.
+
+    Caller owns the commit. ADR-11/ADR-16: SIGAO create provisions Objectives,
+    not ProjectKpi rows.
+    """
+    mode = kpi.mode
+    progress_pct = kpi.progress_pct if mode == "manual" else None
+    if mode == "manual" and progress_pct is None:
+        progress_pct = 0
+
+    kpi_objective = Objective(
+        project_id=project.id,
+        title=kpi.name,
+        description=None,
+        due_date=_resolve_kpi_due_date(project),
+        mode=mode,
+        progress_pct=progress_pct,
+    )
+    db.add(kpi_objective)
+    db.flush()
+
+    if mode == "milestone" and kpi.hitos:
+        _seed_kpi_hitos(db, project.id, kpi_objective.id, list(kpi.hitos))
+
+    return kpi_objective
+
+
 @router.post("/projects", response_model=SigaoProjectResponse)
 def create_sigao_project(
     payload: SigaoProjectCreate,
@@ -191,37 +222,8 @@ def create_sigao_project(
     db.add(project)
     db.flush()
 
-    if payload.initial_kpi:
-        # ADR-11/ADR-16: the SIGAO KPI path provisions an Objective(mode),
-        # not a ProjectKpi row. `project_kpis` stays for TaskFlow-native use.
-        mode = payload.initial_kpi.mode if payload.initial_kpi.mode in ("manual", "milestone") else "manual"
-        progress_pct = (
-            payload.initial_kpi.progress_pct
-            if mode == "manual"
-            else None
-        )
-        if mode == "manual" and progress_pct is None:
-            progress_pct = 0
-        kpi_objective = Objective(
-            project_id=project.id,
-            title=payload.initial_kpi.name,
-            description=None,
-            due_date=_resolve_kpi_due_date(project),
-            mode=mode,
-            progress_pct=progress_pct,
-        )
-        db.add(kpi_objective)
-        db.flush()
-
-        # Seed initial Hitos del KPI (milestone mode only) INSIDE the same
-        # transaction as project+objective — atomic: if a hito insert fails,
-        # nothing here has been committed yet, so no orphan project/objective
-        # persists (Fix #1: was previously committed piecemeal, one hito at a
-        # time, after the project+objective were already committed).
-        if mode == "milestone" and payload.initial_kpi.hitos:
-            _seed_kpi_hitos(
-                db, project.id, kpi_objective.id, list(payload.initial_kpi.hitos)
-            )
+    for kpi in payload.initial_kpis:
+        _seed_initial_kpi_objective(db, project, kpi)
 
     record_project_event(
         db,

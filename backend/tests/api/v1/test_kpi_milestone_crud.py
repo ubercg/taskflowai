@@ -16,11 +16,10 @@ def configure_sigao_key(monkeypatch):
 
 @pytest.fixture
 def sigao_project(client):
-    # NOTE (ADR-11/ADR-16): `initial_kpi` on project-create now provisions a
-    # TaskFlow `Objective(mode='manual')`, not a `ProjectKpi` row — the SIGAO
-    # KPI feature no longer writes `project_kpis`. This fixture stays plain
-    # (no `initial_kpi`) so the native `/kpis` CRUD tests below still exercise
-    # `project_kpis.py`, which remains TaskFlow-native and untouched.
+    # NOTE (ADR-11/ADR-16): `initial_kpis` on project-create provisions
+    # TaskFlow `Objective(mode=...)` rows, not `ProjectKpi`. This fixture still
+    # seeds a minimal manual KPI so create succeeds, while native `/kpis` CRUD
+    # tests below create separate `project_kpis` rows.
     uid = str(uuid.uuid4())
     resp = client.post(
         "/api/v1/integrations/sigao/projects",
@@ -28,6 +27,7 @@ def sigao_project(client):
             "external_uuid": uid,
             "name": "Showroom Tecnológico",
             "budget_total": 750000,
+            "initial_kpis": [{"name": "Seed KPI", "mode": "manual"}],
         },
         headers={"X-SIGAO-Key": SIGAO_KEY},
     )

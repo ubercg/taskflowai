@@ -47,6 +47,7 @@ class TestSigaoIntegrationAuth:
             json={
                 "external_uuid": str(uuid.uuid4()),
                 "name": "Auth Test Project",
+                "initial_kpis": [{"name": "Seed KPI", "mode": "manual"}],
             },
             headers=_sigao_headers(),
         )
@@ -63,11 +64,13 @@ class TestSigaoCreateIdempotent:
             "project_type": "innovacion_tecnologica",
             "responsible_name": "Ing. Martínez",
             "budget_total": 320000,
-            "initial_kpi": {
-                "name": "Demos realizados",
-                "target_value": 8,
-                "current_value": 2,
-            },
+            "initial_kpis": [
+                {
+                    "name": "Demos realizados",
+                    "target_value": 8,
+                    "current_value": 2,
+                }
+            ],
             "actor_name": "Ana García",
         }
         first = client.post(
@@ -85,9 +88,8 @@ class TestSigaoCreateIdempotent:
         )
         assert second.status_code == 200
         assert second.json()["id"] == first_id
-        # ADR-11/ADR-16: initial_kpi now provisions an Objective, not a
-        # ProjectKpi row — SigaoProjectResponse.kpis stays empty for the
-        # SIGAO-created principal KPI.
+        # ADR-11/ADR-16: initial_kpis provisions Objectives, not ProjectKpi
+        # rows — SigaoProjectResponse.kpis stays empty for SIGAO-seeded KPIs.
         assert second.json()["kpis"] == []
 
     def test_create_records_project_event(self, client):
@@ -98,6 +100,7 @@ class TestSigaoCreateIdempotent:
                 "external_uuid": uid,
                 "name": "Event Test",
                 "actor_name": "Admin",
+                "initial_kpis": [{"name": "Seed KPI", "mode": "manual"}],
             },
             headers=_sigao_headers(),
         )

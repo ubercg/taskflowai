@@ -90,7 +90,11 @@ class TestKpiHitoCrud:
         external_uuid = str(uuid.uuid4())
         create_project = sigao_pg_client.post(
             f"{BASE}/projects",
-            json={"external_uuid": external_uuid, "name": "Objective_Create_With_Hitos"},
+            json={
+                "external_uuid": external_uuid,
+                "name": "Objective_Create_With_Hitos",
+                "initial_kpis": [{"name": "Seed KPI", "mode": "manual"}],
+            },
             headers=sigao_headers(),
         )
         assert create_project.status_code == 201
