@@ -49,7 +49,7 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
       }
       onSaved();
     } catch (err) {
-      setError(err.response?.data?.detail || err.detail || 'Error al guardar el objetivo');
+      setError((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : null) || 'Error al guardar el objetivo');
     } finally {
       setIsSubmitting(false);
     }

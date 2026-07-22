@@ -44,7 +44,8 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
       onSaved();
     } catch (err) {
       const d = err.response?.data?.detail;
-      const msg = typeof d === 'string' ? d : Array.isArray(d) ? d.map((e) => e.msg || JSON.stringify(e)).join(' ') : d ? String(d) : err.message;
+      const msg = (typeof err.detail === 'string' && err.detail)
+        || (typeof d === 'string' ? d : Array.isArray(d) ? d.map((e) => e.msg || JSON.stringify(e)).join(' ') : d?.detail ? d.detail : err.message);
       setError(msg || 'Error al guardar el usuario.');
     } finally {
       setIsSubmitting(false);
