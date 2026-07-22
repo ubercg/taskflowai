@@ -155,6 +155,7 @@ def _seed_task(
     logged_hours=None,
     type_: str = "task",
     parent_id=None,
+    created_at=None,
 ) -> int:
     r = session.execute(
         text("""
@@ -167,7 +168,7 @@ def _seed_task(
                 CAST(:status AS task_status), CAST(:type AS task_type),
                 :parent_id, :assignee_id,
                 :completed_at, :due_date, :estimated_hours, :logged_hours,
-                0, NOW() - INTERVAL '30 days'
+                0, COALESCE(:created_at, NOW() - INTERVAL '30 days')
             )
             RETURNING id
         """),
@@ -181,6 +182,7 @@ def _seed_task(
             "due_date": due_date,
             "estimated_hours": estimated_hours,
             "logged_hours": logged_hours,
+            "created_at": created_at,
         },
     )
     session.commit()
@@ -233,14 +235,16 @@ class TestFlowMonthlyIntegration:
         """Monthly /flow with tasks in range returns correct shape."""
         pid = _seed_project(pg_raw, name="Flow_Monthly_Test")
 
-        # Task completed within the month — June 2026
+        # Absolute window + absolute created_at (never mix with NOW()-Nd).
         start = date(2026, 6, 1)
         end = date(2026, 7, 1)
+        created = datetime(2026, 6, 1, 0, 0, tzinfo=timezone.utc)
         completed = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
 
         task_id = _seed_task(
             pg_raw, pid,
             status="done",
+            created_at=created,
             completed_at=completed,
             estimated_hours=10,
             logged_hours=8,
@@ -266,11 +270,10 @@ class TestFlowMonthlyIntegration:
             # Values — 1 task completed June 15
             assert data["throughput"] == 1
 
-            # Lead time: June 1 00:00 (created 30 days before = ~May 16) → June 15 12:00
-            # created_at is set to NOW()-30days which won't be exactly right for assertions;
-            # just check it's a positive float
+            # Lead time: Jun 1 00:00 → Jun 15 12:00 = 14.5d = 348h
             if data["lead_time_avg_h"] is not None:
                 assert data["lead_time_avg_h"] > 0
+                assert abs(data["lead_time_avg_h"] - 348.0) < 1.0
 
             # Cycle time: in_progress Jun 10 08:00 → completed Jun 15 12:00 = 5d4h = 124h
             if data["cycle_time_avg_h"] is not None:
