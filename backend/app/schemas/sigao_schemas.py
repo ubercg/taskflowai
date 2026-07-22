@@ -1,6 +1,7 @@
 from pydantic import (
     BaseModel,
     ConfigDict,
+    EmailStr,
     Field,
     field_validator,
     model_validator,
@@ -281,3 +282,45 @@ class KpiObjectiveResponse(BaseModel):
     hitos: list[KpiHitoResponse] = []
     comments: list[ObjectiveCommentResponse] = []
     created_at: datetime
+
+
+# --- REQ-024: SIGAO user provisioning / project responsible sync ---
+class SigaoUserEnsure(BaseModel):
+    email: EmailStr
+    name: str = Field(min_length=1)
+
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, value: str) -> str:
+        cleaned = value.strip() if value else ""
+        if not cleaned:
+            raise ValueError("El nombre no puede estar vacío")
+        return cleaned
+
+
+class SigaoUserEnsureResponse(BaseModel):
+    id: int
+    email: str
+    name: str
+    created: bool
+
+
+class SigaoProjectResponsibleUpdate(BaseModel):
+    email: EmailStr
+    name: str = Field(min_length=1)
+    previous_email: Optional[EmailStr] = None
+
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, value: str) -> str:
+        cleaned = value.strip() if value else ""
+        if not cleaned:
+            raise ValueError("El nombre no puede estar vacío")
+        return cleaned
+
+
+class SigaoProjectResponsibleResponse(BaseModel):
+    user_id: int
+    email: str
+    role: Literal["manager"] = "manager"
+    project_id: int

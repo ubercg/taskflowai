@@ -1,101 +1,65 @@
-# CLAUDE.md
+# taskflowai - Instrucciones para IAs (Claude, Cursor, Opencode)
 
-Guía para trabajar en **TaskFlow**. Documentación de producto adicional: `README.md`.
+## GUÍA TÉCNICA: DÓNDE ENCONTRARLA
 
-## Qué es
+Este repositorio **no contiene** la guía técnica del proyecto (stack, estructura de carpetas, modelo de dominio, auth, capa de IA, comandos, convenciones y gotchas). Vive en el vault de Obsidian:
 
-Plataforma de gestión operativa y estratégica que conecta planificación de alto nivel (**Objetivos / OKRs**) con ejecución diaria (**Kanban**), registro de tiempo, métricas de flujo y una capa de **IA** que detecta cuellos de botella y genera resúmenes ejecutivos.
+- **Resumen técnico / onboarding**: `100-🎯-Proyectos/taskflowai/20-Arquitectura/ARQ-000-Resumen-Tecnico.md`
+- **Decisiones de arquitectura**: `100-🎯-Proyectos/taskflowai/20-Arquitectura/ARQ-001-Decisiones-Core.md`
+- **Modelo de base de datos**: `100-🎯-Proyectos/taskflowai/20-Arquitectura/ARQ-002-Modelo-Base-Datos.md`
+- **Contratos de endpoints**: `100-🎯-Proyectos/taskflowai/30-API/`
 
-Además, el Nginx de este repo actúa como **gateway** del ecosistema: enruta `/bloque` → `bloque-hub` y `/mailer` → app de correo masivo (Streamlit). TaskFlow es el pivote sobre el que montan esas dos apps.
+Ruta absoluta del vault:
+`/Users/ubercg/Library/CloudStorage/GoogleDrive-ubercgar@gmail.com/Mi unidad/personal/ubercg-box/`
 
-## Stack
+Leé `ARQ-000-Resumen-Tecnico.md` ANTES de tocar código si no tenés contexto del proyecto. Estos archivos no se cargan solos en el contexto: hay que abrirlos explícitamente.
 
-| Capa | Tecnologías |
-|------|-------------|
-| Frontend | React 18, Vite, Zustand (estado), SWR (fetching), React Router v6, @hello-pangea/dnd (drag&drop), Recharts |
-| Backend | Python 3.11, FastAPI, SQLAlchemy 2.0, Pydantic V2, JWT + bcrypt, Google GenAI (Gemini `gemini-2.5-flash`) |
-| Base de datos | PostgreSQL 15 |
-| Infra | Nginx (reverse proxy, puerto 80), Docker + Docker Compose |
-| Testing | Pytest (backend), Vitest + Testing Library (frontend), Playwright (E2E) |
+## REGLA OBLIGATORIA: DOCUMENTACIÓN VIVA (LIVING DOCUMENTATION)
 
-## Estructura
+Al INICIAR tu sesión, revisa si hay bitácoras activas en `100-🎯-Proyectos/taskflowai/50-Bitacora/` para entender en qué estado quedó el proyecto (Handover).
 
-```
-backend/app/
-  api/v1/endpoints/   # auth, ai, projects, tasks, tasks_crud, users, admin_users,
-                      # objectives, metrics, timelogs
-  core/               # config.py (settings), security.py (JWT/roles)
-  db/                 # database.py (engine, get_db, Base)
-  models/models.py    # ORM (User, Project, Objective, Task, TimeLog, Activity...)
-  modules/intelligence/  # daily_summary.py, bottleneck.py (capa IA)
-  schemas/schemas.py  # Pydantic V2
-frontend/src/
-  components/         # kanban, projects, users, shared
-  features/           # analytics (charts), execution (Kanban), operations (time log)
-  pages/              # rutas de página
-  store/              # Zustand: authStore, kanbanStore, okrStore
-  services/api/       # client.js (axios) + index.js (endpoints)
-docker/init.sql       # esquema PostgreSQL: tablas, vistas, seed super-admin
-nginx/nginx.conf      # gateway: /api → backend, /bloque, /mailer, catch-all → frontend
-docker-compose.yml    # db, backend, frontend, nginx (red externa bloque-hub_app-network)
-```
+Cada vez que desarrolles una funcionalidad, crees un endpoint, agregues una tabla a la base de datos o completes un requerimiento, ESTÁS OBLIGADO a actualizar el Vault de Obsidian del proyecto en tiempo real. 
 
-## Modelo de dominio
+La documentación oficial **NO VIVE EN ESTE REPOSITORIO**. Vive en el vault de Obsidian del usuario, ruta absoluta:
+`/Users/ubercg/Library/CloudStorage/GoogleDrive-ubercgar@gmail.com/Mi unidad/personal/ubercg-box/`
 
-- **User**: roles `admin | manager | developer | viewer`, color, `is_active`.
-- **Project**: estado `active | on_hold | completed | archived`.
-- **ProjectMember**: rol por proyecto (PK `project_id + user_id`).
-- **Objective**: OKR ligado a un proyecto, con `due_date`.
-- **Task**: estado `backlog | todo | in_progress | review | done | blocked`; prioridad `critical | high | medium | low`; tipo `task | subtask | activity`; jerarquía vía `parent_id` (self-FK); `position` para orden Kanban; `estimated_hours` / `logged_hours`.
-- **TimeLog**: registro de horas por tarea y usuario.
-- **Activity**: log de transiciones de estado (`from_status` → `to_status`). Base de las métricas y la IA.
+Dentro del vault, el proyecto es: `100-🎯-Proyectos/taskflowai`
 
-### Analytics en DB
-- Vista `project_metrics`: agregados por proyecto.
-- Vista materializada `flow_metrics`: lead/cycle time, throughput semanal, efficiency ratio. Se refresca con `refresh_flow_metrics()` (`CONCURRENTLY`).
-- Tabla `kanban_bottlenecks`: UPSERT por `project + status`.
+**Pasos OBLIGATORIOS al terminar cada iteración de código:**
+1. **API**: Si creaste/modificaste un endpoint, abrí y actualizá el archivo de API correspondiente en `100-🎯-Proyectos/taskflowai/30-API/`
+2. **Arquitectura**: Si creaste/modificaste una tabla, actualizá `100-🎯-Proyectos/taskflowai/20-Arquitectura/ARQ-001-Decisiones-Core.md` (o el modelo de base de datos que corresponda).
+3. **Requerimientos (DoD)**: Si estás atendiendo un archivo de Requerimiento (ej: `100-🎯-Proyectos/taskflowai/10-Requerimientos/REQ-XXX.md`), al finalizar tu trabajo DEBÉS abrir ese archivo y marcar los checkboxes de la sección "Criterios de Aceptación (DoD)" cambiando los `[ ]` por `[x]`.
+4. **Tareas**: Actualizá el estado a `status: done` en el frontmatter de la tarea correspondiente en `40-Ejecucion/`.
+5. **Bitácora (Handover)**: Al finalizar tu sesión o hito de desarrollo, creá o actualizá un archivo de progreso en `100-🎯-Proyectos/taskflowai/50-Bitacora/` (Ej: `BIT-[Número]-Estatus-[Requerimiento].md`). Registrá qué se implementó, resultados de pruebas locales (smoke tests) y qué queda pendiente para el siguiente turno.
 
-## Auth (`backend/app/core/security.py`)
+Jamás respondas "Terminé la tarea" o "Listo" sin haber abierto, editado y guardado los archivos correspondientes en Obsidian.
 
-- JWT HS256 + bcrypt. `get_current_user` resuelve el usuario desde `sub` del token.
-- `require_role(*roles)` es factory de dependencias; shortcuts `require_admin`, `require_manager_or_above`.
-- `check_project_access` valida membresía (admin la saltea).
-- Super-admin sembrado: `admin@taskflow.com` / `taskflow123`.
+---
 
-## Capa de IA (`backend/app/modules/intelligence/`)
+### Estructura Obligatoria de Documentación en Obsidian
+Toda documentación que leas, crees o edites en el vault debe respetar esta estructura:
+- `10-Requerimientos/`: Problema, Historias de Usuario, Reglas de Negocio. (Nomenclatura: `REQ-[Número]-[Nombre].md`)
+- `20-Arquitectura/`: Solución, Modelo de Base de Datos, Diagramas ERD, Stack. (Nomenclatura: `ARQ-[Número]-[Nombre].md`)
+- `30-API/`: Contratos de endpoints (Método, Ruta, Payload). (Nomenclatura: `API-[Número]-[Nombre].md`)
+- `40-Ejecucion/`: Tareas técnicas de desarrollo. (Nomenclatura: `TSK-[Número]-[Nombre].md`)
+- `50-Bitacora/`: Minutas, notas de investigación y estatus táctico de la sesión. (Nomenclatura: `BIT-[Número]-[Nombre].md`)
 
-- **`daily_summary.py`**: agrega avances / bloqueadas / riesgos / stats de las últimas 24h con SQL crudo y arma un texto rule-based en español. Si existe `GEMINI_API_KEY` o `GOOGLE_API_KEY`, lo mejora con Gemini (con fallback graceful al texto determinístico). Cache en memoria de 60 min por `project_id`.
-- **`bottleneck.py`**: calcula aging por columna contra el cycle time histórico (threshold = cycle × 2). Corre en background y **nunca lanza excepciones** (no debe romper el thread principal). UPSERT en `kanban_bottlenecks`.
+### Regla de Oro: Frontmatter (YAML)
+TODOS los archivos `.md` que crees o modifiques en el vault de Obsidian deben incluir/mantener este bloque YAML al inicio:
 
-## Comandos
-
-Levantar / bajar:
-```bash
-make dev      # docker compose up -d  → http://localhost/  (Swagger: /docs)
-make down
+```yaml
+---
+id: TSK-001 # (o REQ-001, ARQ-001) - Según corresponda
+project: taskflowai
+type: requirement | architecture | api | task | note
+status: draft | active | approved | done | archived | todo | in_progress
+module: nombre_del_modulo
+created: YYYY-MM-DD
+tags: []
+---
 ```
 
-Testing:
-```bash
-make test-backend    # pytest vía docker-compose.test.yml
-make test-frontend   # vitest vía docker-compose.test.yml
-make test-e2e        # Playwright (levanta compose, corre en e2e/, baja compose)
-make test-all
-```
-
-Frontend local (sin Docker): `cd frontend && npm run dev | build | test`.
-
-## Convenciones y gotchas
-
-- **Idioma de artefactos**: el proyecto existente está en español (comentarios, UI, mensajes de error, docs). Al extender, mantené español neutro/profesional para coincidir con el código existente.
-- **Nginx evita CORS**: el navegador siempre habla con el mismo origen; `/api/` va al backend. No fijar `VITE_API_URL` en el frontend (ver comentario en `docker-compose.yml`).
-- **Red externa**: `docker-compose.yml` requiere la red `bloque-hub_app-network` (external). Si no existe, `make dev` falla hasta crearla o levantar bloque-hub.
-- **DB no expone puerto al host en prod** (usa `expose`, no `ports`); en dev local sí mapea `5435:5432`.
-- **`SECRET_KEY`**: se inyecta por env / `backend/.env` (ver `backend/.env.example`). No hay secreto quemado; sin `SECRET_KEY` la app genera una clave **efímera** + warning (los JWT mueren en cada reinicio). En prod, definila siempre.
-- **Seguridad pendiente para prod real**: frontend corre `vite dev` tras Nginx (falta build estático multi-stage), sin SSL/443, password de DB (`taskflow_secret`) quemado en `docker-compose.yml`.
-- **`spec/`**: el README la menciona (PRD, roadmap) pero **no existe** en el repo actual.
-- **Backend monta volumen** `./backend:/app` con `--reload`: los cambios en Python recargan en caliente.
-
-## Memoria persistente (Engram)
-
-El contexto de arquitectura está guardado en Engram bajo los topic keys `architecture/overview` y `architecture/domain-model` (proyecto `taskflowai`). Buscá ahí antes de re-derivar contexto.
+## Memoria
+Usa Engram MCP de manera proactiva para:
+- Registrar progreso y bugs fijados.
+- Guardar decisiones arquitectónicas y descubrimientos.
