@@ -58,6 +58,16 @@ services:
       sh -c "pip install --quiet -r requirements-dev.txt &&
              pytest -m 'integration' -q"
 
+  frontend_test:
+    build:
+      context: ./frontend
+    environment:
+      CI: "1"
+    networks:
+      - test_network
+    command: >
+      sh -c "npm ci --no-audit --no-fund && npx vitest run"
+
 networks:
   test_network:
     driver: bridge
