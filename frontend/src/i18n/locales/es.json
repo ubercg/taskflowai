@@ -336,6 +336,149 @@
       "completionValue": "{{rate}}%"
     }
   },
+  "execution": {
+    "board": {
+      "loadingTitle": "Cargando...",
+      "hideSummary": "Ocultar resumen",
+      "showSummary": "Resumen del día",
+      "views": {
+        "list": "Lista",
+        "kanban": "Kanban",
+        "calendar": "Calendario"
+      },
+      "metricsLink": "Métricas",
+      "newTask": "+ Nueva Tarea"
+    },
+    "kanban": {
+      "loading": "Cargando Tablero Kanban...",
+      "loadError": "Error cargando tareas",
+      "moveError": "Error interno al mover la tarea",
+      "addToColumn": "Añadir a {{column}}",
+      "agingBadge": "Aging {{hours}}h",
+      "bottleneckTooltip": "Avg {{avg}}h en esta columna (umbral: {{threshold}}h)"
+    },
+    "wip": {
+      "title": "WIP Limit alcanzado",
+      "detail": "Máximo {{limit}} tareas en progreso (actual: {{current}})"
+    },
+    "list": {
+      "loading": "Cargando lista de tareas...",
+      "loadError": "Error cargando tareas.",
+      "filters": {
+        "anyAssignee": "Cualquier Asignado",
+        "unassigned": "Sin asignar",
+        "anyObjective": "Cualquier OKR"
+      },
+      "noObjective": "Sin OKR",
+      "unassignedOption": "— Sin asignar",
+      "hoursProgress": "{{logged}}h / {{estimated}}h",
+      "selectedCount_one": "{{count}} tarea seleccionada",
+      "selectedCount_other": "{{count}} tareas seleccionadas",
+      "massAssignPlaceholder": "Asignar a…",
+      "unassignAction": "Desasignar",
+      "massPriorityPlaceholder": "Cambiar prioridad…",
+      "apply": "Aplicar",
+      "updating": "Actualizando...",
+      "massUpdateError": "Error en actualización masiva: {{detail}}",
+      "assignError": "Error al asignar tarea",
+      "wipLimitReached": "WIP Limit alcanzado: {{current}}/{{limit}}",
+      "statusChangeError": "Error cambiando estado"
+    }
+  },
+  "tasks": {
+    "form": {
+      "createTitle": "Nueva Tarea",
+      "title": {
+        "placeholder": "Título de la tarea..."
+      },
+      "assignee": {
+        "label": "Asignado a",
+        "unassigned": "Sin asignar"
+      },
+      "objective": {
+        "label": "Objetivo (OKR)",
+        "none": "Sin objetivo"
+      },
+      "priority": {
+        "label": "Prioridad"
+      },
+      "dueDate": {
+        "label": "Fecha Límite"
+      },
+      "estimatedHours": {
+        "label": "Estimación (hs)"
+      },
+      "addDescription": "+ Agregar descripción detallada",
+      "description": {
+        "label": "Descripción",
+        "placeholder": "Contexto o requerimientos de la tarea..."
+      },
+      "wipWarning": "Este usuario ya tiene el límite de tareas en progreso (WIP lleno).",
+      "creating": "Creando...",
+      "create": "Crear Tarea",
+      "errors": {
+        "titleRequired": "El título es obligatorio",
+        "create": "Error al crear la tarea"
+      }
+    },
+    "detail": {
+      "loading": "Cargando...",
+      "status": {
+        "label": "Estado"
+      },
+      "priority": {
+        "label": "Prioridad"
+      },
+      "assignee": {
+        "label": "Asignado",
+        "unassigned": "Sin asignar"
+      },
+      "objective": {
+        "label": "Objetivo",
+        "none": "Sin objetivo"
+      },
+      "dueDate": {
+        "label": "Vencimiento"
+      },
+      "estimatedHours": {
+        "label": "Estimación (hs)"
+      },
+      "description": {
+        "title": "Descripción",
+        "empty": "Sin descripción.",
+        "placeholder": "Añade una descripción más detallada..."
+      },
+      "subtasks": {
+        "title": "Subtareas",
+        "addPlaceholder": "+ Añadir subtarea",
+        "create": "Crear",
+        "createError": "Error al crear subtarea: {{detail}}",
+        "toggleError": "Error al actualizar subtarea: {{detail}}"
+      },
+      "activity": {
+        "title": "Historial de Actividades",
+        "moved": "movió la tarea de <fromTag>{{from}}</fromTag> a <toTag>{{to}}</toTag>",
+        "created": "creó la tarea en <toTag>{{to}}</toTag>",
+        "empty": "No hay actividades registradas."
+      },
+      "timeLog": {
+        "title": "Registro de Tiempo",
+        "hoursPlaceholder": "Horas",
+        "descPlaceholder": "¿En qué trabajaste?",
+        "submit": "Registrar",
+        "empty": "No hay registros de tiempo aún.",
+        "error": "Error al registrar tiempo: {{detail}}"
+      },
+      "delete": "Eliminar tarea",
+      "deleteConfirm": "¿Seguro que quieres eliminar esta tarea de forma permanente?",
+      "deleteError": "Error al eliminar la tarea"
+    },
+    "card": {
+      "okr": "OKR #{{id}}",
+      "hours": "{{logged}}h / {{estimated}}h",
+      "hoursLoggedOnly": "{{logged}}h registradas"
+    }
+  },
   "enums": {
     "task": {
       "status": {

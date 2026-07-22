@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const WipToast = () => {
+  const { t } = useTranslation();
   const [toastData, setToastData] = useState(null);
 
   useEffect(() => {
@@ -25,9 +27,9 @@ const WipToast = () => {
         <line x1="12" y1="17" x2="12.01" y2="17"></line>
       </svg>
       <div>
-        <p className="text-sm font-semibold text-fg">WIP Limit alcanzado</p>
+        <p className="text-sm font-semibold text-fg">{t('execution.wip.title')}</p>
         <p className="mt-0.5 text-[13px] text-muted">
-          Máximo {toastData.limit} tareas en progreso (actual: {toastData.current_wip})
+          {t('execution.wip.detail', { limit: toastData.limit, current: toastData.current_wip })}
         </p>
       </div>
 

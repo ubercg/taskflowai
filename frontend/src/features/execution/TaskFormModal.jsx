@@ -1,21 +1,24 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { createTask } from '../../services/api';
 import api from '../../services/api/client';
 import { useAuth } from '../../store/authStore';
+import { taskPriorityLabel } from '../../i18n/enums';
 import { Modal, Input, Select, Textarea, Button } from '../../components/ui';
 import { cn } from '../../lib/cn';
 
 const PRIORITIES = [
-  { id: 'critical', label: 'Crítica', color: '#ef4444', bg: '#fef2f2', border: '#fca5a5' },
-  { id: 'high', label: 'Alta', color: '#f97316', bg: '#fff7ed', border: '#fdba74' },
-  { id: 'medium', label: 'Media', color: '#eab308', bg: '#fefce8', border: '#fde047' },
-  { id: 'low', label: 'Baja', color: '#22c55e', bg: '#f0fdf4', border: '#86efac' },
+  { id: 'critical', color: '#ef4444', bg: '#fef2f2', border: '#fca5a5' },
+  { id: 'high', color: '#f97316', bg: '#fff7ed', border: '#fdba74' },
+  { id: 'medium', color: '#eab308', bg: '#fefce8', border: '#fde047' },
+  { id: 'low', color: '#22c55e', bg: '#f0fdf4', border: '#86efac' },
 ];
 
 const LABEL = 'mb-2 block text-xs font-semibold uppercase text-muted';
 
 const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveId = null, onClose, onCreated }) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
@@ -32,7 +35,8 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
 
   const [isDescExpanded, setIsDescExpanded] = useState(false);
   const [error, setError] = useState(null);
-  const [wipWarning, setWipWarning] = useState(null);
+  const [titleInvalid, setTitleInvalid] = useState(false);
+  const [wipWarning, setWipWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: members } = useSWR(
@@ -54,21 +58,21 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
   useEffect(() => {
     if (formData.status === 'in_progress' && formData.assignee_id && velocities) {
       const userVelocity = velocities.find((v) => v.user_id === Number(formData.assignee_id));
-      if (userVelocity && userVelocity.in_progress >= 3) {
-        setWipWarning('⚠️ Este usuario ya tiene el límite de tareas en progreso (WIP lleno).');
-      } else {
-        setWipWarning(null);
-      }
+      setWipWarning(!!(userVelocity && userVelocity.in_progress >= 3));
     } else {
-      setWipWarning(null);
+      setWipWarning(false);
     }
   }, [formData.assignee_id, formData.status, velocities]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setTitleInvalid(false);
 
-    if (!formData.title.trim()) return setError('El título es obligatorio');
+    if (!formData.title.trim()) {
+      setTitleInvalid(true);
+      return setError(t('tasks.form.errors.titleRequired'));
+    }
 
     const payload = {
       ...formData,
@@ -83,7 +87,7 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
       const newTask = await createTask(payload);
       onCreated(newTask);
     } catch (err) {
-      setError((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : null) || 'Error al crear la tarea');
+      setError((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : null) || t('tasks.form.errors.create'));
     } finally {
       setIsSubmitting(false);
     }
@@ -92,8 +96,8 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
   return (
     <Modal open onClose={onClose} className="flex max-w-xl flex-col p-8">
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-fg">Nueva Tarea</h2>
-        <button onClick={onClose} className="text-muted transition-colors hover:text-fg">
+        <h2 className="text-xl font-semibold text-fg">{t('tasks.form.createTitle')}</h2>
+        <button onClick={onClose} className="text-muted transition-colors hover:text-fg" aria-label={t('common.actions.close')}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
@@ -106,7 +110,7 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
 
       {wipWarning && (
         <div className="mb-5 rounded-md border border-priority-high/40 bg-priority-high/10 p-3 text-[13px] text-priority-high">
-          {wipWarning}
+          <span aria-hidden="true">⚠️</span> {t('tasks.form.wipWarning')}
         </div>
       )}
 
@@ -117,18 +121,18 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             autoFocus
-            className={cn('py-3 text-base font-medium', error?.includes('título') && 'border-status-blocked')}
-            placeholder="Título de la tarea..."
+            className={cn('py-3 text-base font-medium', titleInvalid && 'border-status-blocked')}
+            placeholder={t('tasks.form.title.placeholder')}
           />
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={LABEL}>Asignado a</label>
+              <label className={LABEL}>{t('tasks.form.assignee.label')}</label>
               <Select
                 value={formData.assignee_id}
                 onChange={(e) => setFormData({ ...formData, assignee_id: e.target.value })}
               >
-                <option value="">Sin asignar</option>
+                <option value="">{t('tasks.form.assignee.unassigned')}</option>
                 {members?.map((m) => (
                   <option key={m.id} value={m.id}>{m.name} — {m.role}</option>
                 ))}
@@ -136,12 +140,12 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
             </div>
 
             <div>
-              <label className={LABEL}>Objetivo (OKR)</label>
+              <label className={LABEL}>{t('tasks.form.objective.label')}</label>
               <Select
                 value={formData.objective_id}
                 onChange={(e) => setFormData({ ...formData, objective_id: e.target.value })}
               >
-                <option value="">Sin objetivo</option>
+                <option value="">{t('tasks.form.objective.none')}</option>
                 {objectives?.map((o) => (
                   <option key={o.id} value={o.id}>{o.title}</option>
                 ))}
@@ -150,7 +154,7 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
           </div>
 
           <div>
-            <label className={LABEL}>Prioridad</label>
+            <label className={LABEL}>{t('tasks.form.priority.label')}</label>
             <div className="flex flex-wrap gap-2">
               {PRIORITIES.map((p) => {
                 const selected = formData.priority === p.id;
@@ -166,7 +170,7 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
                     style={selected ? { borderColor: p.border, backgroundColor: p.bg, color: p.color } : undefined}
                   >
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
-                    {p.label}
+                    {taskPriorityLabel(p.id)}
                   </button>
                 );
               })}
@@ -175,7 +179,7 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={LABEL}>Fecha Límite</label>
+              <label className={LABEL}>{t('tasks.form.dueDate.label')}</label>
               <Input
                 type="date"
                 value={formData.due_date}
@@ -183,7 +187,7 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
               />
             </div>
             <div>
-              <label className={LABEL}>Estimación (hs)</label>
+              <label className={LABEL}>{t('tasks.form.estimatedHours.label')}</label>
               <Input
                 type="number"
                 step="0.5"
@@ -202,16 +206,16 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
                 onClick={() => setIsDescExpanded(true)}
                 className="text-[13px] font-medium text-accent hover:text-accent-hover"
               >
-                + Agregar descripción detallada
+                {t('tasks.form.addDescription')}
               </button>
             ) : (
               <>
-                <label className={LABEL}>Descripción</label>
+                <label className={LABEL}>{t('tasks.form.description.label')}</label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="min-h-20"
-                  placeholder="Contexto o requerimientos de la tarea..."
+                  placeholder={t('tasks.form.description.placeholder')}
                 />
               </>
             )}
@@ -220,9 +224,9 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
       </div>
 
       <div className="mt-6 flex justify-end gap-3 border-t border-border pt-5">
-        <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+        <Button variant="secondary" onClick={onClose}>{t('common.actions.cancel')}</Button>
         <Button type="submit" form="task-form" disabled={isSubmitting}>
-          {isSubmitting ? 'Creando...' : 'Crear Tarea'}
+          {isSubmitting ? t('tasks.form.creating') : t('tasks.form.create')}
         </Button>
       </div>
     </Modal>

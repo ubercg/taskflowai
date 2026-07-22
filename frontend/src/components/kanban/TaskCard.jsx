@@ -1,4 +1,6 @@
-import { parseDateOnly, formatCalendarShortEs } from '../../utils/dateUtils';
+import { useTranslation } from 'react-i18next';
+import { parseDateOnly, formatCalendarShort } from '../../utils/dateUtils';
+import { taskPriorityLabel } from '../../i18n/enums';
 import { cn } from '../../lib/cn';
 
 // Colores de prioridad (se aplican inline porque el borde y el punto son dinámicos)
@@ -35,6 +37,7 @@ const getDueDateStatus = (dueDateStr) => {
 };
 
 const TaskCard = ({ task, onOpen, isDragging, provided }) => {
+  const { t } = useTranslation();
   const priority = task.priority || 'medium';
   const priorityColor = PRIORITY_COLORS[priority] || PRIORITY_COLORS.medium;
   const hasSubtasks = task.subtasks && task.subtasks.length > 0;
@@ -71,7 +74,7 @@ const TaskCard = ({ task, onOpen, isDragging, provided }) => {
         <div className="flex flex-1 flex-wrap gap-1">
           {task.objective_id && (
             <span className="inline-flex items-center gap-1 rounded-full bg-status-review/15 px-1.5 py-0.5 text-[10px] font-semibold text-status-review">
-              🎯 OKR #{task.objective_id}
+              <span aria-hidden="true">🎯</span> {t('tasks.card.okr', { id: task.objective_id })}
             </span>
           )}
 
@@ -80,14 +83,14 @@ const TaskCard = ({ task, onOpen, isDragging, provided }) => {
               className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
               style={{ backgroundColor: dueDateStatus.bg, color: dueDateStatus.color }}
             >
-              {formatCalendarShortEs(task.due_date)}
+              {formatCalendarShort(task.due_date)}
             </span>
           )}
         </div>
 
         <div className="ml-2 flex shrink-0 items-center gap-1">
           <span className="h-2 w-2 rounded-full" style={{ backgroundColor: priorityColor }} />
-          <span className="text-[11px] font-medium capitalize text-muted">{priority}</span>
+          <span className="text-[11px] font-medium capitalize text-muted">{taskPriorityLabel(priority)}</span>
         </div>
       </div>
 
@@ -123,7 +126,9 @@ const TaskCard = ({ task, onOpen, isDragging, provided }) => {
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
           )}
-          {estimated !== null ? <span>{logged}h / {estimated}h</span> : <span>{logged}h registradas</span>}
+          {estimated !== null
+            ? <span>{t('tasks.card.hours', { logged, estimated })}</span>
+            : <span>{t('tasks.card.hoursLoggedOnly', { logged })}</span>}
         </div>
       </div>
 

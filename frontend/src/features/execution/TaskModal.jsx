@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getTask, getTasks, updateTask, deleteTask, getTimeLogs, createTimeLog } from '../../services/api';
 import api from '../../services/api/client';
-import { toDateInputValue, formatCalendarLocale } from '../../utils/dateUtils';
+import { toDateInputValue, formatCalendarLocale, getBcp47Locale } from '../../utils/dateUtils';
 import Linkify from '../../components/shared/Linkify';
 import usePermissions from '../../hooks/usePermissions';
 import { useAuth } from '../../store/authStore';
+import { taskStatusLabel, taskPriorityLabel } from '../../i18n/enums';
 import { cn } from '../../lib/cn';
 
 const getInitials = (name) => {
@@ -22,6 +24,7 @@ const META_LABEL = 'text-[13px] text-muted';
 const SECTION_TITLE = 'mb-3 text-sm font-semibold text-fg';
 
 const TaskModal = ({ taskId, onClose }) => {
+  const { t } = useTranslation();
   const { canAssignTask, canDeleteTask, canLogTime, editableFields } = usePermissions();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -139,7 +142,8 @@ const TaskModal = ({ taskId, onClose }) => {
       setNewSubtaskTitle('');
       mutateSubtasks();
     } catch (err) {
-      alert('Error al crear subtarea: ' + ((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message));
+      const detail = (typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message;
+      alert(t('tasks.detail.subtasks.createError', { detail }));
     }
   };
 
@@ -149,7 +153,8 @@ const TaskModal = ({ taskId, onClose }) => {
       await api.patch(`/api/v1/tasks/${subtask.id}`, { status: newStatus });
       mutateSubtasks();
     } catch (err) {
-      alert('Error al actualizar subtarea: ' + ((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message));
+      const detail = (typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message;
+      alert(t('tasks.detail.subtasks.toggleError', { detail }));
     }
   };
 
@@ -169,7 +174,8 @@ const TaskModal = ({ taskId, onClose }) => {
       mutateLogs();
       mutate();
     } catch (err) {
-      alert('Error al registrar tiempo: ' + ((typeof err.detail === 'string' && err.detail) || err.message));
+      const detail = (typeof err.detail === 'string' && err.detail) || err.message;
+      alert(t('tasks.detail.timeLog.error', { detail }));
     }
   };
 
@@ -178,12 +184,12 @@ const TaskModal = ({ taskId, onClose }) => {
 
   const handleDelete = async () => {
     if (!canDeleteTask) return;
-    if (window.confirm('¿Seguro que quieres eliminar esta tarea de forma permanente?')) {
+    if (window.confirm(t('tasks.detail.deleteConfirm'))) {
       try {
         await deleteTask(taskId);
         handleClose();
       } catch {
-        alert('Error al eliminar la tarea');
+        alert(t('tasks.detail.deleteError'));
       }
     }
   };
@@ -204,7 +210,7 @@ const TaskModal = ({ taskId, onClose }) => {
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
       >
         {!task && !error ? (
-          <div className="p-6 text-muted">Cargando...</div>
+          <div className="p-6 text-muted">{t('tasks.detail.loading')}</div>
         ) : (
           <>
             {/* Header */}
@@ -217,7 +223,7 @@ const TaskModal = ({ taskId, onClose }) => {
                 onBlur={handleTitleBlur}
                 className="-ml-2 w-[calc(100%-32px)] rounded border border-transparent px-2 py-1 text-xl font-semibold text-fg outline-none transition-colors read-only:cursor-default focus:border-border focus:bg-canvas"
               />
-              <button onClick={handleClose} className="text-muted transition-colors hover:text-fg">
+              <button onClick={handleClose} className="text-muted transition-colors hover:text-fg" aria-label={t('common.actions.close')}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -229,7 +235,7 @@ const TaskModal = ({ taskId, onClose }) => {
             <div className="flex-1 overflow-y-auto p-6">
               {/* Metadata */}
               <div className="mb-8 grid grid-cols-[120px_1fr] items-center gap-4">
-                <span className={META_LABEL}>Estado</span>
+                <span className={META_LABEL}>{t('tasks.detail.status.label')}</span>
                 <select
                   disabled={!canEditField('status')}
                   value={task?.status}
@@ -242,12 +248,12 @@ const TaskModal = ({ taskId, onClose }) => {
                   }}
                   className={FIELD}
                 >
-                  <option value={task?.status}>{task?.status?.replace('_', ' ')}</option>
-                  <option value="in_progress">in progress</option>
-                  <option value="done">done</option>
+                  <option value={task?.status}>{taskStatusLabel(task?.status)}</option>
+                  <option value="in_progress">{taskStatusLabel('in_progress')}</option>
+                  <option value="done">{taskStatusLabel('done')}</option>
                 </select>
 
-                <span className={META_LABEL}>Prioridad</span>
+                <span className={META_LABEL}>{t('tasks.detail.priority.label')}</span>
                 <select
                   value={task?.priority || 'medium'}
                   onChange={async (e) => {
@@ -260,13 +266,12 @@ const TaskModal = ({ taskId, onClose }) => {
                   disabled={!canEditField('priority')}
                   className={FIELD}
                 >
-                  <option value="critical">Crítica</option>
-                  <option value="high">Alta</option>
-                  <option value="medium">Media</option>
-                  <option value="low">Baja</option>
+                  {['critical', 'high', 'medium', 'low'].map((p) => (
+                    <option key={p} value={p}>{taskPriorityLabel(p)}</option>
+                  ))}
                 </select>
 
-                <span className={META_LABEL}>Asignado</span>
+                <span className={META_LABEL}>{t('tasks.detail.assignee.label')}</span>
                 <select
                   value={task?.assignee_id || ''}
                   onChange={async (e) => {
@@ -279,13 +284,13 @@ const TaskModal = ({ taskId, onClose }) => {
                   disabled={!canAssignTask}
                   className={FIELD}
                 >
-                  <option value="">Sin asignar</option>
+                  <option value="">{t('tasks.detail.assignee.unassigned')}</option>
                   {members?.map((m) => (
                     <option key={m.id} value={m.id}>{getInitials(m.name)} {m.name} — {m.role}</option>
                   ))}
                 </select>
 
-                <span className={META_LABEL}>Objetivo</span>
+                <span className={META_LABEL}>{t('tasks.detail.objective.label')}</span>
                 <select
                   value={task?.objective_id || ''}
                   onChange={async (e) => {
@@ -298,11 +303,11 @@ const TaskModal = ({ taskId, onClose }) => {
                   disabled={!canEditField('objective_id')}
                   className={FIELD}
                 >
-                  <option value="">Sin objetivo</option>
+                  <option value="">{t('tasks.detail.objective.none')}</option>
                   {objectives?.map((o) => <option key={o.id} value={o.id}>{o.title}</option>)}
                 </select>
 
-                <span className={META_LABEL}>Vencimiento</span>
+                <span className={META_LABEL}>{t('tasks.detail.dueDate.label')}</span>
                 <input
                   type="date"
                   value={task?.due_date ? toDateInputValue(task.due_date) : ''}
@@ -317,7 +322,7 @@ const TaskModal = ({ taskId, onClose }) => {
                   className={FIELD}
                 />
 
-                <span className={META_LABEL}>Estimación (hs)</span>
+                <span className={META_LABEL}>{t('tasks.detail.estimatedHours.label')}</span>
                 <input
                   type="number"
                   step="0.5"
@@ -333,11 +338,11 @@ const TaskModal = ({ taskId, onClose }) => {
 
               {/* Descripción */}
               <div className="mb-8">
-                <h4 className={SECTION_TITLE}>Descripción</h4>
+                <h4 className={SECTION_TITLE}>{t('tasks.detail.description.title')}</h4>
 
                 {!canEditField('description') && (
                   <div className={cn('min-h-[120px] whitespace-pre-wrap break-words rounded-md border border-border bg-canvas p-3 text-sm', description ? 'text-fg' : 'text-faint')}>
-                    {description ? <Linkify text={description} /> : 'Sin descripción.'}
+                    {description ? <Linkify text={description} /> : t('tasks.detail.description.empty')}
                   </div>
                 )}
 
@@ -346,7 +351,7 @@ const TaskModal = ({ taskId, onClose }) => {
                     onClick={() => setEditingDesc(true)}
                     className={cn('min-h-[120px] cursor-pointer whitespace-pre-wrap break-words rounded-md border border-border bg-surface p-3 text-sm transition-colors hover:border-accent', description ? 'text-fg' : 'text-faint')}
                   >
-                    {description ? <Linkify text={description} /> : 'Añade una descripción más detallada...'}
+                    {description ? <Linkify text={description} /> : t('tasks.detail.description.placeholder')}
                   </div>
                 )}
 
@@ -355,7 +360,7 @@ const TaskModal = ({ taskId, onClose }) => {
                     autoFocus
                     value={description}
                     onChange={handleDescriptionChange}
-                    placeholder="Añade una descripción más detallada..."
+                    placeholder={t('tasks.detail.description.placeholder')}
                     onBlur={() => setEditingDesc(false)}
                     className="min-h-[120px] w-full resize-y rounded-md border border-accent bg-surface p-3 text-sm text-fg outline-none"
                   />
@@ -364,7 +369,7 @@ const TaskModal = ({ taskId, onClose }) => {
 
               {/* Subtareas */}
               <div className="mb-8">
-                <h4 className={SECTION_TITLE}>Subtareas</h4>
+                <h4 className={SECTION_TITLE}>{t('tasks.detail.subtasks.title')}</h4>
                 <div className="flex flex-col gap-2">
                   {subtasks?.map((st) => (
                     <div key={st.id} className="flex items-center gap-2">
@@ -386,10 +391,10 @@ const TaskModal = ({ taskId, onClose }) => {
                         type="text"
                         value={newSubtaskTitle}
                         onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                        placeholder="+ Añadir subtarea"
+                        placeholder={t('tasks.detail.subtasks.addPlaceholder')}
                         className="flex-1 rounded-md border border-dashed border-border bg-transparent px-3 py-2 text-[13px] text-fg outline-none placeholder:text-faint focus:border-accent"
                       />
-                      <button type="submit" className="hidden">Crear</button>
+                      <button type="submit" className="hidden">{t('tasks.detail.subtasks.create')}</button>
                     </form>
                   )}
                 </div>
@@ -397,26 +402,34 @@ const TaskModal = ({ taskId, onClose }) => {
 
               {/* Historial de actividades */}
               <div className="mb-8">
-                <h4 className={SECTION_TITLE}>Historial de Actividades</h4>
+                <h4 className={SECTION_TITLE}>{t('tasks.detail.activity.title')}</h4>
                 <div className="flex flex-col gap-2">
                   {activities && activities.length > 0 ? (
                     activities.map((act) => (
                       <div key={act.id} className="flex items-start gap-2 text-xs">
                         <div className="whitespace-nowrap text-muted">
-                          {new Date(act.created_at).toLocaleDateString()} {new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(act.created_at).toLocaleDateString(getBcp47Locale())} {new Date(act.created_at).toLocaleTimeString(getBcp47Locale(), { hour: '2-digit', minute: '2-digit' })}
                         </div>
                         <div className="text-fg">
                           <strong className="text-fg">{act.user_name || `U${act.user_id}`}</strong>{' '}
                           {act.from_status ? (
-                            <>movió la tarea de <strong className="text-accent">{act.from_status.replace('_', ' ')}</strong> a <strong className="text-accent">{act.to_status.replace('_', ' ')}</strong></>
+                            <Trans
+                              i18nKey="tasks.detail.activity.moved"
+                              values={{ from: taskStatusLabel(act.from_status), to: taskStatusLabel(act.to_status) }}
+                              components={{ fromTag: <strong className="text-accent" />, toTag: <strong className="text-accent" /> }}
+                            />
                           ) : (
-                            <>creó la tarea en <strong className="text-accent">{act.to_status.replace('_', ' ')}</strong></>
+                            <Trans
+                              i18nKey="tasks.detail.activity.created"
+                              values={{ to: taskStatusLabel(act.to_status) }}
+                              components={{ toTag: <strong className="text-accent" /> }}
+                            />
                           )}
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="text-xs text-faint">No hay actividades registradas.</div>
+                    <div className="text-xs text-faint">{t('tasks.detail.activity.empty')}</div>
                   )}
                 </div>
               </div>
@@ -424,20 +437,20 @@ const TaskModal = ({ taskId, onClose }) => {
               {/* Registro de tiempo */}
               {canLogTime && (
                 <div>
-                  <h4 className={SECTION_TITLE}>Registro de Tiempo</h4>
+                  <h4 className={SECTION_TITLE}>{t('tasks.detail.timeLog.title')}</h4>
                   <div className="mb-4 flex gap-2">
                     <input
                       type="number"
                       step="0.5"
                       min="0"
-                      placeholder="Horas"
+                      placeholder={t('tasks.detail.timeLog.hoursPlaceholder')}
                       value={newLogHours}
                       onChange={(e) => setNewLogHours(e.target.value)}
                       className={cn(FIELD, 'w-20 py-2')}
                     />
                     <input
                       type="text"
-                      placeholder="¿En qué trabajaste?"
+                      placeholder={t('tasks.detail.timeLog.descPlaceholder')}
                       value={newLogDesc}
                       onChange={(e) => setNewLogDesc(e.target.value)}
                       className={cn(FIELD, 'flex-1 py-2')}
@@ -447,7 +460,7 @@ const TaskModal = ({ taskId, onClose }) => {
                       disabled={!newLogHours}
                       className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-accent-fg transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Registrar
+                      {t('tasks.detail.timeLog.submit')}
                     </button>
                   </div>
 
@@ -464,7 +477,7 @@ const TaskModal = ({ taskId, onClose }) => {
                       ))}
                     </div>
                   ) : (
-                    <span className="text-xs text-faint">No hay registros de tiempo aún.</span>
+                    <span className="text-xs text-faint">{t('tasks.detail.timeLog.empty')}</span>
                   )}
                 </div>
               )}
@@ -477,7 +490,7 @@ const TaskModal = ({ taskId, onClose }) => {
                   onClick={handleDelete}
                   className="rounded-md border border-status-blocked/40 bg-status-blocked/10 px-4 py-2 text-[13px] font-medium text-status-blocked transition-colors hover:bg-status-blocked/20"
                 >
-                  Eliminar tarea
+                  {t('tasks.detail.delete')}
                 </button>
               </div>
             )}

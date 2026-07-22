@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import TaskCard from '../../components/kanban/TaskCard';
 import usePermissions from '../../hooks/usePermissions';
@@ -15,6 +16,7 @@ const COL_COLORS = {
 };
 
 const KanbanColumn = ({ columnId, title, tasks = [], wipCount, wipLimit, onTaskClick, onAddTask, bottleneck }) => {
+  const { t } = useTranslation();
   const { canMoveTask, canCreateTask } = usePermissions();
   const isWipExceeded = columnId === 'in_progress' && wipCount >= wipLimit;
   const isBottleneck = bottleneck?.is_bottleneck;
@@ -39,7 +41,7 @@ const KanbanColumn = ({ columnId, title, tasks = [], wipCount, wipLimit, onTaskC
                 <button
                   onClick={() => onAddTask(columnId)}
                   className="flex h-5 w-5 items-center justify-center rounded bg-accent-soft text-base leading-none text-accent transition-colors hover:bg-accent hover:text-accent-fg"
-                  title={`Añadir a ${title}`}
+                  title={t('execution.kanban.addToColumn', { column: title })}
                 >
                   +
                 </button>
@@ -68,11 +70,11 @@ const KanbanColumn = ({ columnId, title, tasks = [], wipCount, wipLimit, onTaskC
         {isBottleneck && (
           <div
             data-testid="bottleneck-badge"
-            title={`Avg ${bottleneck.avg_hours}h en esta columna (umbral: ${bottleneck.threshold_h}h)`}
+            title={t('execution.kanban.bottleneckTooltip', { avg: bottleneck.avg_hours, threshold: bottleneck.threshold_h })}
             className="inline-flex cursor-help items-center gap-1 self-start rounded-[10px] border border-priority-high/30 bg-priority-high/15 px-1.5 py-0.5 text-[10px] font-medium text-priority-high"
           >
-            <span className="text-xs">⚠</span>
-            Aging {Math.round(bottleneck.avg_hours)}h
+            <span className="text-xs" aria-hidden="true">⚠</span>
+            {t('execution.kanban.agingBadge', { hours: Math.round(bottleneck.avg_hours) })}
           </div>
         )}
       </div>

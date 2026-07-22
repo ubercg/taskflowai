@@ -336,6 +336,149 @@
       "completionValue": "{{rate}}%"
     }
   },
+  "execution": {
+    "board": {
+      "loadingTitle": "Loading...",
+      "hideSummary": "Hide summary",
+      "showSummary": "Daily summary",
+      "views": {
+        "list": "List",
+        "kanban": "Kanban",
+        "calendar": "Calendar"
+      },
+      "metricsLink": "Metrics",
+      "newTask": "+ New Task"
+    },
+    "kanban": {
+      "loading": "Loading Kanban Board...",
+      "loadError": "Error loading tasks",
+      "moveError": "Internal error moving the task",
+      "addToColumn": "Add to {{column}}",
+      "agingBadge": "Aging {{hours}}h",
+      "bottleneckTooltip": "Avg {{avg}}h in this column (threshold: {{threshold}}h)"
+    },
+    "wip": {
+      "title": "WIP limit reached",
+      "detail": "Maximum {{limit}} tasks in progress (current: {{current}})"
+    },
+    "list": {
+      "loading": "Loading task list...",
+      "loadError": "Error loading tasks.",
+      "filters": {
+        "anyAssignee": "Any assignee",
+        "unassigned": "Unassigned",
+        "anyObjective": "Any OKR"
+      },
+      "noObjective": "No OKR",
+      "unassignedOption": "— Unassigned",
+      "hoursProgress": "{{logged}}h / {{estimated}}h",
+      "selectedCount_one": "{{count}} task selected",
+      "selectedCount_other": "{{count}} tasks selected",
+      "massAssignPlaceholder": "Assign to…",
+      "unassignAction": "Unassign",
+      "massPriorityPlaceholder": "Change priority…",
+      "apply": "Apply",
+      "updating": "Updating...",
+      "massUpdateError": "Bulk update error: {{detail}}",
+      "assignError": "Failed to assign task",
+      "wipLimitReached": "WIP limit reached: {{current}}/{{limit}}",
+      "statusChangeError": "Error changing status"
+    }
+  },
+  "tasks": {
+    "form": {
+      "createTitle": "New Task",
+      "title": {
+        "placeholder": "Task title..."
+      },
+      "assignee": {
+        "label": "Assigned to",
+        "unassigned": "Unassigned"
+      },
+      "objective": {
+        "label": "Objective (OKR)",
+        "none": "No objective"
+      },
+      "priority": {
+        "label": "Priority"
+      },
+      "dueDate": {
+        "label": "Due date"
+      },
+      "estimatedHours": {
+        "label": "Estimate (hrs)"
+      },
+      "addDescription": "+ Add detailed description",
+      "description": {
+        "label": "Description",
+        "placeholder": "Context or requirements for the task..."
+      },
+      "wipWarning": "This user has already reached the work-in-progress task limit (WIP full).",
+      "creating": "Creating...",
+      "create": "Create Task",
+      "errors": {
+        "titleRequired": "Title is required",
+        "create": "Failed to create the task"
+      }
+    },
+    "detail": {
+      "loading": "Loading...",
+      "status": {
+        "label": "Status"
+      },
+      "priority": {
+        "label": "Priority"
+      },
+      "assignee": {
+        "label": "Assignee",
+        "unassigned": "Unassigned"
+      },
+      "objective": {
+        "label": "Objective",
+        "none": "No objective"
+      },
+      "dueDate": {
+        "label": "Due date"
+      },
+      "estimatedHours": {
+        "label": "Estimate (hrs)"
+      },
+      "description": {
+        "title": "Description",
+        "empty": "No description.",
+        "placeholder": "Add a more detailed description..."
+      },
+      "subtasks": {
+        "title": "Subtasks",
+        "addPlaceholder": "+ Add subtask",
+        "create": "Create",
+        "createError": "Failed to create subtask: {{detail}}",
+        "toggleError": "Failed to update subtask: {{detail}}"
+      },
+      "activity": {
+        "title": "Activity History",
+        "moved": "moved the task from <fromTag>{{from}}</fromTag> to <toTag>{{to}}</toTag>",
+        "created": "created the task in <toTag>{{to}}</toTag>",
+        "empty": "No activity recorded yet."
+      },
+      "timeLog": {
+        "title": "Time Log",
+        "hoursPlaceholder": "Hours",
+        "descPlaceholder": "What did you work on?",
+        "submit": "Log",
+        "empty": "No time logs yet.",
+        "error": "Failed to log time: {{detail}}"
+      },
+      "delete": "Delete task",
+      "deleteConfirm": "Are you sure you want to permanently delete this task?",
+      "deleteError": "Failed to delete the task"
+    },
+    "card": {
+      "okr": "OKR #{{id}}",
+      "hours": "{{logged}}h / {{estimated}}h",
+      "hoursLoggedOnly": "{{logged}}h logged"
+    }
+  },
   "enums": {
     "task": {
       "status": {

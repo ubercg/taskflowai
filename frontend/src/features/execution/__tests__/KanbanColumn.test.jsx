@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import KanbanColumn from '../KanbanColumn'
 import { DragDropContext } from '@hello-pangea/dnd'
+import i18n from '../../../i18n'
 
 const renderWithDnd = (ui) => {
   return render(
@@ -36,7 +37,7 @@ describe('KanbanColumn', () => {
   test('muestra badge de bottleneck cuando is_bottleneck es true', () => {
     const bottleneck = { is_bottleneck: true, avg_hours: 50 }
     renderWithDnd(<KanbanColumn columnId="in_progress" title="In Progress" tasks={[]} bottleneck={bottleneck} />)
-    expect(screen.getByText(/Aging 50h/i)).toBeInTheDocument()
+    expect(screen.getByText(i18n.t('execution.kanban.agingBadge', { hours: 50 }))).toBeInTheDocument()
   })
 
   test('no muestra badge bottleneck cuando is_bottleneck es false', () => {

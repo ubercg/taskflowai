@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getProject } from '../services/api';
 import KanbanBoard from '../features/execution/KanbanBoard';
@@ -28,6 +29,7 @@ const ViewTab = ({ active, children, ...props }) => (
 );
 
 const BoardPage = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [viewMode, setViewMode] = useState('list'); // 'kanban' | 'list' | 'calendar'
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -44,7 +46,7 @@ const BoardPage = () => {
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-semibold tracking-tight text-fg">
-            {isLoading ? 'Cargando...' : project?.name}
+            {isLoading ? t('execution.board.loadingTitle') : project?.name}
           </h1>
 
           <Can permission={canViewMetrics}>
@@ -55,27 +57,27 @@ const BoardPage = () => {
                 showSummary ? 'bg-raised text-fg' : 'bg-surface text-muted hover:text-fg',
               )}
             >
-              🤖 {showSummary ? 'Ocultar resumen' : 'Resumen del día'}
+              <span aria-hidden="true">🤖</span> {showSummary ? t('execution.board.hideSummary') : t('execution.board.showSummary')}
             </button>
           </Can>
 
           {/* Switcher de vistas */}
           <div className="flex rounded-lg bg-raised p-1">
-            <ViewTab active={viewMode === 'list'} onClick={() => setViewMode('list')}>Lista</ViewTab>
-            <ViewTab active={viewMode === 'kanban'} onClick={() => setViewMode('kanban')}>Kanban</ViewTab>
-            <ViewTab active={viewMode === 'calendar'} onClick={() => setViewMode('calendar')}>Calendario</ViewTab>
+            <ViewTab active={viewMode === 'list'} onClick={() => setViewMode('list')}>{t('execution.board.views.list')}</ViewTab>
+            <ViewTab active={viewMode === 'kanban'} onClick={() => setViewMode('kanban')}>{t('execution.board.views.kanban')}</ViewTab>
+            <ViewTab active={viewMode === 'calendar'} onClick={() => setViewMode('calendar')}>{t('execution.board.views.calendar')}</ViewTab>
             <Link
               to={`/projects/${id}/metrics`}
               className="rounded-md px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg"
             >
-              Métricas
+              {t('execution.board.metricsLink')}
             </Link>
           </div>
         </div>
 
         <Can permission={canCreateTask}>
           <Button onClick={() => { setTaskFormStatus('backlog'); setShowTaskForm(true); }} size="sm">
-            + Nueva Tarea
+            {t('execution.board.newTask')}
           </Button>
         </Can>
       </div>

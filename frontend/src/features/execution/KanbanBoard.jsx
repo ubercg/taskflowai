@@ -1,16 +1,19 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DragDropContext } from '@hello-pangea/dnd';
 import useSWR from 'swr';
 import { getTasks, moveTask, getBottlenecks } from '../../services/api';
 import api from '../../services/api/client';
 import { useKanbanStore } from '../../store/kanbanStore';
 import { useAuth } from '../../store/authStore';
+import { taskStatusLabel } from '../../i18n/enums';
 import KanbanColumn from './KanbanColumn';
 import WipToast from './WipToast';
 
 const WIP_LIMIT = 3;
 
 const KanbanBoard = ({ projectId, onTaskClick, onAddTask }) => {
+  const { t } = useTranslation();
   const { data, error, isLoading } = useSWR(`/api/v1/tasks?project_id=${projectId}`, () => getTasks({ project_id: projectId }));
   
   const { data: bottlenecksData } = useSWR(
@@ -101,24 +104,24 @@ const KanbanBoard = ({ projectId, onTaskClick, onAddTask }) => {
         window.dispatchEvent(event);
       } else {
         console.error("Error moviendo tarea:", err);
-        alert(typeof err.detail === 'string' ? err.detail : "Error interno al mover la tarea");
+        alert(typeof err.detail === 'string' ? err.detail : t('execution.kanban.moveError'));
       }
     }
   };
 
-  if (isLoading || isInitializing) return <div className="text-muted">Cargando Tablero Kanban...</div>;
-  if (error) return <div className="text-status-blocked">Error cargando tareas</div>;
+  if (isLoading || isInitializing) return <div className="text-muted">{t('execution.kanban.loading')}</div>;
+  if (error) return <div className="text-status-blocked">{t('execution.kanban.loadError')}</div>;
 
   return (
     <div className="flex h-full items-stretch gap-6 overflow-x-auto pb-4">
       <WipToast />
       <DragDropContext onDragEnd={onDragEnd}>
-        <KanbanColumn columnId="backlog" title="Backlog" tasks={columns.backlog} onTaskClick={onTaskClick} onAddTask={onAddTask} bottleneck={bottlenecks['backlog']} />
-        <KanbanColumn columnId="todo" title="To Do" tasks={columns.todo} onTaskClick={onTaskClick} onAddTask={onAddTask} bottleneck={bottlenecks['todo']} />
-        <KanbanColumn columnId="in_progress" title="In Progress" tasks={columns.in_progress} wipCount={wipCount} wipLimit={WIP_LIMIT} onTaskClick={onTaskClick} bottleneck={bottlenecks['in_progress']} />
-        <KanbanColumn columnId="review" title="Review" tasks={columns.review} onTaskClick={onTaskClick} bottleneck={bottlenecks['review']} />
-        <KanbanColumn columnId="blocked" title="Blocked" tasks={columns.blocked} onTaskClick={onTaskClick} bottleneck={bottlenecks['blocked']} />
-        <KanbanColumn columnId="done" title="Done" tasks={columns.done} onTaskClick={onTaskClick} bottleneck={bottlenecks['done']} />
+        <KanbanColumn columnId="backlog" title={taskStatusLabel('backlog')} tasks={columns.backlog} onTaskClick={onTaskClick} onAddTask={onAddTask} bottleneck={bottlenecks['backlog']} />
+        <KanbanColumn columnId="todo" title={taskStatusLabel('todo')} tasks={columns.todo} onTaskClick={onTaskClick} onAddTask={onAddTask} bottleneck={bottlenecks['todo']} />
+        <KanbanColumn columnId="in_progress" title={taskStatusLabel('in_progress')} tasks={columns.in_progress} wipCount={wipCount} wipLimit={WIP_LIMIT} onTaskClick={onTaskClick} bottleneck={bottlenecks['in_progress']} />
+        <KanbanColumn columnId="review" title={taskStatusLabel('review')} tasks={columns.review} onTaskClick={onTaskClick} bottleneck={bottlenecks['review']} />
+        <KanbanColumn columnId="blocked" title={taskStatusLabel('blocked')} tasks={columns.blocked} onTaskClick={onTaskClick} bottleneck={bottlenecks['blocked']} />
+        <KanbanColumn columnId="done" title={taskStatusLabel('done')} tasks={columns.done} onTaskClick={onTaskClick} bottleneck={bottlenecks['done']} />
       </DragDropContext>
     </div>
   );
