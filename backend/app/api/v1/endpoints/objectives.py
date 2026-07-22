@@ -9,6 +9,7 @@ from app.core.security import (
     require_authenticated,
     require_manager_or_above,
     check_project_access,
+    accessible_project_ids,
 )
 
 router = APIRouter()
@@ -48,14 +49,25 @@ def read_objectives(
 ):
     if project_id:
         check_project_access(project_id, current_user, db)
+        where = "o.project_id = :project_id"
+        params = {"project_id": project_id}
+    else:
+        accessible = accessible_project_ids(db, current_user)
+        if accessible is not None:
+            if not accessible:
+                return []
+            where = "o.project_id = ANY(:project_ids)"
+            params = {"project_ids": accessible}
+        else:
+            where = "TRUE"
+            params = {}
+
     rows = db.execute(
         text(
-            _PROGRESS_SELECT.format(
-                where="(:project_id IS NULL OR o.project_id = :project_id)"
-            )
+            _PROGRESS_SELECT.format(where=where)
             + " ORDER BY o.created_at DESC"
         ),
-        {"project_id": project_id},
+        params,
     ).mappings().all()
     return [ObjectiveResponse(**r) for r in rows]
 

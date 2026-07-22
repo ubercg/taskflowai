@@ -10,6 +10,7 @@ from app.core.security import (
     require_authenticated,
     require_manager_or_above,
     check_project_access,
+    accessible_project_ids,
 )
 
 router = APIRouter()
@@ -33,6 +34,13 @@ def read_tasks(
     elif project_id:
         check_project_access(project_id, current_user, db)
         query = query.filter(Task.project_id == project_id)
+    else:
+        # No project_id — same rule as read_projects: membership filter (admin unrestricted)
+        accessible = accessible_project_ids(db, current_user)
+        if accessible is not None:
+            if not accessible:
+                return []
+            query = query.filter(Task.project_id.in_(accessible))
 
     # Mis Tareas (y filtros admin): ?assignee_id= — antes se ignoraba y los números no coincidían con la lista
     if assignee_id is not None:
