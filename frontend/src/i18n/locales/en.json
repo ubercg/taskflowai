@@ -566,6 +566,48 @@
       "metricsTitle": "Project Metrics"
     }
   },
+  "myTasks": {
+    "greeting": "Hi, {{name}} 👋",
+    "userFallback": "User",
+    "loading": "Loading your tasks...",
+    "kpi": {
+      "doneToday": "Completed today",
+      "hoursWeek": "Hours this week"
+    },
+    "assignedCount_one": "{{count}} assigned task",
+    "assignedCount_other": "{{count}} assigned tasks",
+    "emptyAssigned": "You have no assigned tasks.",
+    "tabs": {
+      "status": "By Status",
+      "project": "By Project",
+      "priority": "By Priority"
+    },
+    "empty": {
+      "title": "You have no assigned tasks",
+      "body": "Your inbox is clear. Enjoy your day or find something to work on.",
+      "cta": "View all projects"
+    },
+    "emptyStatus": "No tasks in this status",
+    "register": "⏱ Log time",
+    "loggedHours": "{{hours}}h",
+    "estimatedHours": "/ {{hours}}h est.",
+    "projectFallback": "Project {{id}}",
+    "groupCount": "({{count}})",
+    "hoursLogged": "✓ {{hours}}h logged on the task",
+    "timeLog": {
+      "title": "Log time on:",
+      "hours": "Hours",
+      "date": "Date",
+      "description": "Description",
+      "descPlaceholder": "Activity performed...",
+      "overEstimate": "You will exceed the estimated hours ({{estimated}}h)",
+      "today": "Today:",
+      "total": "Total:",
+      "totalWithEst": "{{logged}}h / {{estimated}}h est.",
+      "hoursInvalid": "Hours must be greater than 0 and at most 16",
+      "submitting": "..."
+    }
+  },
   "enums": {
     "task": {
       "status": {

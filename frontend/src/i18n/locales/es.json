@@ -566,6 +566,48 @@
       "metricsTitle": "Métricas del Proyecto"
     }
   },
+  "myTasks": {
+    "greeting": "Hola, {{name}} 👋",
+    "userFallback": "Usuario",
+    "loading": "Cargando tus tareas...",
+    "kpi": {
+      "doneToday": "Completadas hoy",
+      "hoursWeek": "Horas esta semana"
+    },
+    "assignedCount_one": "{{count}} tarea asignada",
+    "assignedCount_other": "{{count}} tareas asignadas",
+    "emptyAssigned": "No tienes tareas asignadas.",
+    "tabs": {
+      "status": "Por Estado",
+      "project": "Por Proyecto",
+      "priority": "Por Prioridad"
+    },
+    "empty": {
+      "title": "No tienes tareas asignadas",
+      "body": "Tu bandeja está limpia. Disfruta tu día o busca algo en qué trabajar.",
+      "cta": "Ver todos los proyectos"
+    },
+    "emptyStatus": "No hay tareas en este estado",
+    "register": "⏱ Registrar",
+    "loggedHours": "{{hours}}h",
+    "estimatedHours": "/ {{hours}}h est.",
+    "projectFallback": "Proyecto {{id}}",
+    "groupCount": "({{count}})",
+    "hoursLogged": "✓ {{hours}}h registradas en la tarea",
+    "timeLog": {
+      "title": "Registrar tiempo en:",
+      "hours": "Horas",
+      "date": "Fecha",
+      "description": "Descripción",
+      "descPlaceholder": "Actividad realizada...",
+      "overEstimate": "Superarás las horas estimadas ({{estimated}}h)",
+      "today": "Hoy:",
+      "total": "Total:",
+      "totalWithEst": "{{logged}}h / {{estimated}}h est.",
+      "hoursInvalid": "Las horas deben ser mayores a 0 y máximo 16",
+      "submitting": "..."
+    }
+  },
   "enums": {
     "task": {
       "status": {

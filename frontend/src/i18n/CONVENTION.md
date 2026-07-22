@@ -18,6 +18,7 @@ Catálogos: `frontend/src/i18n/locales/{es,en}.json`.
 | `tasks.*` | Formulario y detalle de tarea: `TaskFormModal` (`tasks.form.*`), `TaskModal` (`tasks.detail.*`), `TaskCard` (`tasks.card.*`) |
 | `metrics.*` | Dashboard de métricas: `MetricsPage`, `MetricsDashboard` (KPIs), `DailySummary`, charts de `features/analytics/charts/*` |
 | `calendar.*` | Calendario del proyecto: `CalendarView`, `CalendarDaySidebar`, bloque de métricas del PDF (`CalendarPdfReport`) |
+| `myTasks.*` | Pantalla Mis Tareas (`MyTasksPage`) y el widget de registro de tiempo (`TimeLogWidget`); reusa `nav.myTasks`, `tasks.card.okr`, `tasks.detail.timeLog.submit`/`error` y `common.actions.cancel` |
 | `enums.*` | Etiquetas de enums (vía `i18n/enums.js`) |
 | `language.*` | Nombres de idiomas en el selector |
 | `errors.*` | Reservado para TSK-021 (`errors.{CODE}`) |
