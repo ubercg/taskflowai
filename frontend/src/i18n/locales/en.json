@@ -80,6 +80,109 @@
       "error": "Failed to update password"
     }
   },
+  "projects": {
+    "title": "Projects",
+    "subtitle": "Manage your portfolios and see strategic progress.",
+    "newProject": "New Project",
+    "loadError": {
+      "title": "Failed to load projects",
+      "fallback": "Could not connect to the server. Check that the backend is up."
+    },
+    "card": {
+      "defaultDescription": "Strategic task management and execution. Focused on reducing Cycle Time and improving delivery.",
+      "ownerAvatarAlt": "Owner avatar",
+      "actionsAria": "Project actions",
+      "edit": "Edit project",
+      "archive": "Archive",
+      "progress": "Progress",
+      "tasksCount_one": "{{count}} Task",
+      "tasksCount_other": "{{count}} Tasks",
+      "inProgressCount_one": "{{count}} In progress",
+      "inProgressCount_other": "{{count}} In progress",
+      "blockedCount_one": "{{count}} Blocked",
+      "blockedCount_other": "{{count}} Blocked",
+      "viewDetail": "View details",
+      "viewBoard": "View Kanban →"
+    },
+    "form": {
+      "createTitle": "New Project",
+      "editTitle": "Edit Project",
+      "preview": "Preview",
+      "namePlaceholderPreview": "Project name",
+      "name": {
+        "label": "Name *",
+        "placeholder": "E.g.: Launch V2"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Describe the overall goal..."
+      },
+      "icon": {
+        "label": "Icon"
+      },
+      "color": {
+        "label": "Color"
+      },
+      "startDate": {
+        "label": "Start date"
+      },
+      "endDate": {
+        "label": "Estimated end date"
+      },
+      "status": {
+        "label": "Status"
+      },
+      "create": "Create Project",
+      "saveChanges": "Save Changes",
+      "saving": "Saving...",
+      "errors": {
+        "nameRequired": "Name is required",
+        "endBeforeStart": "End date must be after start date",
+        "save": "Failed to save the project"
+      }
+    },
+    "detail": {
+      "loading": "Loading project...",
+      "createdOn": "Created on {{date}}",
+      "noDescription": "No description provided for this project.",
+      "editProject": "Edit Project",
+      "goToBoard": "Go to Kanban →",
+      "team": "Team",
+      "manageTeam": "+ Manage",
+      "noMembers": "No members assigned.",
+      "quickSummary": "Quick Summary",
+      "stats": {
+        "total": "Total",
+        "done": "Done",
+        "wip": "WIP",
+        "blocked": "Blocked"
+      }
+    },
+    "objectives": {
+      "title": "Objectives (OKRs)",
+      "new": "+ New Objective",
+      "empty": "No strategic objectives defined yet.",
+      "due": "Due",
+      "edit": "Edit objective"
+    },
+    "members": {
+      "title": "Project Team",
+      "current": "Current Members ({{count}})",
+      "owner": "Owner",
+      "remove": "Remove member",
+      "removeConfirm": "Are you sure you want to remove {{name}} from the project?",
+      "addSection": "Add Member",
+      "searchPlaceholder": "Search by name or email...",
+      "searching": "Searching...",
+      "noAvailable": "No users available.",
+      "add": "+ Add",
+      "errors": {
+        "add": "Failed to add member",
+        "role": "Failed to change role",
+        "remove": "Failed to remove member"
+      }
+    }
+  },
   "users": {
     "title": "Users",
     "subtitle": "Team management and capacity analysis (WIP).",

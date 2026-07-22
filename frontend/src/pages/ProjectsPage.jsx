@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getProjects, getProjectMetrics } from '../services/api';
 import ProjectCard from '../components/projects/ProjectCard';
@@ -26,6 +27,7 @@ const SkeletonCard = () => (
 );
 
 const ProjectsPage = () => {
+  const { t } = useTranslation();
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const { canCreateProject } = usePermissions();
@@ -41,11 +43,10 @@ const ProjectsPage = () => {
 
   return (
     <div className="mx-auto max-w-[1200px] px-4">
-      {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-fg">Proyectos</h1>
-          <p className="mt-1 text-[15px] text-muted">Gestiona tus portafolios y visualiza el progreso estratégico.</p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-fg">{t('projects.title')}</h1>
+          <p className="mt-1 text-[15px] text-muted">{t('projects.subtitle')}</p>
         </div>
 
         <Can permission={canCreateProject}>
@@ -54,12 +55,11 @@ const ProjectsPage = () => {
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            Nuevo Proyecto
+            {t('projects.newProject')}
           </Button>
         </Can>
       </div>
 
-      {/* Error */}
       {hasError && (
         <div className="mb-6 flex items-center gap-3 rounded-lg border border-status-blocked/40 bg-status-blocked/10 p-4 text-status-blocked">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -68,13 +68,12 @@ const ProjectsPage = () => {
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
           </svg>
           <div>
-            <h4 className="font-semibold">Error al cargar proyectos</h4>
-            <p className="mt-1 text-sm">{projectsError?.detail || 'No se pudo conectar con el servidor. Verifica que el backend esté arriba.'}</p>
+            <h4 className="font-semibold">{t('projects.loadError.title')}</h4>
+            <p className="mt-1 text-sm">{projectsError?.detail || t('projects.loadError.fallback')}</p>
           </div>
         </div>
       )}
 
-      {/* Grid */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(380px,1fr))] gap-6">
         {isLoading ? (
           <>
@@ -108,7 +107,6 @@ const ProjectsPage = () => {
         )}
       </div>
 
-      {/* Modal */}
       {showForm && (
         <ProjectFormModal
           project={editingProject}

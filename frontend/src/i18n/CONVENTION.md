@@ -12,6 +12,7 @@ Catálogos: `frontend/src/i18n/locales/{es,en}.json`.
 | `auth.*` | Login, sesión, unauthorized |
 | `profile.*` | Pantalla de perfil |
 | `users.*` | Listado, admin, formularios y drawer de tareas de usuario |
+| `projects.*` | Listado, detalle, tarjeta, formulario y panel de miembros |
 | `enums.*` | Etiquetas de enums (vía `i18n/enums.js`) |
 | `language.*` | Nombres de idiomas en el selector |
 | `errors.*` | Reservado para TSK-021 (`errors.{CODE}`) |
