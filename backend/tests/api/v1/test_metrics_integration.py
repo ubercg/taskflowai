@@ -23,7 +23,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.db.database import get_db
-from app.core.security import require_authenticated
+from app.core.security import require_authenticated, require_manager_or_above
 from app.models.models import UserRole
 
 
@@ -88,6 +88,7 @@ def pg_client():
 
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[require_authenticated] = override_auth
+    app.dependency_overrides[require_manager_or_above] = override_auth
 
     with TestClient(app) as tc:
         yield tc
