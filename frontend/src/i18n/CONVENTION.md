@@ -14,6 +14,8 @@ Catálogos: `frontend/src/i18n/locales/{es,en}.json`.
 | `users.*` | Listado, admin, formularios y drawer de tareas de usuario |
 | `projects.*` | Listado, detalle, tarjeta, formulario y panel de miembros |
 | `objectives.*` | Formulario OKR, panel de tareas del objetivo y chart de progreso |
+| `execution.*` | Tablero Kanban: `BoardPage` (header/tabs), `KanbanBoard`/`KanbanColumn` (columnas, WIP, bottleneck), `WipToast`, `TaskListView` |
+| `tasks.*` | Formulario y detalle de tarea: `TaskFormModal` (`tasks.form.*`), `TaskModal` (`tasks.detail.*`), `TaskCard` (`tasks.card.*`) |
 | `enums.*` | Etiquetas de enums (vía `i18n/enums.js`) |
 | `language.*` | Nombres de idiomas en el selector |
 | `errors.*` | Reservado para TSK-021 (`errors.{CODE}`) |

@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getTasks, updateTask, moveTask } from '../../services/api';
 import api from '../../services/api/client';
 import usePermissions from '../../hooks/usePermissions';
+import { taskStatusLabel, taskPriorityLabel } from '../../i18n/enums';
 import { Select, Button } from '../../components/ui';
 import { cn } from '../../lib/cn';
 
@@ -23,6 +25,7 @@ const getInitials = (name) => {
 };
 
 const TaskListView = ({ projectId, onOpen }) => {
+  const { t } = useTranslation();
   const { canAssignTask, editableFields } = usePermissions();
   const [filterAssignee, setFilterAssignee] = useState('all');
   const [filterPriority, setFilterPriority] = useState([]);
@@ -78,7 +81,8 @@ const TaskListView = ({ projectId, onOpen }) => {
       setMassAssigneeId('');
       setMassPriority('');
     } catch (err) {
-      alert('Error en actualización masiva: ' + ((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message));
+      const detail = (typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message;
+      alert(t('execution.list.massUpdateError', { detail }));
     } finally {
       setIsMassUpdating(false);
     }
@@ -92,9 +96,9 @@ const TaskListView = ({ projectId, onOpen }) => {
       if (err.code === 'WIP_LIMIT_EXCEEDED') {
         const current = err.meta?.current_wip ?? '?';
         const limit = err.meta?.limit ?? 3;
-        alert(`WIP Limit alcanzado: ${current}/${limit}`);
+        alert(t('execution.list.wipLimitReached', { current, limit }));
       } else {
-        alert(typeof err.detail === 'string' ? err.detail : 'Error cambiando estado');
+        alert(typeof err.detail === 'string' ? err.detail : t('execution.list.statusChangeError'));
       }
       mutate();
     }
@@ -107,7 +111,7 @@ const TaskListView = ({ projectId, onOpen }) => {
       await updateTask(task.id, { assignee_id: assigneeId });
       mutate();
     } catch (err) {
-      alert('Error al asignar tarea');
+      alert(t('execution.list.assignError'));
       mutate();
     }
   };
@@ -138,8 +142,8 @@ const TaskListView = ({ projectId, onOpen }) => {
     }, {});
   }, [filteredTasks]);
 
-  if (isLoading) return <div className="text-muted">Cargando lista de tareas...</div>;
-  if (error) return <div className="text-status-blocked">Error cargando tareas.</div>;
+  if (isLoading) return <div className="text-muted">{t('execution.list.loading')}</div>;
+  if (error) return <div className="text-status-blocked">{t('execution.list.loadError')}</div>;
 
   const STATUS_ORDER = ['in_progress', 'blocked', 'review', 'todo', 'backlog', 'done'];
   const filterSelect = 'rounded-md border border-border bg-canvas px-3 py-1.5 text-[13px] text-fg outline-none focus:border-accent';
@@ -149,14 +153,14 @@ const TaskListView = ({ projectId, onOpen }) => {
       {/* Filtros */}
       <div className="flex items-center gap-4 border-b border-border bg-canvas p-4">
         <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)} className={filterSelect}>
-          <option value="all">Cualquier Asignado</option>
-          <option value="unassigned">Sin asignar</option>
+          <option value="all">{t('execution.list.filters.anyAssignee')}</option>
+          <option value="unassigned">{t('execution.list.filters.unassigned')}</option>
           {members?.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
         </select>
 
         <select value={filterObjective} onChange={(e) => setFilterObjective(e.target.value)} className={filterSelect}>
-          <option value="all">Cualquier OKR</option>
-          <option value="none">Sin OKR</option>
+          <option value="all">{t('execution.list.filters.anyObjective')}</option>
+          <option value="none">{t('execution.list.noObjective')}</option>
           {objectives?.map((o) => <option key={o.id} value={o.id}>{o.title}</option>)}
         </select>
 
@@ -172,7 +176,7 @@ const TaskListView = ({ projectId, onOpen }) => {
                   : 'border border-border bg-surface text-muted hover:text-fg',
               )}
             >
-              {p}
+              {taskPriorityLabel(p)}
             </button>
           ))}
         </div>
@@ -195,7 +199,7 @@ const TaskListView = ({ projectId, onOpen }) => {
                   className="cursor-pointer accent-[var(--color-accent)]"
                 />
                 <span className={cn('h-2 w-2 rounded-full', STATUS_DOT[status])} />
-                <h4 className="text-[13px] font-semibold uppercase text-fg">{status.replace('_', ' ')}</h4>
+                <h4 className="text-[13px] font-semibold uppercase text-fg">{taskStatusLabel(status)}</h4>
                 <span className="text-xs font-medium text-muted">({groupTasks.length})</span>
               </div>
 
@@ -225,16 +229,16 @@ const TaskListView = ({ projectId, onOpen }) => {
                         </td>
                         <td className="w-[12%] px-4 py-3">
                           <span className="rounded-full border border-border bg-canvas px-2 py-0.5 text-xs capitalize text-muted">
-                            {task.priority || 'medium'}
+                            {taskPriorityLabel(task.priority || 'medium')}
                           </span>
                         </td>
                         <td className="w-[16%] px-4 py-3">
                           {objective ? (
                             <span className="rounded-full bg-status-review/15 px-1.5 py-0.5 text-[11px] font-semibold text-status-review">
-                              🎯 {objective.title.length > 20 ? objective.title.substring(0, 20) + '...' : objective.title}
+                              <span aria-hidden="true">🎯</span> {objective.title.length > 20 ? objective.title.substring(0, 20) + '...' : objective.title}
                             </span>
                           ) : (
-                            <span className="text-[11px] text-faint">Sin OKR</span>
+                            <span className="text-[11px] text-faint">{t('execution.list.noObjective')}</span>
                           )}
                         </td>
                         <td className="w-[15%] px-4 py-3">
@@ -245,7 +249,7 @@ const TaskListView = ({ projectId, onOpen }) => {
                             className="rounded-md border border-border px-1 py-1 text-[13px] text-fg outline-none disabled:cursor-not-allowed"
                             style={{ backgroundColor: assignee ? assignee.color + '20' : 'var(--color-canvas)' }}
                           >
-                            <option value="unassigned">— Sin asignar</option>
+                            <option value="unassigned">{t('execution.list.unassignedOption')}</option>
                             {members?.map((m) => (
                               <option key={m.id} value={m.id}>{getInitials(m.name)} {m.name}</option>
                             ))}
@@ -258,17 +262,14 @@ const TaskListView = ({ projectId, onOpen }) => {
                             onChange={(e) => handleStatusChange(task, e.target.value)}
                             className="rounded-md border border-border bg-canvas px-2 py-1 text-[13px] text-fg outline-none disabled:cursor-not-allowed"
                           >
-                            <option value="backlog">Backlog</option>
-                            <option value="todo">To Do</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="review">Review</option>
-                            <option value="blocked">Blocked</option>
-                            <option value="done">Done</option>
+                            {['backlog', 'todo', 'in_progress', 'review', 'blocked', 'done'].map((s) => (
+                              <option key={s} value={s}>{taskStatusLabel(s)}</option>
+                            ))}
                           </select>
                         </td>
                         <td className="w-[10%] px-4 py-3 text-right">
                           <span className="text-[13px] font-medium text-muted">
-                            {task.logged_hours || 0}h / {task.estimated_hours || '-'}h
+                            {t('execution.list.hoursProgress', { logged: task.logged_hours || 0, estimated: task.estimated_hours || '-' })}
                           </span>
                         </td>
                       </tr>
@@ -287,32 +288,31 @@ const TaskListView = ({ projectId, onOpen }) => {
           className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 items-center gap-6 rounded-xl border border-border bg-raised px-6 py-4 shadow-overlay"
           style={{ animation: 'slideUp 0.2s ease-out' }}
         >
-          <span className="text-sm font-semibold text-fg">{selectedIds.length} tareas seleccionadas</span>
+          <span className="text-sm font-semibold text-fg">{t('execution.list.selectedCount', { count: selectedIds.length })}</span>
 
           <div className="flex items-center gap-3">
             <Select value={massAssigneeId} onChange={(e) => setMassAssigneeId(e.target.value)} className="w-auto py-1.5">
-              <option value="">Asignar a…</option>
-              <option value="unassigned">Desasignar</option>
+              <option value="">{t('execution.list.massAssignPlaceholder')}</option>
+              <option value="unassigned">{t('execution.list.unassignAction')}</option>
               {members?.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </Select>
 
             <Select value={massPriority} onChange={(e) => setMassPriority(e.target.value)} className="w-auto py-1.5">
-              <option value="">Cambiar prioridad…</option>
-              <option value="critical">Crítica</option>
-              <option value="high">Alta</option>
-              <option value="medium">Media</option>
-              <option value="low">Baja</option>
+              <option value="">{t('execution.list.massPriorityPlaceholder')}</option>
+              {['critical', 'high', 'medium', 'low'].map((p) => (
+                <option key={p} value={p}>{taskPriorityLabel(p)}</option>
+              ))}
             </Select>
 
             <Button onClick={handleMassUpdate} disabled={isMassUpdating || (!massAssigneeId && !massPriority)} size="sm">
-              {isMassUpdating ? 'Actualizando...' : 'Aplicar'}
+              {isMassUpdating ? t('execution.list.updating') : t('execution.list.apply')}
             </Button>
 
             <button
               onClick={() => { setSelectedIds([]); setMassAssigneeId(''); setMassPriority(''); }}
               className="text-[13px] text-faint hover:text-muted"
             >
-              Cancelar
+              {t('common.actions.cancel')}
             </button>
           </div>
         </div>

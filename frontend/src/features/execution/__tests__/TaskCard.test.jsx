@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TaskCard from '../../../components/kanban/TaskCard'
+import i18n from '../../../i18n'
 import { vi } from 'vitest'
 
 const mockTask = {
@@ -19,12 +20,12 @@ describe('TaskCard', () => {
 
   test('muestra badge de prioridad high con color correcto', () => {
     render(<TaskCard task={mockTask} />)
-    expect(screen.getByText('high')).toBeInTheDocument()
+    expect(screen.getByText(i18n.t('enums.task.priority.high'))).toBeInTheDocument()
   })
 
   test('muestra horas logged/estimated', () => {
     render(<TaskCard task={mockTask} />)
-    expect(screen.getByText(/5h \/ 8h/)).toBeInTheDocument()
+    expect(screen.getByText(i18n.t('tasks.card.hours', { logged: 5, estimated: 8 }))).toBeInTheDocument()
   })
 
   test('no muestra advertencia de horas cuando logged < estimated', () => {
