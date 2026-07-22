@@ -2,11 +2,83 @@
   "common": {
     "all": "Todas",
     "language": "Idioma",
-    "noDate": "Sin fecha"
+    "noDate": "Sin fecha",
+    "brand": "TaskFlow",
+    "unknown": "Desconocido",
+    "actions": {
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "back": "Volver atrás",
+      "close": "Cerrar",
+      "settings": "Ajustes",
+      "logout": "Salir"
+    },
+    "theme": {
+      "light": "Tema claro",
+      "dark": "Tema oscuro"
+    }
   },
   "language": {
     "es": "Español",
     "en": "English"
+  },
+  "nav": {
+    "projects": "Proyectos",
+    "myTasks": "Mis Tareas",
+    "users": "Usuarios",
+    "admin": "Admin"
+  },
+  "auth": {
+    "login": {
+      "tagline": "Motor de ejecución operativa",
+      "welcomeTitle": "Bienvenido de vuelta",
+      "welcomeSubtitle": "Inicia sesión en tu workspace",
+      "email": {
+        "label": "Email",
+        "placeholder": "tu@email.com"
+      },
+      "password": {
+        "label": "Contraseña",
+        "placeholder": "••••••••",
+        "showAria": "Mostrar contraseña",
+        "hideAria": "Ocultar contraseña"
+      },
+      "submit": "Iniciar sesión",
+      "submitting": "Autenticando...",
+      "forgotPassword": "¿Olvidaste tu contraseña? Contacta al administrador",
+      "features": {
+        "wip": "Kanban con límites WIP inteligentes",
+        "metrics": "Métricas de flujo en tiempo real",
+        "ai": "AI que detecta cuellos de botella"
+      }
+    },
+    "unauthorized": {
+      "title": "Acceso Denegado",
+      "body": "No tienes permiso para ver esta sección. Tu rol actual es <role>{{role}}</role>.",
+      "hint": "Si crees que esto es un error, contacta al administrador del workspace."
+    },
+    "session": {
+      "expired": "Tu sesión expiró. Redirigiendo al login..."
+    }
+  },
+  "profile": {
+    "title": "Mi Perfil",
+    "changePassword": {
+      "title": "Cambiar Contraseña",
+      "current": {
+        "label": "Contraseña actual"
+      },
+      "new": {
+        "label": "Nueva contraseña"
+      },
+      "confirm": {
+        "label": "Confirmar nueva contraseña"
+      },
+      "submit": "Actualizar contraseña",
+      "success": "¡Contraseña actualizada con éxito!",
+      "mismatch": "Las contraseñas nuevas no coinciden",
+      "error": "Error al actualizar contraseña"
+    }
   },
   "enums": {
     "task": {

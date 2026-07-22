@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const SessionToast = () => {
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -19,8 +21,8 @@ const SessionToast = () => {
       className="fixed left-1/2 top-6 z-[9999] flex -translate-x-1/2 items-center gap-3 rounded-lg border border-priority-medium/40 bg-surface px-5 py-3 text-fg shadow-overlay"
       style={{ animation: 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1), fadeOut 0.3s ease-in 1.7s forwards' }}
     >
-      <span className="text-xl">⏰</span>
-      <p className="text-sm font-medium">Tu sesión expiró. Redirigiendo al login...</p>
+      <span className="text-xl" aria-hidden="true">⏰</span>
+      <p className="text-sm font-medium">{t('auth.session.expired')}</p>
 
       <style>
         {`

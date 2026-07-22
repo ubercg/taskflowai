@@ -1,10 +1,14 @@
 import { useNavigate } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../store/authStore';
 import { Button } from '../components/ui';
+import { userRoleLabel } from '../i18n/enums';
 
 const UnauthorizedPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const roleLabel = user?.role ? userRoleLabel(user.role) : t('common.unknown');
 
   return (
     <div className="flex h-screen flex-col items-center justify-center bg-canvas p-6">
@@ -15,13 +19,17 @@ const UnauthorizedPage = () => {
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
         </div>
-        <h1 className="mb-3 text-2xl font-bold text-fg">Acceso Denegado</h1>
+        <h1 className="mb-3 text-2xl font-bold text-fg">{t('auth.unauthorized.title')}</h1>
         <p className="mb-6 text-[15px] leading-relaxed text-muted">
-          No tienes permiso para ver esta sección. Tu rol actual es <strong className="capitalize text-fg">{user?.role || 'Desconocido'}</strong>.
+          <Trans
+            i18nKey="auth.unauthorized.body"
+            values={{ role: roleLabel }}
+            components={{ role: <strong className="capitalize text-fg" /> }}
+          />
           <br /><br />
-          Si crees que esto es un error, contacta al administrador del workspace.
+          {t('auth.unauthorized.hint')}
         </p>
-        <Button onClick={() => navigate(-1)}>Volver atrás</Button>
+        <Button onClick={() => navigate(-1)}>{t('common.actions.back')}</Button>
       </div>
     </div>
   );
