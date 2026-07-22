@@ -7,6 +7,7 @@
     "unknown": "Unknown",
     "actions": {
       "save": "Save",
+      "saving": "Saving...",
       "cancel": "Cancel",
       "back": "Go back",
       "close": "Close",
@@ -134,7 +135,6 @@
       },
       "create": "Create Project",
       "saveChanges": "Save Changes",
-      "saving": "Saving...",
       "errors": {
         "nameRequired": "Name is required",
         "endBeforeStart": "End date must be after start date",
@@ -181,6 +181,52 @@
         "role": "Failed to change role",
         "remove": "Failed to remove member"
       }
+    }
+  },
+  "objectives": {
+    "form": {
+      "createTitle": "New OKR",
+      "editTitle": "Edit OKR",
+      "title": {
+        "label": "Title *",
+        "placeholder": "E.g.: Increase retention by 20%"
+      },
+      "description": {
+        "label": "Description"
+      },
+      "progress": {
+        "label": "Progress (derived from tasks)"
+      },
+      "dueDate": {
+        "label": "Due date *"
+      },
+      "create": "Create OKR",
+      "save": "Save OKR",
+      "errors": {
+        "titleRequired": "Title is required",
+        "dueRequired": "Due date is required",
+        "save": "Failed to save the objective"
+      }
+    },
+    "tasks": {
+      "title": "OKR Tasks",
+      "completedOfTotal": "{{done}} of {{total}} completed",
+      "emptyYet": "No tasks yet",
+      "closePanel": "Close panel",
+      "loading": "Loading tasks...",
+      "empty": "No tasks linked to this objective.",
+      "unassigned": "— Unassigned",
+      "newPlaceholder": "Enter a new task title for this OKR...",
+      "add": "+ Add",
+      "adding": "...",
+      "viewOnBoard": "View on Kanban →",
+      "createError": "Error creating task: {{detail}}",
+      "assignError": "Failed to assign task"
+    },
+    "chart": {
+      "title": "Objectives Progress (OKRs)",
+      "empty": "No objectives defined.",
+      "completed": "Completed"
     }
   },
   "users": {
@@ -264,7 +310,6 @@
       "create": "Create User",
       "creating": "Creating...",
       "saveChanges": "Save Changes",
-      "saving": "Saving...",
       "errors": {
         "nameMin": "Name must be at least 3 characters.",
         "emailRequired": "Email is required.",

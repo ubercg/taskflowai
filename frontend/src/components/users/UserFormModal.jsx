@@ -135,7 +135,7 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
             <Button variant="secondary" onClick={onClose}>{t('common.actions.cancel')}</Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting
-                ? t('users.form.saving')
+                ? t('common.actions.saving')
                 : isEdit
                   ? t('users.form.saveChanges')
                   : t('users.form.create')}

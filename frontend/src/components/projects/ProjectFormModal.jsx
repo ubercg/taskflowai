@@ -200,7 +200,7 @@ const ProjectFormModal = ({ project, onClose, onSaved }) => {
         <Button variant="secondary" onClick={onClose}>{t('common.actions.cancel')}</Button>
         <Button type="submit" form="project-form" disabled={isSubmitting}>
           {isSubmitting
-            ? t('projects.form.saving')
+            ? t('common.actions.saving')
             : isEdit
               ? t('projects.form.saveChanges')
               : t('projects.form.create')}

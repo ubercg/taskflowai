@@ -13,6 +13,7 @@ Catálogos: `frontend/src/i18n/locales/{es,en}.json`.
 | `profile.*` | Pantalla de perfil |
 | `users.*` | Listado, admin, formularios y drawer de tareas de usuario |
 | `projects.*` | Listado, detalle, tarjeta, formulario y panel de miembros |
+| `objectives.*` | Formulario OKR, panel de tareas del objetivo y chart de progreso |
 | `enums.*` | Etiquetas de enums (vía `i18n/enums.js`) |
 | `language.*` | Nombres de idiomas en el selector |
 | `errors.*` | Reservado para TSK-021 (`errors.{CODE}`) |
@@ -34,6 +35,7 @@ Catálogos: `frontend/src/i18n/locales/{es,en}.json`.
 Viven en `common.actions.*` — **no** duplicar "Guardar" / "Cancelar" por pantalla:
 
 - `common.actions.save`
+- `common.actions.saving` — estado de envío de cualquier formulario
 - `common.actions.cancel`
 - `common.actions.back`
 - `common.actions.close`

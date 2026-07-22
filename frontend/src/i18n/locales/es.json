@@ -7,6 +7,7 @@
     "unknown": "Desconocido",
     "actions": {
       "save": "Guardar",
+      "saving": "Guardando...",
       "cancel": "Cancelar",
       "back": "Volver atrás",
       "close": "Cerrar",
@@ -134,7 +135,6 @@
       },
       "create": "Crear Proyecto",
       "saveChanges": "Guardar Cambios",
-      "saving": "Guardando...",
       "errors": {
         "nameRequired": "El nombre es obligatorio",
         "endBeforeStart": "La fecha fin debe ser posterior al inicio",
@@ -181,6 +181,52 @@
         "role": "Error al cambiar rol",
         "remove": "Error al remover miembro"
       }
+    }
+  },
+  "objectives": {
+    "form": {
+      "createTitle": "Nuevo OKR",
+      "editTitle": "Editar OKR",
+      "title": {
+        "label": "Título *",
+        "placeholder": "Ej: Incrementar retención un 20%"
+      },
+      "description": {
+        "label": "Descripción"
+      },
+      "progress": {
+        "label": "Progreso (derivado de tareas)"
+      },
+      "dueDate": {
+        "label": "Fecha Límite *"
+      },
+      "create": "Crear OKR",
+      "save": "Guardar OKR",
+      "errors": {
+        "titleRequired": "El título es obligatorio",
+        "dueRequired": "La fecha límite es obligatoria",
+        "save": "Error al guardar el objetivo"
+      }
+    },
+    "tasks": {
+      "title": "Tareas del OKR",
+      "completedOfTotal": "{{done}} de {{total}} completadas",
+      "emptyYet": "Sin tareas aún",
+      "closePanel": "Cerrar panel",
+      "loading": "Cargando tareas...",
+      "empty": "No hay tareas vinculadas a este objetivo.",
+      "unassigned": "— Sin asignar",
+      "newPlaceholder": "Escribe el título de una nueva tarea para este OKR...",
+      "add": "+ Agregar",
+      "adding": "...",
+      "viewOnBoard": "Ver en Kanban →",
+      "createError": "Error creando tarea: {{detail}}",
+      "assignError": "Error al asignar tarea"
+    },
+    "chart": {
+      "title": "Progreso de Objetivos (OKRs)",
+      "empty": "No hay objetivos definidos.",
+      "completed": "Completado"
     }
   },
   "users": {
@@ -264,7 +310,6 @@
       "create": "Crear Usuario",
       "creating": "Creando...",
       "saveChanges": "Guardar Cambios",
-      "saving": "Guardando...",
       "errors": {
         "nameMin": "El nombre debe tener al menos 3 caracteres.",
         "emailRequired": "El email es obligatorio.",
