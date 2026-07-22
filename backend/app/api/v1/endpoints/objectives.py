@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.models import Objective
 from app.schemas.schemas import ObjectiveResponse, ObjectiveCreate, ObjectiveUpdate
+from app.core.errors import api_error
 from app.core.security import (
     require_authenticated,
     require_manager_or_above,
@@ -82,7 +83,7 @@ def read_objective(
     # 404 before access check — need project_id first
     obj = db.query(Objective).filter(Objective.id == objective_id).first()
     if not obj:
-        raise HTTPException(status_code=404, detail="Objective not found")
+        raise api_error(404, "OBJECTIVE_NOT_FOUND", "Objective not found")
     check_project_access(obj.project_id, current_user, db)
     row = db.execute(
         text(_PROGRESS_SELECT.format(where="o.id = :objective_id")),
@@ -101,11 +102,11 @@ def update_objective(
     # 404 before 403 — fetch to get project_id for access check
     obj = db.query(Objective).filter(Objective.id == objective_id).first()
     if not obj:
-        raise HTTPException(status_code=404, detail="Objective not found")
+        raise api_error(404, "OBJECTIVE_NOT_FOUND", "Objective not found")
     check_project_access(obj.project_id, current_user, db, require_ownership=True)
     data = payload.model_dump(exclude_unset=True)
     if "title" in data and not data["title"].strip():
-        raise HTTPException(status_code=422, detail="El título no puede estar vacío")
+        raise api_error(422, "OBJECTIVE_TITLE_EMPTY", "El título no puede estar vacío")
     for k, v in data.items():
         setattr(obj, k, v)
     db.commit()
@@ -126,7 +127,7 @@ def delete_objective(
     # 404 before 403
     obj = db.query(Objective).filter(Objective.id == objective_id).first()
     if not obj:
-        raise HTTPException(status_code=404, detail="Objective not found")
+        raise api_error(404, "OBJECTIVE_NOT_FOUND", "Objective not found")
     check_project_access(obj.project_id, current_user, db, require_ownership=True)
     db.delete(obj)
     db.commit()

@@ -1,12 +1,13 @@
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, Query, BackgroundTasks, HTTPException
+from fastapi import APIRouter, Depends, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime, date
 
 from app.db.database import get_db
 from app.core.security import require_manager_or_above, require_authenticated
+from app.core.errors import api_error
 from app.models.models import Project
 from app.modules.intelligence.bottleneck import analyze_bottleneck
 
@@ -17,10 +18,7 @@ def _validate_date_range(start_date: Optional[date], end_date: Optional[date]) -
     """Raise HTTP 422 if start_date >= end_date."""
     if start_date is not None and end_date is not None:
         if start_date >= end_date:
-            raise HTTPException(
-                status_code=422,
-                detail="start_date must be strictly before end_date",
-            )
+            raise api_error(422, "METRICS_INVALID_DATE_RANGE", "start_date must be strictly before end_date")
 
 
 def _ensure_project_exists(db: Session, project_id: Optional[int]) -> None:
@@ -29,7 +27,7 @@ def _ensure_project_exists(db: Session, project_id: Optional[int]) -> None:
         return
     project = db.get(Project, project_id)
     if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
 
 
 @router.get("/flow")

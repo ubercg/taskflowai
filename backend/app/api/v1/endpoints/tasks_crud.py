@@ -1,10 +1,11 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.models import Task, UserRole, Activity, User
 from app.schemas.schemas import TaskResponseFull, TaskCreate, TaskUpdate
+from app.core.errors import api_error
 from app.core.security import (
     require_authenticated,
     require_manager_or_above,
@@ -26,10 +27,7 @@ def read_tasks(
 
     if parent_id is not None:
         if not project_id:
-            raise HTTPException(
-                status_code=400,
-                detail="project_id es obligatorio cuando se filtra por parent_id",
-            )
+            raise api_error(400, "TASK_PARENT_REQUIRES_PROJECT", "project_id es obligatorio cuando se filtra por parent_id")
         check_project_access(project_id, current_user, db)
         query = query.filter(Task.project_id == project_id, Task.parent_id == parent_id)
     elif project_id:
@@ -39,9 +37,7 @@ def read_tasks(
     # Mis Tareas (y filtros admin): ?assignee_id= — antes se ignoraba y los números no coincidían con la lista
     if assignee_id is not None:
         if current_user.role == UserRole.developer and assignee_id != current_user.id:
-            raise HTTPException(
-                status_code=403, detail="No puedes ver las tareas de otro usuario"
-            )
+            raise api_error(403, "TASK_LIST_OTHER_USER_FORBIDDEN", "No puedes ver las tareas de otro usuario")
         query = query.filter(Task.assignee_id == assignee_id)
     elif current_user.role == UserRole.developer:
         query = query.filter(Task.assignee_id == current_user.id)
@@ -57,12 +53,12 @@ def read_task(
 ):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise api_error(404, "TASK_NOT_FOUND", "Task not found")
 
     check_project_access(task.project_id, current_user, db)
 
     if current_user.role == UserRole.developer and task.assignee_id != current_user.id:
-        raise HTTPException(403, "No puedes ver esta tarea")
+        raise api_error(403, "TASK_VIEW_FORBIDDEN", "No puedes ver esta tarea")
 
     return task
 
@@ -91,19 +87,23 @@ def update_task(
 ):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise api_error(404, "TASK_NOT_FOUND", "Task not found")
 
     check_project_access(task.project_id, current_user, db)
 
     if current_user.role == UserRole.developer:
         if task.assignee_id != current_user.id:
-            raise HTTPException(403, "No puedes editar esta tarea")
+            raise api_error(403, "TASK_EDIT_FORBIDDEN", "No puedes editar esta tarea")
         # Restrict fields
         update_data = payload.model_dump(exclude_unset=True)
         allowed_fields = {"status", "logged_hours", "description"}
         for key in update_data.keys():
             if key not in allowed_fields:
-                raise HTTPException(403, f"Developer no puede editar el campo {key}")
+                raise api_error(
+                403,
+                "TASK_FIELD_FORBIDDEN",
+                f"Developer no puede editar el campo {key}",
+            )
 
     update_data = payload.model_dump(exclude_unset=True)
     for key, value in update_data.items():
@@ -122,7 +122,7 @@ def read_task_activities(
 ):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise api_error(404, "TASK_NOT_FOUND", "Task not found")
 
     check_project_access(task.project_id, current_user, db)
 
@@ -157,7 +157,7 @@ def delete_task(
 ):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise api_error(404, "TASK_NOT_FOUND", "Task not found")
 
     check_project_access(task.project_id, current_user, db)
 

@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.core.errors import api_error
 from app.models.models import Milestone, Project, ProjectKpi, ProjectStatus
 from app.schemas.sigao_schemas import (
     MilestoneResponse,
@@ -17,9 +18,7 @@ def get_project_by_external_uuid(db: Session, external_uuid: UUID) -> Project | 
 def get_project_or_404(db: Session, project_id: int) -> Project:
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        from fastapi import HTTPException
-
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
     return project
 
 

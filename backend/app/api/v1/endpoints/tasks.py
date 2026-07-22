@@ -1,6 +1,6 @@
 import os
 from datetime import date, datetime, time, timezone # Added for date type in endpoint parameters
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_ # Added or_ for advanced filtering
 
@@ -10,6 +10,7 @@ from app.schemas.schemas import TaskMove, TaskResponse, TaskResponseFull
 from app.modules.intelligence.bottleneck import analyze_bottleneck
 from app.api.v1.endpoints.tasks_crud import router
 from app.core.security import require_authenticated, check_project_access
+from app.core.errors import api_error
 
 WIP_LIMIT = int(os.getenv("WIP_LIMIT", "3"))
 
@@ -25,15 +26,15 @@ def move_task(
     task = db.query(Task).filter(Task.id == task_id).with_for_update().first()
 
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise api_error(404, "TASK_NOT_FOUND", "Task not found")
 
     check_project_access(task.project_id, current_user, db)
 
     if current_user.role == UserRole.viewer:
-        raise HTTPException(403, "Viewers no pueden mover tareas")
+        raise api_error(403, "TASK_VIEWER_CANNOT_MOVE", "Viewers no pueden mover tareas")
 
     if current_user.role == UserRole.developer and task.assignee_id != current_user.id:
-        raise HTTPException(403, "Solo puedes mover tus propias tareas")
+        raise api_error(403, "TASK_MOVE_OWN_ONLY", "Solo puedes mover tus propias tareas")
 
     target_status = payload.status
     old_status = task.status
@@ -68,14 +69,12 @@ def move_task(
             )
 
             if current_wip >= WIP_LIMIT:
-                raise HTTPException(
-                    status_code=422,
-                    detail={
-                        "detail": "WIP limit exceeded",
-                        "code": "WIP_LIMIT_EXCEEDED",
-                        "current_wip": current_wip,
-                        "limit": WIP_LIMIT,
-                    },
+                raise api_error(
+                    422,
+                    "WIP_LIMIT_EXCEEDED",
+                    "WIP limit exceeded",
+                    current_wip=current_wip,
+                    limit=WIP_LIMIT,
                 )
 
     # ==========================================
@@ -89,13 +88,11 @@ def move_task(
         )
 
         if open_subtasks_count > 0:
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "detail": "Existen subtareas abiertas",
-                    "code": "OPEN_SUBTASKS",
-                    "open_count": open_subtasks_count,
-                },
+            raise api_error(
+                422,
+                "OPEN_SUBTASKS",
+                "Existen subtareas abiertas",
+                open_count=open_subtasks_count,
             )
 
     # ==========================================
@@ -134,7 +131,7 @@ def move_task(
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise api_error(500, "TASK_MOVE_INTERNAL_ERROR", str(e))
 
 
 @router.get("/calendar", response_model=list[TaskResponseFull])

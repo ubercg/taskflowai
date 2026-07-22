@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.db.database import get_db
 from app.models.models import User
+from app.core.errors import api_error
 from app.core.security import (
     verify_password,
     hash_password,
@@ -30,15 +31,11 @@ def login(
 
     # 2. Verificar password con verify_password()
     if not user or not verify_password(form_data.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales incorrectas"
-        )
+        raise api_error(status.HTTP_401_UNAUTHORIZED, "AUTH_INVALID_CREDENTIALS", "Credenciales incorrectas")
 
     # 4. Si user.is_active == False: HTTPException 403 "Cuenta desactivada"
     if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Cuenta desactivada"
-        )
+        raise api_error(status.HTTP_403_FORBIDDEN, "AUTH_ACCOUNT_DISABLED", "Cuenta desactivada")
 
     # 5. Crear JWT
     payload = {"sub": str(user.id), "role": user.role, "email": user.email}
@@ -75,7 +72,7 @@ def change_password(
     db: Session = Depends(get_db),
 ):
     if not verify_password(payload.current_password, current_user.password_hash):
-        raise HTTPException(status_code=400, detail="Contraseña actual incorrecta")
+        raise api_error(400, "AUTH_WRONG_PASSWORD", "Contraseña actual incorrecta")
 
     current_user.password_hash = hash_password(payload.new_password)
     db.commit()
