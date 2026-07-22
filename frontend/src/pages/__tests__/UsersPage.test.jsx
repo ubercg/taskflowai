@@ -31,6 +31,7 @@ vi.mock('../../components/users/NewUserModal', () => ({
 import useSWR from 'swr';
 import { getTeamVelocity, getUsers } from '../../services/api';
 import UsersPage from '../UsersPage';
+import i18n from '../../i18n';
 
 const mockUsers = [
   { id: 1, name: 'Alice', email: 'alice@example.com', role: 'developer', color: '#6366f1', is_active: true },
@@ -101,7 +102,7 @@ describe('UsersPage', () => {
       return { data: undefined, error: undefined };
     });
     render(<UsersPage />);
-    expect(screen.getByText(/cargando/i)).toBeInTheDocument();
+    expect(screen.getByText(i18n.t('users.loading'))).toBeInTheDocument();
   });
 
   it('shows error state when users fetch fails', () => {
@@ -112,6 +113,6 @@ describe('UsersPage', () => {
       return { data: undefined, error: undefined };
     });
     render(<UsersPage />);
-    expect(screen.getByText(/error/i)).toBeInTheDocument();
+    expect(screen.getByText(i18n.t('users.loadError'))).toBeInTheDocument();
   });
 });

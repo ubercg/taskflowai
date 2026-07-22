@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getUsers, getTeamVelocity } from '../services/api';
 import UserCard from '../components/users/UserCard';
@@ -6,6 +7,7 @@ import NewUserModal from '../components/users/NewUserModal';
 import { Button } from '../components/ui';
 
 const UsersPage = () => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -22,8 +24,8 @@ const UsersPage = () => {
     <div className="mx-auto max-w-[1200px] px-4">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-fg">Usuarios</h1>
-          <p className="mt-1 text-[15px] text-muted">Gestión del equipo y análisis de capacidad (WIP).</p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-fg">{t('users.title')}</h1>
+          <p className="mt-1 text-[15px] text-muted">{t('users.subtitle')}</p>
         </div>
 
         <div className="flex gap-3">
@@ -34,7 +36,7 @@ const UsersPage = () => {
             </svg>
             <input
               type="text"
-              placeholder="Buscar usuario..."
+              placeholder={t('users.search.placeholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-[250px] rounded-md border border-border bg-canvas py-2 pl-9 pr-3 text-sm text-fg outline-none placeholder:text-faint focus:border-accent"
@@ -45,20 +47,20 @@ const UsersPage = () => {
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            Nuevo Usuario
+            {t('users.newUser')}
           </Button>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center p-16 text-muted">Cargando usuarios...</div>
+        <div className="flex justify-center p-16 text-muted">{t('users.loading')}</div>
       ) : error ? (
         <div className="rounded-lg border border-status-blocked/40 bg-status-blocked/10 p-4 text-status-blocked">
-          Error al cargar los usuarios. Verifica el backend.
+          {t('users.loadError')}
         </div>
       ) : filteredUsers.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-surface p-16 text-center text-muted">
-          No se encontraron usuarios que coincidan con la búsqueda.
+          {t('users.emptySearch')}
         </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6">

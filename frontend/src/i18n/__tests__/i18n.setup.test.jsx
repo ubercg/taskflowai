@@ -62,8 +62,19 @@ describe('i18n setup (TSK-018)', () => {
 
   it('falls back to Spanish for a missing key (RN-007)', async () => {
     await i18n.changeLanguage('en')
-    // Key only present conceptually — missing in both files falls to defaultValue / key.
-    const missing = i18n.t('this.key.does.not.exist')
+
+    // src/test/setup.js makes missing keys throw, so an accidental typo in a
+    // component fails loudly instead of rendering the raw key. This test is
+    // the one place where a missing key is the subject rather than a bug, so
+    // it opts out and restores the guard afterwards.
+    const guard = i18n.options.parseMissingKeyHandler
+    i18n.options.parseMissingKeyHandler = undefined
+    let missing
+    try {
+      missing = i18n.t('this.key.does.not.exist')
+    } finally {
+      i18n.options.parseMissingKeyHandler = guard
+    }
     expect(missing).toBe('this.key.does.not.exist')
 
     // FallbackLng: a key that exists only in `es` would resolve via chain;

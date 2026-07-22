@@ -80,6 +80,114 @@
       "error": "Error al actualizar contraseña"
     }
   },
+  "users": {
+    "title": "Usuarios",
+    "subtitle": "Gestión del equipo y análisis de capacidad (WIP).",
+    "adminTitle": "Gestión de Usuarios",
+    "activeCount_one": "{{count}} usuario activo en el sistema.",
+    "activeCount_other": "{{count}} usuarios activos en el sistema.",
+    "search": {
+      "placeholder": "Buscar usuario..."
+    },
+    "adminSearch": {
+      "placeholder": "Buscar por nombre o email..."
+    },
+    "newUser": "Nuevo Usuario",
+    "loading": "Cargando usuarios...",
+    "loadError": "Error al cargar los usuarios. Verifica el backend.",
+    "emptySearch": "No se encontraron usuarios que coincidan con la búsqueda.",
+    "empty": "No se encontraron usuarios.",
+    "stats": {
+      "total": "Total",
+      "active": "Activos",
+      "inactive": "Inactivos",
+      "admins": "Admins"
+    },
+    "filters": {
+      "allRoles": "Todos los roles",
+      "allActive": "Todos (Act/Inact)"
+    },
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo"
+    },
+    "table": {
+      "name": "Avatar + Nombre",
+      "email": "Email",
+      "role": "Rol",
+      "status": "Estado",
+      "wip": "WIP",
+      "projects": "Proyectos",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "viewTasks": "Ver tareas",
+      "deactivate": "Desactivar",
+      "activate": "Activar",
+      "delete": "Eliminar usuario"
+    },
+    "card": {
+      "wipCurrent": "WIP actual",
+      "completed": "Completadas",
+      "inProgress": "En Progreso",
+      "logged": "Registradas",
+      "hoursValue": "{{hours}}h"
+    },
+    "form": {
+      "createTitle": "Nuevo Usuario",
+      "editTitle": "Editar Usuario",
+      "name": {
+        "label": "Nombre completo",
+        "labelRequired": "Nombre completo *",
+        "placeholder": "Ej: Jane Doe"
+      },
+      "email": {
+        "label": "Email",
+        "labelRequired": "Email *",
+        "placeholder": "jane@example.com"
+      },
+      "role": {
+        "label": "Rol"
+      },
+      "systemRole": {
+        "label": "Rol de sistema"
+      },
+      "color": {
+        "label": "Color de Avatar"
+      },
+      "identifierColor": {
+        "label": "Color identificador"
+      },
+      "activeCheckbox": "Usuario activo (puede iniciar sesión)",
+      "create": "Crear Usuario",
+      "creating": "Creando...",
+      "saveChanges": "Guardar Cambios",
+      "saving": "Guardando...",
+      "errors": {
+        "nameMin": "El nombre debe tener al menos 3 caracteres.",
+        "emailRequired": "El email es obligatorio.",
+        "emailInvalid": "Formato de correo inválido.",
+        "nameEmailRequired": "Nombre y correo son obligatorios.",
+        "save": "Error al guardar el usuario.",
+        "create": "Error al crear usuario."
+      }
+    },
+    "admin": {
+      "toggleError": "Error al cambiar el estado del usuario",
+      "deleteError": "No se pudo eliminar el usuario",
+      "deleteConfirm": "¿Eliminar permanentemente a \"{{name}}\" ({{email}})? Esta acción no se puede deshacer."
+    },
+    "tasks": {
+      "completed": "Completadas",
+      "inProgress": "En Progreso",
+      "hours": "Horas",
+      "completion": "Completitud",
+      "loading": "Cargando tareas...",
+      "empty": "No hay tareas asignadas en este estado.",
+      "viewOnBoard": "Ver en Kanban →",
+      "hoursValue": "{{hours}}h",
+      "completionValue": "{{rate}}%"
+    }
+  },
   "enums": {
     "task": {
       "status": {
