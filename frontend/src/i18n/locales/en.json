@@ -2,11 +2,83 @@
   "common": {
     "all": "All",
     "language": "Language",
-    "noDate": "No date"
+    "noDate": "No date",
+    "brand": "TaskFlow",
+    "unknown": "Unknown",
+    "actions": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "back": "Go back",
+      "close": "Close",
+      "settings": "Settings",
+      "logout": "Log out"
+    },
+    "theme": {
+      "light": "Light theme",
+      "dark": "Dark theme"
+    }
   },
   "language": {
     "es": "Español",
     "en": "English"
+  },
+  "nav": {
+    "projects": "Projects",
+    "myTasks": "My Tasks",
+    "users": "Users",
+    "admin": "Admin"
+  },
+  "auth": {
+    "login": {
+      "tagline": "Operational execution engine",
+      "welcomeTitle": "Welcome back",
+      "welcomeSubtitle": "Sign in to your workspace",
+      "email": {
+        "label": "Email",
+        "placeholder": "you@email.com"
+      },
+      "password": {
+        "label": "Password",
+        "placeholder": "••••••••",
+        "showAria": "Show password",
+        "hideAria": "Hide password"
+      },
+      "submit": "Sign in",
+      "submitting": "Signing in...",
+      "forgotPassword": "Forgot your password? Contact the administrator",
+      "features": {
+        "wip": "Kanban with smart WIP limits",
+        "metrics": "Real-time flow metrics",
+        "ai": "AI that detects bottlenecks"
+      }
+    },
+    "unauthorized": {
+      "title": "Access Denied",
+      "body": "You do not have permission to view this section. Your current role is <role>{{role}}</role>.",
+      "hint": "If you believe this is an error, contact the workspace administrator."
+    },
+    "session": {
+      "expired": "Your session expired. Redirecting to login..."
+    }
+  },
+  "profile": {
+    "title": "My Profile",
+    "changePassword": {
+      "title": "Change Password",
+      "current": {
+        "label": "Current password"
+      },
+      "new": {
+        "label": "New password"
+      },
+      "confirm": {
+        "label": "Confirm new password"
+      },
+      "submit": "Update password",
+      "success": "Password updated successfully!",
+      "mismatch": "New passwords do not match",
+      "error": "Failed to update password"
+    }
   },
   "enums": {
     "task": {

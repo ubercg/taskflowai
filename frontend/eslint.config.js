@@ -70,7 +70,18 @@ export default [
           ],
           words: {
             // Non-copy tokens: punctuation, icons, units, brand abbreviations.
-            exclude: ['•', '–', '—', '…', '·', '/', '|', '×', '+', '-', '%', 'h', 'OKR', 'WIP', 'AI', 'PDF'],
+            //
+            // Each entry is interpolated into /^…$/ by the plugin with NO
+            // escaping, so regex metacharacters must be escaped here:
+            //   '+' would throw "Nothing to repeat" and kill the whole lint,
+            //   '|' would compile to /^|$/, which matches every string and
+            //   silently disables the rule — worse than crashing, because it
+            //   reports zero warnings and looks like a finished migration.
+            exclude: [
+              '•', '–', '—', '…', '·', '/', '×', '%', '-',
+              '\\+', '\\|',
+              'h', 'OKR', 'WIP', 'AI', 'PDF',
+            ],
           },
         },
       ],

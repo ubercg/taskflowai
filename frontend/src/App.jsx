@@ -1,4 +1,5 @@
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from './store/authStore';
 import usePermissions from './hooks/usePermissions';
 import { cn } from './lib/cn';
@@ -19,40 +20,40 @@ import ProjectDetailPage from './pages/ProjectDetailPage';
 import MyTasksPage from './pages/MyTasksPage';
 
 const Sidebar = () => {
+  const { t } = useTranslation();
   const location = useLocation();
-  const { user, logout } = useAuth();
   const { canAccessAdmin, isViewer, role } = usePermissions();
 
   const navItems = [
-    { 
-      path: '/projects', 
-      label: 'Proyectos', 
+    {
+      path: '/projects',
+      label: t('nav.projects'),
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
         </svg>
-      ) 
-    }
+      ),
+    },
   ];
 
   if (!isViewer) {
     navItems.push({
       path: '/my-tasks',
-      label: 'Mis Tareas',
+      label: t('nav.myTasks'),
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9 11 12 14 22 4"></polyline>
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
         </svg>
-      )
+      ),
     });
   }
 
   if (['admin', 'manager'].includes(role)) {
-    navItems.push({ 
-      path: '/users', 
-      label: 'Usuarios', 
+    navItems.push({
+      path: '/users',
+      label: t('nav.users'),
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -60,19 +61,20 @@ const Sidebar = () => {
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
           <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
         </svg>
-      ) 
+      ),
     });
   }
 
   if (canAccessAdmin) {
     navItems.push({
-      path: '/admin/users', 
-      label: 'Admin 🛡️', 
+      path: '/admin/users',
+      label: t('nav.admin'),
+      badge: '🛡️',
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
         </svg>
-      )
+      ),
     });
   }
 
@@ -82,7 +84,7 @@ const Sidebar = () => {
         <span className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-sm font-bold text-accent-fg">
           T
         </span>
-        <span className="text-lg font-semibold tracking-tight text-fg">TaskFlow</span>
+        <span className="text-lg font-semibold tracking-tight text-fg">{t('common.brand')}</span>
       </div>
       <nav className="flex flex-1 flex-col gap-1 px-3">
         {navItems.map(item => {
@@ -99,7 +101,10 @@ const Sidebar = () => {
               )}
             >
               {item.icon}
-              <span>{item.label}</span>
+              <span>
+                {item.label}
+                {item.badge ? <span aria-hidden="true"> {item.badge}</span> : null}
+              </span>
             </Link>
           );
         })}
