@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.models import TimeLog, Task, UserRole
 from app.schemas.schemas import TimeLogResponse, TimeLogCreate
-from app.core.security import require_authenticated
+from app.core.security import require_authenticated, check_project_access
 from app.core.errors import api_error
 
 router = APIRouter()
@@ -15,6 +15,16 @@ def read_timelogs(
     db: Session = Depends(get_db),
     current_user=Depends(require_authenticated),
 ):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        # Same rule as the metrics gate (TSK-002): a caller who could not see
+        # the task anyway must not be able to tell "does not exist" apart from
+        # "not yours", or task ids become enumerable. Admins see the truth.
+        if current_user.role == "admin":
+            raise api_error(404, "TASK_NOT_FOUND", "Task no encontrada")
+        raise api_error(403, "PROJECT_ACCESS_DENIED", "No tienes acceso a este proyecto")
+    check_project_access(task.project_id, current_user, db)
+
     return (
         db.query(TimeLog)
         .filter(TimeLog.task_id == task_id)

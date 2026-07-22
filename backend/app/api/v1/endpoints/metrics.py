@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, BackgroundTasks
 from sqlalchemy.orm import Session
@@ -10,9 +10,10 @@ from app.core.security import (
     require_manager_or_above,
     require_authenticated,
     check_project_access,
+    accessible_project_ids,
 )
 from app.core.errors import api_error
-from app.models.models import Project, ProjectMember
+from app.models.models import Project
 from app.modules.intelligence.bottleneck import analyze_bottleneck
 
 router = APIRouter()
@@ -44,23 +45,6 @@ def _authorize_project_metrics(db: Session, project_id: int, current_user) -> No
     """
     check_project_access(project_id, current_user, db)
     _ensure_project_exists(db, project_id)
-
-
-def _accessible_project_ids(db: Session, current_user) -> Optional[List[int]]:
-    """
-    Project ids the caller may see in org-wide metrics lists.
-
-    Returns None for global admins (unrestricted). Returns [] when the user
-    has no memberships.
-    """
-    if current_user.role == "admin":
-        return None
-    rows = (
-        db.query(ProjectMember.project_id)
-        .filter(ProjectMember.user_id == current_user.id)
-        .all()
-    )
-    return [r[0] for r in rows]
 
 
 @router.get("/flow")
@@ -196,7 +180,7 @@ def get_aging(
         filters = "AND t.project_id = :project_id"
         params = {"project_id": project_id}
     else:
-        accessible = _accessible_project_ids(db, current_user)
+        accessible = accessible_project_ids(db, current_user)
         if accessible is not None:
             if not accessible:
                 return []
@@ -240,7 +224,7 @@ def get_aging(
 def get_projects_metrics(
     db: Session = Depends(get_db), current_user=Depends(require_authenticated)
 ):
-    accessible = _accessible_project_ids(db, current_user)
+    accessible = accessible_project_ids(db, current_user)
     if accessible is not None and not accessible:
         return []
 
