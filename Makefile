@@ -1,4 +1,4 @@
-.PHONY: test-backend test-backend-integration test-backend-local test-frontend test-e2e test-all dev down
+.PHONY: test-backend test-backend-integration test-backend-local test-frontend test-all dev down
 
 dev:
 	docker compose up -d
@@ -22,16 +22,7 @@ test-backend-local:
 test-frontend:
 	docker compose -f docker-compose.test.yml run --rm frontend_test
 
-test-e2e:
-	docker compose up -d
-	cd e2e && npm install && npx playwright install chromium --with-deps
-	cd e2e && npx playwright test --reporter=list
-	docker compose down
+# E2E targets removed (TSK-013 opción A): el directorio e2e/ no existe.
+# Cuando haya Playwright real, reintroducir targets con contenido.
 
-test-e2e-ui:
-	cd e2e && npx playwright test --ui
-
-test-e2e-debug:
-	cd e2e && npx playwright test --debug
-
-test-all: test-backend test-frontend test-e2e
+test-all: test-backend test-backend-integration test-frontend
