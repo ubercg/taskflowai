@@ -1,35 +1,38 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import useSWR from 'swr';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../store/authStore';
 import api from '../services/api/client';
 import { getProjects } from '../services/api';
 import TaskModal from '../features/execution/TaskModal';
 import TimeLogWidget from '../features/operations/TimeLogWidget';
-import { formatCalendarShortEs } from '../utils/dateUtils';
+import { formatCalendarShort } from '../utils/dateUtils';
+import { taskStatusLabel, taskPriorityLabel } from '../i18n/enums';
 import { Button } from '../components/ui';
 import { cn } from '../lib/cn';
 
 const STATUS_ORDER = ['in_progress', 'blocked', 'review', 'todo', 'backlog', 'done'];
 
 // Clases estáticas por estado (para que Tailwind las detecte en el build).
+// Labels viven en i18n/enums — no duplicar literales aquí (TSK-018).
 const STATUS_META = {
-  in_progress: { label: 'En progreso', icon: '🔵', text: 'text-status-in_progress', headerBg: 'bg-status-in_progress/10', border: 'border-status-in_progress/30' },
-  todo: { label: 'Por hacer', icon: '🟡', text: 'text-priority-medium', headerBg: 'bg-priority-medium/10', border: 'border-priority-medium/30' },
-  blocked: { label: 'Bloqueadas', icon: '🔴', text: 'text-status-blocked', headerBg: 'bg-status-blocked/10', border: 'border-status-blocked/30' },
-  review: { label: 'En revisión', icon: '🟣', text: 'text-status-review', headerBg: 'bg-status-review/10', border: 'border-status-review/30' },
-  backlog: { label: 'Backlog', icon: '⚪', text: 'text-muted', headerBg: 'bg-raised', border: 'border-border' },
-  done: { label: 'Completadas', icon: '✅', text: 'text-status-done', headerBg: 'bg-status-done/10', border: 'border-status-done/30' },
+  in_progress: { icon: '🔵', text: 'text-status-in_progress', headerBg: 'bg-status-in_progress/10', border: 'border-status-in_progress/30' },
+  todo: { icon: '🟡', text: 'text-priority-medium', headerBg: 'bg-priority-medium/10', border: 'border-priority-medium/30' },
+  blocked: { icon: '🔴', text: 'text-status-blocked', headerBg: 'bg-status-blocked/10', border: 'border-status-blocked/30' },
+  review: { icon: '🟣', text: 'text-status-review', headerBg: 'bg-status-review/10', border: 'border-status-review/30' },
+  backlog: { icon: '⚪', text: 'text-muted', headerBg: 'bg-raised', border: 'border-border' },
+  done: { icon: '✅', text: 'text-status-done', headerBg: 'bg-status-done/10', border: 'border-status-done/30' },
 };
 
-const PRIORITY_INFO = {
-  critical: { label: 'Crítica', dot: '#ef4444' },
-  high: { label: 'Alta', dot: '#f97316' },
-  medium: { label: 'Media', dot: '#eab308' },
-  low: { label: 'Baja', dot: '#22c55e' },
+const PRIORITY_DOT = {
+  critical: '#ef4444',
+  high: '#f97316',
+  medium: '#eab308',
+  low: '#22c55e',
 };
 
-const getPriorityInfo = (priority) => PRIORITY_INFO[priority] || PRIORITY_INFO.medium;
+const getPriorityDot = (priority) => PRIORITY_DOT[priority] || PRIORITY_DOT.medium;
 
 function isCompletedToday(iso) {
   if (!iso) return false;
@@ -49,12 +52,15 @@ const RegisterButton = ({ onClick }) => (
 );
 
 function TaskRow({ task, detailed, projectName, onOpen, onLogTime }) {
-  const pInfo = getPriorityInfo(task.priority);
+  const { t } = useTranslation();
+  const priority = task.priority || 'medium';
+  const priorityDot = getPriorityDot(priority);
+  const priorityLabel = taskPriorityLabel(priority);
   return (
     <div className="flex items-center justify-between border-t border-hairline p-4">
       <div className="min-w-0 flex-1">
         <div className="mb-2 flex items-center gap-2">
-          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: pInfo.dot }} title={pInfo.label} />
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: priorityDot }} title={priorityLabel} />
           <h4 onClick={() => onOpen(task.id)} className="cursor-pointer text-[15px] font-medium text-fg hover:underline">
             {task.title}
           </h4>
@@ -65,7 +71,7 @@ function TaskRow({ task, detailed, projectName, onOpen, onLogTime }) {
             {task.objective_id && (
               <span className="rounded-full bg-status-review/15 px-1.5 py-0.5 font-semibold text-status-review">🎯 OKR #{task.objective_id}</span>
             )}
-            <span>📅 {task.due_date ? formatCalendarShortEs(task.due_date) : 'Sin fecha'}</span>
+            <span>📅 {task.due_date ? formatCalendarShort(task.due_date) : t('common.noDate')}</span>
           </div>
         )}
       </div>
@@ -84,6 +90,8 @@ function TaskRow({ task, detailed, projectName, onOpen, onLogTime }) {
 }
 
 const MyTasksPage = () => {
+  // Subscribe so enum labels / dates re-render on locale change (TSK-018).
+  useTranslation();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('status');
   const [expandedSections, setExpandedSections] = useState({});
@@ -256,7 +264,7 @@ const MyTasksPage = () => {
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-base">{meta.icon}</span>
-                      <span className={cn('text-[15px] font-semibold', meta.text)}>{meta.label} ({groupTasks.length})</span>
+                      <span className={cn('text-[15px] font-semibold', meta.text)}>{taskStatusLabel(status)} ({groupTasks.length})</span>
                     </div>
                     <svg
                       width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -306,13 +314,13 @@ const MyTasksPage = () => {
             ['critical', 'high', 'medium', 'low'].map((priority) => {
               const groupTasks = groupedByPriority[priority] || [];
               if (groupTasks.length === 0) return null;
-              const pInfo = getPriorityInfo(priority);
+              const priorityDot = getPriorityDot(priority);
 
               return (
                 <div key={priority} className="overflow-hidden rounded-xl border border-border bg-surface">
                   <div className="flex items-center gap-2 border-b border-border bg-raised p-4 font-semibold text-fg">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: pInfo.dot }} />
-                    {pInfo.label} ({groupTasks.length})
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: priorityDot }} />
+                    {taskPriorityLabel(priority)} ({groupTasks.length})
                   </div>
                   <div className="flex flex-col">
                     {groupTasks.map((task) => (

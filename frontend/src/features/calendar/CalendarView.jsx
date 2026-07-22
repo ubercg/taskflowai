@@ -14,7 +14,8 @@ import {
   endOfWeek,
 } from 'date-fns';
 import { getCalendarTasks } from '../../services/api';
-import { parseDateOnly } from '../../utils/dateUtils';
+import { parseDateOnly, formatLocalized } from '../../utils/dateUtils';
+import { useLocale } from '../../store/localeStore';
 import CalendarPdfReport from './CalendarPdfReport';
 import { cn } from '../../lib/cn';
 
@@ -67,6 +68,7 @@ function TaskCard({ task, onClick }) {
 }
 
 function CalendarView({ projectId, onTaskClick }) {
+  useLocale();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [statusFilter, setStatusFilter] = useState('all');
   const [preparingPdf, setPreparingPdf] = useState(false);
@@ -118,7 +120,7 @@ function CalendarView({ projectId, onTaskClick }) {
       <div className="calendar-no-print mb-4 flex flex-wrap items-center gap-8 rounded-lg border border-border bg-surface px-6 py-4">
         <div className="flex items-center gap-2">
           <button onClick={() => setCurrentMonth((m) => subMonths(m, 1))} className={navBtn}>←</button>
-          <span className="min-w-[140px] text-center font-semibold capitalize text-fg">{format(currentMonth, 'MMMM yyyy')}</span>
+          <span className="min-w-[140px] text-center font-semibold capitalize text-fg">{formatLocalized(currentMonth, 'MMMM yyyy')}</span>
           <button onClick={() => setCurrentMonth((m) => addMonths(m, 1))} className={navBtn}>→</button>
         </div>
 
@@ -161,7 +163,7 @@ function CalendarView({ projectId, onTaskClick }) {
 
       <div className="calendar-print-area flex-1 overflow-auto rounded-lg border border-border bg-surface">
         <div className="calendar-print-header border-b border-border px-4 py-3 text-[1.1rem] font-bold text-fg">
-          Calendario — {format(currentMonth, 'MMMM yyyy')}
+          Calendario — {formatLocalized(currentMonth, 'MMMM yyyy')}
         </div>
         <div className="grid grid-cols-7 border-b-2 border-border">
           {DAY_HEADERS.map((day) => (
@@ -191,7 +193,7 @@ function CalendarView({ projectId, onTaskClick }) {
                   )}
                 >
                   <div className={cn('mb-1 text-xs', today ? 'font-bold text-accent' : inMonth ? 'text-fg' : 'text-faint opacity-40')}>
-                    {format(day, 'd')} {format(day, 'MMM').toUpperCase()}
+                    {format(day, 'd')} {formatLocalized(day, 'MMM').toUpperCase()}
                   </div>
                   <div>
                     {visible.map((task) => (

@@ -2,6 +2,7 @@ import { useAuth } from '../../store/authStore';
 import { useTheme } from '../../store/themeStore';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/cn';
+import LanguageSelector from './LanguageSelector';
 
 const ROLE_BADGE = {
   admin: 'bg-accent-soft text-accent',
@@ -58,6 +59,8 @@ const UserMenu = () => {
           </span>
         </div>
       </div>
+
+      <LanguageSelector className="w-full justify-center" />
 
       <button
         onClick={toggleTheme}

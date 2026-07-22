@@ -1,0 +1,56 @@
+{
+  "common": {
+    "all": "All",
+    "language": "Language",
+    "noDate": "No date"
+  },
+  "language": {
+    "es": "Español",
+    "en": "English"
+  },
+  "enums": {
+    "task": {
+      "status": {
+        "backlog": "Backlog",
+        "todo": "To do",
+        "in_progress": "In progress",
+        "review": "In review",
+        "blocked": "Blocked",
+        "done": "Done"
+      },
+      "priority": {
+        "critical": "Critical",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "type": {
+        "task": "Task",
+        "subtask": "Subtask",
+        "activity": "Activity"
+      }
+    },
+    "project": {
+      "status": {
+        "active": "Active",
+        "archived": "Archived",
+        "completed": "Completed",
+        "on_hold": "On hold"
+      }
+    },
+    "user": {
+      "role": {
+        "admin": "Admin",
+        "manager": "Manager",
+        "developer": "Developer",
+        "viewer": "Viewer"
+      }
+    },
+    "milestone": {
+      "status": {
+        "pending": "Pending",
+        "completed": "Completed"
+      }
+    }
+  }
+}
