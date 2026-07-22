@@ -110,3 +110,22 @@ def check_project_access(
     if require_ownership and member.role not in ("admin", "manager"):
         raise api_error(403, "PROJECT_MANAGER_REQUIRED", "Se requiere rol de manager en este proyecto")
     return member
+
+
+def accessible_project_ids(db: Session, current_user):
+    """
+    Project ids the caller may see in list endpoints without an explicit project_id.
+
+    Returns None for global admins (unrestricted). Returns [] when the user
+    has no memberships. Same visibility rule as read_projects.
+    """
+    if current_user.role == "admin":
+        return None
+    from app.models.models import ProjectMember
+
+    rows = (
+        db.query(ProjectMember.project_id)
+        .filter(ProjectMember.user_id == current_user.id)
+        .all()
+    )
+    return [r[0] for r in rows]
