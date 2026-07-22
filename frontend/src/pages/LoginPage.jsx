@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
 import { Button, Input } from '../components/ui';
 import { cn } from '../lib/cn';
+import LanguageSelector from '../components/shared/LanguageSelector';
 
 const FEATURES = [
   { icon: '⚡', label: 'Kanban con límites WIP inteligentes' },
@@ -51,7 +52,10 @@ const LoginPage = () => {
       </div>
 
       {/* Columna derecha (formulario) */}
-      <div className="flex flex-1 flex-col items-center justify-center bg-surface p-8">
+      <div className="relative flex flex-1 flex-col items-center justify-center bg-surface p-8">
+        <div className="absolute right-6 top-6">
+          <LanguageSelector />
+        </div>
         <div className="w-full max-w-[380px]">
           <h2 className="mb-2 text-2xl font-bold tracking-tight text-fg">Bienvenido de vuelta</h2>
           <p className="mb-8 text-[15px] text-muted">Inicia sesión en tu workspace</p>

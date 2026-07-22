@@ -1,5 +1,6 @@
-import { format, addMonths, subMonths } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { addMonths, subMonths } from 'date-fns';
+import { formatLocalized } from '../../utils/dateUtils';
+import { useLocale } from '../../store/localeStore';
 
 /**
  * Selector de mes para el dashboard de métricas.
@@ -7,10 +8,13 @@ import { es } from 'date-fns/locale';
  * @param {{ value: Date, onChange: (date: Date) => void }} props
  */
 const MonthSelector = ({ value, onChange }) => {
+  // Re-render when locale changes so month names follow i18n (TSK-018).
+  useLocale();
+
   const handlePrev = () => onChange(subMonths(value, 1));
   const handleNext = () => onChange(addMonths(value, 1));
 
-  const label = format(value, 'MMMM yyyy', { locale: es });
+  const label = formatLocalized(value, 'MMMM yyyy');
   const navBtn =
     'rounded-md border border-border px-3 py-1.5 text-base leading-none text-muted transition-colors hover:bg-raised hover:text-fg';
 

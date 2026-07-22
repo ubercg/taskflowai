@@ -2,7 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getAdminUserTasks, getAdminUserStats } from '../../services/api';
+import { taskStatusLabel } from '../../i18n/enums';
 import { cn } from '../../lib/cn';
 
 const getInitials = (name) => {
@@ -11,16 +13,17 @@ const getInitials = (name) => {
   return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
 };
 
-const FILTERS = [
-  { id: 'all', label: 'Todas' },
-  { id: 'in_progress', label: 'En Progreso' },
-  { id: 'blocked', label: 'Bloqueadas' },
-  { id: 'done', label: 'Completadas' },
-];
+const FILTER_IDS = ['all', 'in_progress', 'blocked', 'done'];
 
 const UserTasksDrawer = ({ user, onClose }) => {
+  const { t } = useTranslation();
   const [filterStatus, setFilterStatus] = useState('all');
   const [isOpen, setIsOpen] = useState(false);
+
+  const filters = FILTER_IDS.map((id) => ({
+    id,
+    label: id === 'all' ? t('common.all') : taskStatusLabel(id),
+  }));
 
   useEffect(() => {
     requestAnimationFrame(() => setIsOpen(true));
@@ -96,7 +99,7 @@ const UserTasksDrawer = ({ user, onClose }) => {
 
         {/* Filtros */}
         <div className="flex gap-2 border-b border-border px-6 py-4">
-          {FILTERS.map((f) => (
+          {filters.map((f) => (
             <button
               key={f.id}
               onClick={() => setFilterStatus(f.id)}

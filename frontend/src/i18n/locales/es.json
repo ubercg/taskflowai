@@ -1,0 +1,56 @@
+{
+  "common": {
+    "all": "Todas",
+    "language": "Idioma",
+    "noDate": "Sin fecha"
+  },
+  "language": {
+    "es": "Español",
+    "en": "English"
+  },
+  "enums": {
+    "task": {
+      "status": {
+        "backlog": "Backlog",
+        "todo": "Por hacer",
+        "in_progress": "En progreso",
+        "review": "En revisión",
+        "blocked": "Bloqueadas",
+        "done": "Completadas"
+      },
+      "priority": {
+        "critical": "Crítica",
+        "high": "Alta",
+        "medium": "Media",
+        "low": "Baja"
+      },
+      "type": {
+        "task": "Tarea",
+        "subtask": "Subtarea",
+        "activity": "Actividad"
+      }
+    },
+    "project": {
+      "status": {
+        "active": "Activo",
+        "archived": "Archivado",
+        "completed": "Completado",
+        "on_hold": "En pausa"
+      }
+    },
+    "user": {
+      "role": {
+        "admin": "Admin",
+        "manager": "Manager",
+        "developer": "Developer",
+        "viewer": "Viewer"
+      }
+    },
+    "milestone": {
+      "status": {
+        "pending": "Pendiente",
+        "completed": "Completado"
+      }
+    }
+  }
+}
