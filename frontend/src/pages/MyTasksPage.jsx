@@ -41,15 +41,18 @@ function isCompletedToday(iso) {
   return d.toDateString() === new Date().toDateString();
 }
 
-const RegisterButton = ({ onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="rounded-md border border-border bg-canvas px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:bg-raised hover:text-fg"
-  >
-    ⏱ Registrar
-  </button>
-);
+const RegisterButton = ({ onClick }) => {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-md border border-border bg-canvas px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:bg-raised hover:text-fg"
+    >
+      {t('myTasks.register')}
+    </button>
+  );
+};
 
 function TaskRow({ task, detailed, projectName, onOpen, onLogTime }) {
   const { t } = useTranslation();
@@ -67,11 +70,20 @@ function TaskRow({ task, detailed, projectName, onOpen, onLogTime }) {
         </div>
         {detailed && (
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
-            <span>📁 {projectName}</span>
+            <span>
+              <span aria-hidden="true">📁 </span>
+              {projectName}
+            </span>
             {task.objective_id && (
-              <span className="rounded-full bg-status-review/15 px-1.5 py-0.5 font-semibold text-status-review">🎯 OKR #{task.objective_id}</span>
+              <span className="rounded-full bg-status-review/15 px-1.5 py-0.5 font-semibold text-status-review">
+                <span aria-hidden="true">🎯 </span>
+                {t('tasks.card.okr', { id: task.objective_id })}
+              </span>
             )}
-            <span>📅 {task.due_date ? formatCalendarShort(task.due_date) : t('common.noDate')}</span>
+            <span>
+              <span aria-hidden="true">📅 </span>
+              {task.due_date ? formatCalendarShort(task.due_date) : t('common.noDate')}
+            </span>
           </div>
         )}
       </div>
@@ -79,8 +91,12 @@ function TaskRow({ task, detailed, projectName, onOpen, onLogTime }) {
       <div className="flex shrink-0 items-center gap-4">
         {detailed && (
           <div className="text-right">
-            <div className="text-sm font-semibold text-fg">{task.logged_hours || 0}h</div>
-            <div className="text-[11px] text-faint">/ {task.estimated_hours ?? '-'}h est.</div>
+            <div className="text-sm font-semibold text-fg">
+              {t('myTasks.loggedHours', { hours: task.logged_hours || 0 })}
+            </div>
+            <div className="text-[11px] text-faint">
+              {t('myTasks.estimatedHours', { hours: task.estimated_hours ?? '-' })}
+            </div>
           </div>
         )}
         <RegisterButton onClick={(e) => onLogTime(e, task.id)} />
@@ -90,8 +106,7 @@ function TaskRow({ task, detailed, projectName, onOpen, onLogTime }) {
 }
 
 const MyTasksPage = () => {
-  // Subscribe so enum labels / dates re-render on locale change (TSK-018).
-  useTranslation();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('status');
   const [expandedSections, setExpandedSections] = useState({});
@@ -178,47 +193,57 @@ const MyTasksPage = () => {
   const handleLogged = (newLog) => {
     const list = tasks || [];
     mutate(list.map((t) => (t.id === newLog.task_id ? { ...t, logged_hours: (t.logged_hours || 0) + newLog.hours } : t)), false);
-    alert(`✓ ${newLog.hours}h registradas en la tarea`);
+    alert(t('myTasks.hoursLogged', { hours: newLog.hours }));
     mutate();
   };
 
-  if (isLoading) return <div className="p-8 text-muted">Cargando tus tareas...</div>;
+  if (isLoading) return <div className="p-8 text-muted">{t('myTasks.loading')}</div>;
 
-  const firstName = user?.name?.split(' ')[0] ?? 'Usuario';
+  const firstName = user?.name?.split(' ')[0] ?? t('myTasks.userFallback');
+
+  const tabLabel = {
+    status: t('myTasks.tabs.status'),
+    project: t('myTasks.tabs.project'),
+    priority: t('myTasks.tabs.priority'),
+  };
 
   return (
     <div className="mx-auto max-w-[1000px] px-4">
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="mb-1 text-[28px] font-semibold tracking-tight text-fg">Mis Tareas</h1>
-          <p className="text-[15px] text-muted">Hola, {firstName} 👋</p>
+          <h1 className="mb-1 text-[28px] font-semibold tracking-tight text-fg">{t('nav.myTasks')}</h1>
+          <p className="text-[15px] text-muted">{t('myTasks.greeting', { name: firstName })}</p>
         </div>
       </div>
 
       {/* KPIs */}
       <div className="mb-7 grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
         <div className="flex flex-col gap-1 rounded-[10px] border border-status-in_progress/30 bg-status-in_progress/10 px-4 py-3.5">
-          <span className="text-xs font-semibold text-status-in_progress">En progreso</span>
+          <span className="text-xs font-semibold text-status-in_progress">{taskStatusLabel('in_progress')}</span>
           <span className="text-[26px] font-bold leading-none text-status-in_progress">{stats.inProgress}</span>
         </div>
         <div className="flex flex-col gap-1 rounded-[10px] border border-priority-medium/30 bg-priority-medium/10 px-4 py-3.5">
-          <span className="text-xs font-semibold text-priority-medium">Por hacer</span>
+          <span className="text-xs font-semibold text-priority-medium">{taskStatusLabel('todo')}</span>
           <span className="text-[26px] font-bold leading-none text-priority-medium">{stats.todo}</span>
         </div>
         <div className="flex flex-col gap-1 rounded-[10px] border border-status-done/30 bg-status-done/10 px-4 py-3.5">
-          <span className="text-xs font-semibold text-status-done">Completadas hoy</span>
+          <span className="text-xs font-semibold text-status-done">{t('myTasks.kpi.doneToday')}</span>
           <span className="text-[26px] font-bold leading-none text-status-done">{stats.doneToday}</span>
         </div>
         <div className="flex flex-col gap-1 rounded-[10px] border border-border bg-surface px-4 py-3.5">
-          <span className="text-xs font-semibold text-muted">Horas esta semana</span>
+          <span className="text-xs font-semibold text-muted">{t('myTasks.kpi.hoursWeek')}</span>
           <span className="text-[26px] font-bold leading-none text-fg">
-            {typeof stats.hoursWeek === 'number' ? stats.hoursWeek.toFixed(1) : '0'}h
+            {t('myTasks.loggedHours', {
+              hours: typeof stats.hoursWeek === 'number' ? stats.hoursWeek.toFixed(1) : '0',
+            })}
           </span>
         </div>
       </div>
 
       <p className="-mt-3 mb-6 text-[13px] text-muted">
-        {stats.total === 0 ? 'No tienes tareas asignadas.' : `${stats.total} tarea${stats.total === 1 ? '' : 's'} asignada${stats.total === 1 ? '' : 's'}`}
+        {stats.total === 0
+          ? t('myTasks.emptyAssigned')
+          : t('myTasks.assignedCount', { count: stats.total })}
       </p>
 
       {/* Tabs */}
@@ -233,18 +258,18 @@ const MyTasksPage = () => {
               activeTab === tab ? 'border-border bg-surface text-fg shadow-soft' : 'border-transparent text-muted hover:text-fg',
             )}
           >
-            Por {tab === 'status' ? 'Estado' : tab === 'project' ? 'Proyecto' : 'Prioridad'}
+            {tabLabel[tab]}
           </button>
         ))}
       </div>
 
       {myTasks.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-surface p-16 text-center">
-          <div className="mb-4 text-5xl">🎉</div>
-          <h3 className="mb-2 text-lg font-semibold text-fg">No tienes tareas asignadas</h3>
-          <p className="mb-6 text-sm text-muted">Tu bandeja está limpia. Disfruta tu día o busca algo en qué trabajar.</p>
+          <div className="mb-4 text-5xl" aria-hidden="true">🎉</div>
+          <h3 className="mb-2 text-lg font-semibold text-fg">{t('myTasks.empty.title')}</h3>
+          <p className="mb-6 text-sm text-muted">{t('myTasks.empty.body')}</p>
           <Link to="/projects">
-            <Button>Ver todos los proyectos</Button>
+            <Button>{t('myTasks.empty.cta')}</Button>
           </Link>
         </div>
       ) : (
@@ -263,8 +288,10 @@ const MyTasksPage = () => {
                     className={cn('flex w-full items-center justify-between p-4 text-left', meta.headerBg)}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-base">{meta.icon}</span>
-                      <span className={cn('text-[15px] font-semibold', meta.text)}>{taskStatusLabel(status)} ({groupTasks.length})</span>
+                      <span className="text-base" aria-hidden="true">{meta.icon}</span>
+                      <span className={cn('text-[15px] font-semibold', meta.text)}>
+                        {taskStatusLabel(status)} {t('myTasks.groupCount', { count: groupTasks.length })}
+                      </span>
                     </div>
                     <svg
                       width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -276,7 +303,7 @@ const MyTasksPage = () => {
 
                   {isExpanded &&
                     (groupTasks.length === 0 ? (
-                      <div className="border-t border-hairline p-5 text-center text-[13px] text-faint">No hay tareas en este estado</div>
+                      <div className="border-t border-hairline p-5 text-center text-[13px] text-faint">{t('myTasks.emptyStatus')}</div>
                     ) : (
                       <div className="flex flex-col">
                         {groupTasks.map((task) => (
@@ -284,7 +311,7 @@ const MyTasksPage = () => {
                             key={task.id}
                             task={task}
                             detailed
-                            projectName={projectNameById[task.project_id] || `Proyecto ${task.project_id}`}
+                            projectName={projectNameById[task.project_id] || t('myTasks.projectFallback', { id: task.project_id })}
                             onOpen={openDetail}
                             onLogTime={openWidget}
                           />
@@ -297,10 +324,13 @@ const MyTasksPage = () => {
 
           {activeTab === 'project' &&
             Object.entries(groupedByProjectId).map(([projectId, groupTasks]) => {
-              const name = projectNameById[Number(projectId)] || `Proyecto ${projectId}`;
+              const name = projectNameById[Number(projectId)] || t('myTasks.projectFallback', { id: projectId });
               return (
                 <div key={projectId} className="overflow-hidden rounded-xl border border-border bg-surface">
-                  <div className="border-b border-border bg-raised p-4 font-semibold text-fg">📁 {name} ({groupTasks.length})</div>
+                  <div className="border-b border-border bg-raised p-4 font-semibold text-fg">
+                    <span aria-hidden="true">📁 </span>
+                    {name} {t('myTasks.groupCount', { count: groupTasks.length })}
+                  </div>
                   <div className="flex flex-col">
                     {groupTasks.map((task) => (
                       <TaskRow key={task.id} task={task} onOpen={openDetail} onLogTime={openWidget} />
@@ -320,7 +350,7 @@ const MyTasksPage = () => {
                 <div key={priority} className="overflow-hidden rounded-xl border border-border bg-surface">
                   <div className="flex items-center gap-2 border-b border-border bg-raised p-4 font-semibold text-fg">
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: priorityDot }} />
-                    {taskPriorityLabel(priority)} ({groupTasks.length})
+                    {taskPriorityLabel(priority)} {t('myTasks.groupCount', { count: groupTasks.length })}
                   </div>
                   <div className="flex flex-col">
                     {groupTasks.map((task) => (
@@ -335,7 +365,7 @@ const MyTasksPage = () => {
 
       {activeTimeLogWidget && <div onClick={closeWidget} className="fixed inset-0 z-[998]" />}
       {activeTimeLogWidget && widgetAnchor && (() => {
-        const activeTask = myTasks.find((t) => t.id === activeTimeLogWidget);
+        const activeTask = myTasks.find((task) => task.id === activeTimeLogWidget);
         return activeTask ? (
           <TimeLogWidget task={activeTask} anchor={widgetAnchor} onClose={closeWidget} onLogged={handleLogged} />
         ) : null;
