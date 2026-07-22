@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy import text
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from app.api.v1.endpoints.objectives import _PROGRESS_SELECT
@@ -14,10 +14,13 @@ from app.models.models import (
     ObjectiveComment,
     Project,
     ProjectKpi,
+    ProjectMember,
     ProjectStatus,
     Task,
     TaskStatus,
     TaskType,
+    User,
+    UserRole,
 )
 from app.schemas.sigao_schemas import (
     InitialKpiCreate,
@@ -32,7 +35,11 @@ from app.schemas.sigao_schemas import (
     ObjectiveCommentResponse,
     SigaoProjectCreate,
     SigaoProjectResponse,
+    SigaoProjectResponsibleResponse,
+    SigaoProjectResponsibleUpdate,
     SigaoProjectUpdate,
+    SigaoUserEnsure,
+    SigaoUserEnsureResponse,
 )
 from app.services.project_events import record_project_event
 from app.services.sigao_projects import (
@@ -121,6 +128,29 @@ def _build_kpi_objective_response(db: Session, objective_id: int) -> KpiObjectiv
 def _apply_status(project: Project, status: str | None) -> None:
     if status is not None:
         project.status = ProjectStatus(status)
+
+
+def _get_user_by_email_ci(db: Session, email: str) -> User | None:
+    """Case-insensitive email lookup (`User.email` has no DB-level CI collation)."""
+    return db.query(User).filter(func.lower(User.email) == email.lower()).first()
+
+
+def _ensure_sigao_user(db: Session, email: str, name: str) -> tuple[User, bool]:
+    """Find-or-create a User for SIGAO-driven flows.
+
+    New users are provisioned as global `developer` role with the model's
+    default `password_hash` (SIGAO users authenticate via the SIGAO SSO, not
+    TaskFlow's local password login) and `is_active=True`.
+    Returns (user, created).
+    """
+    existing = _get_user_by_email_ci(db, email)
+    if existing:
+        return existing, False
+
+    user = User(email=email, name=name, role=UserRole.developer, is_active=True)
+    db.add(user)
+    db.flush()
+    return user, True
 
 
 def _seed_kpi_hitos(
@@ -635,3 +665,80 @@ def create_objective_comment(
     db.commit()
     db.refresh(comment)
     return comment
+
+
+# ---------------------------------------------------------------------------
+# REQ-024: user provisioning / project responsible sync
+# ---------------------------------------------------------------------------
+
+
+@router.post("/users/ensure", response_model=SigaoUserEnsureResponse)
+def ensure_sigao_user(payload: SigaoUserEnsure, db: Session = Depends(get_db)):
+    user, created = _ensure_sigao_user(db, payload.email, payload.name)
+    db.commit()
+    db.refresh(user)
+    return SigaoUserEnsureResponse(
+        id=user.id, email=user.email, name=user.name, created=created
+    )
+
+
+@router.put(
+    "/projects/{external_uuid}/responsible",
+    response_model=SigaoProjectResponsibleResponse,
+)
+def set_sigao_project_responsible(
+    external_uuid: UUID,
+    payload: SigaoProjectResponsibleUpdate,
+    db: Session = Depends(get_db),
+):
+    project = get_project_by_external_uuid(db, external_uuid)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    user, _created = _ensure_sigao_user(db, payload.email, payload.name)
+    project.responsible_name = payload.name
+
+    if payload.previous_email:
+        previous_user = _get_user_by_email_ci(db, payload.previous_email)
+        if previous_user and previous_user.id != user.id:
+            previous_member = (
+                db.query(ProjectMember)
+                .filter(
+                    ProjectMember.project_id == project.id,
+                    ProjectMember.user_id == previous_user.id,
+                    ProjectMember.role == UserRole.manager,
+                )
+                .first()
+            )
+            if previous_member:
+                previous_member.role = UserRole.developer
+
+    member = (
+        db.query(ProjectMember)
+        .filter(
+            ProjectMember.project_id == project.id,
+            ProjectMember.user_id == user.id,
+        )
+        .first()
+    )
+    if member:
+        member.role = UserRole.manager
+    else:
+        db.add(
+            ProjectMember(
+                project_id=project.id, user_id=user.id, role=UserRole.manager
+            )
+        )
+
+    record_project_event(
+        db,
+        project_id=project.id,
+        event_type="project_responsible_updated",
+        summary=f"Responsable del proyecto «{project.name}» actualizado a {payload.name}",
+        payload={"email": payload.email, "previous_email": payload.previous_email},
+    )
+
+    db.commit()
+    return SigaoProjectResponsibleResponse(
+        user_id=user.id, email=user.email, role="manager", project_id=project.id
+    )
