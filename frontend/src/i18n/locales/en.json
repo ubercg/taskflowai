@@ -479,6 +479,93 @@
       "hoursLoggedOnly": "{{logged}}h logged"
     }
   },
+  "metrics": {
+    "page": {
+      "exportPdf": "Export PDF"
+    },
+    "dashboard": {
+      "loading": "Analyzing flow metrics..."
+    },
+    "kpi": {
+      "leadTime": {
+        "title": "Lead Time",
+        "subtitle": "Average since creation"
+      },
+      "cycleTime": {
+        "title": "Cycle Time",
+        "subtitle": "Average since start"
+      },
+      "throughput": {
+        "title": "Throughput",
+        "subtitle": "Completed tasks / week"
+      },
+      "wip": {
+        "title": "Current WIP",
+        "subtitleActive": "Tasks in progress",
+        "subtitleInactive": "Current month only"
+      }
+    },
+    "summary": {
+      "title": "Daily Summary",
+      "refresh": "Refresh",
+      "retry": "Retry",
+      "errorTitle": "Could not generate the smart summary.",
+      "noActivity": "No activity recorded in the last 24 hours",
+      "generatedInSpanish": "Generated in Spanish",
+      "categories": {
+        "blocked": "Blocked",
+        "advanced": "Advanced",
+        "risks": "At Risk"
+      },
+      "detailTitle": "Task details",
+      "detailEmpty": "No tasks in this category.",
+      "blockedSince": "Time blocked: {{time}}",
+      "movedFromTo": "Moved: {{from}} → {{to}}"
+    },
+    "charts": {
+      "burndown": {
+        "title": "Burndown Chart",
+        "empty": "No tasks with a due date in this period.",
+        "idealLine": "Ideal Pace",
+        "realLine": "Actual Progress"
+      },
+      "velocity": {
+        "title": "Velocity by User",
+        "empty": "No velocity data for this period.",
+        "completedTasks": "Completed tasks"
+      },
+      "aging": {
+        "title": "Aging (Average hours per Status)",
+        "empty": "No aging data available.",
+        "onlyCurrentMonth": "Aging is only available for the current month.",
+        "selectCurrentMonthHint": "Select the current month to see aging data.",
+        "tooltipAverage": "Average",
+        "tooltipValue": "{{value}} hrs"
+      }
+    }
+  },
+  "calendar": {
+    "view": {
+      "title": "Project Calendar",
+      "noProject": "Please select a project to view the calendar.",
+      "filterByDate": "Filter by date:",
+      "filterByStatus": "Filter by status:",
+      "allStatuses": "All statuses",
+      "clearFilters": "Clear Filters",
+      "exportPdf": "Export PDF",
+      "exportingPdf": "Preparing…",
+      "exportPdfTitle": "Export the calendar and metrics to PDF (landscape)",
+      "loading": "Loading...",
+      "loadError": "Error loading tasks.",
+      "printHeader": "Calendar — {{month}}",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "overflowMore": "+{{count}} more"
+    },
+    "pdf": {
+      "metricsTitle": "Project Metrics"
+    }
+  },
   "enums": {
     "task": {
       "status": {

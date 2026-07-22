@@ -21,6 +21,7 @@ vi.mock('../../../services/api', () => ({
 import { SWRConfig } from 'swr';
 import CalendarView from '../CalendarView';
 import { getCalendarTasks, getVelocity, getBurndown } from '../../../services/api';
+import i18n from '../../../i18n';
 
 describe('CalendarView', () => {
   beforeEach(() => {
@@ -33,7 +34,7 @@ describe('CalendarView', () => {
 
   it('displays a message if no project is selected', () => {
     render(<CalendarView projectId={null} />);
-    expect(screen.getByText('Por favor selecciona un proyecto para ver el calendario.')).toBeInTheDocument();
+    expect(screen.getByText(i18n.t('calendar.view.noProject'))).toBeInTheDocument();
   });
 
   it('fetches tasks for the visible month range and renders components', async () => {
@@ -56,7 +57,7 @@ describe('CalendarView', () => {
     );
 
     // Renders the CalendarView shell
-    expect(screen.getByText('Calendario del Proyecto')).toBeInTheDocument();
+    expect(screen.getByText(i18n.t('calendar.view.title'))).toBeInTheDocument();
     
     // Calculates range correctly
     const expectedStart = format(startOfMonth(new Date(2026, 5, 16)), 'yyyy-MM-dd');
@@ -122,7 +123,7 @@ describe('CalendarView', () => {
     fireEvent.click(exportBtn);
 
     // The metrics report is mounted off-screen for the PDF.
-    expect(await screen.findByText('Métricas del Proyecto')).toBeInTheDocument();
+    expect(await screen.findByText(i18n.t('calendar.pdf.metricsTitle'))).toBeInTheDocument();
     expect(document.querySelector('.calendar-pdf-report')).toBeInTheDocument();
 
     // print() fires only after the report signals its data is ready.
@@ -154,7 +155,7 @@ describe('CalendarView', () => {
     fireEvent.click(exportBtn);
 
     // Wait for the report to appear (CalendarPdfReport mounted)
-    await screen.findByText('Métricas del Proyecto');
+    await screen.findByText(i18n.t('calendar.pdf.metricsTitle'));
 
     // Half-open range for metrics: start = 2026-06-01, end = 2026-07-01 (first of next month)
     const metricsStart = format(startOfMonth(new Date(2026, 5, 16)), 'yyyy-MM-dd'); // '2026-06-01'
@@ -209,7 +210,7 @@ describe('CalendarView', () => {
     expect(within(printOnly).getByText('Daily Task 5')).toBeInTheDocument();
 
     // The "+N más" badge is hidden from the PDF.
-    const moreBadge = screen.getByText('+2 más');
+    const moreBadge = screen.getByText(i18n.t('calendar.view.overflowMore', { count: 2 }));
     expect(moreBadge).toHaveClass('calendar-no-print');
   });
 });
