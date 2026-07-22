@@ -16,6 +16,8 @@ Catálogos: `frontend/src/i18n/locales/{es,en}.json`.
 | `objectives.*` | Formulario OKR, panel de tareas del objetivo y chart de progreso |
 | `execution.*` | Tablero Kanban: `BoardPage` (header/tabs), `KanbanBoard`/`KanbanColumn` (columnas, WIP, bottleneck), `WipToast`, `TaskListView` |
 | `tasks.*` | Formulario y detalle de tarea: `TaskFormModal` (`tasks.form.*`), `TaskModal` (`tasks.detail.*`), `TaskCard` (`tasks.card.*`) |
+| `metrics.*` | Dashboard de métricas: `MetricsPage`, `MetricsDashboard` (KPIs), `DailySummary`, charts de `features/analytics/charts/*` |
+| `calendar.*` | Calendario del proyecto: `CalendarView`, `CalendarDaySidebar`, bloque de métricas del PDF (`CalendarPdfReport`) |
 | `enums.*` | Etiquetas de enums (vía `i18n/enums.js`) |
 | `language.*` | Nombres de idiomas en el selector |
 | `errors.*` | Reservado para TSK-021 (`errors.{CODE}`) |
@@ -103,6 +105,76 @@ Usar `t()` por defecto. `<Trans>` **sólo** cuando la frase lleva markup embebid
 ```
 
 La regla de fondo es la misma que en interpolación: **una frase, una clave.** Los fragmentos sueltos no se pueden traducir bien porque el traductor no ve la oración completa.
+
+## Fechas y horas: nunca locale hardcodeado (RN-011)
+
+Nombres de mes/día y formatos `toLocaleDateString`/`toLocaleTimeString` deben
+seguir el locale activo de i18n, nunca `'es'` / `'es-ES'` fijo:
+
+- Nombres de mes/día (`MonthSelector`, grilla de `CalendarView`): `formatLocalized(date, pattern)` (`utils/dateUtils.js`), que aplica el locale de `date-fns` correspondiente (`es` / `enUS`).
+- `toLocaleTimeString` / `toLocaleDateString` nativos: `getBcp47Locale()` en vez de `[]` o un string fijo (ej. `DailySummary` — hora de generación del resumen).
+- Encabezados de día de semana (`CalendarView`, `LUN/MAR/...`) se derivan de `formatLocalized(day, 'EEE')` sobre la primera semana de la grilla, no de un array hardcodeado — así siguen el locale sin tocar el componente al agregar un idioma (RN-008).
+
+`CalendarPdfReport` no formatea fechas directamente (delega en los charts /
+`CalendarView`), pero sí debía traducir su propio copy (`"Métricas del
+Proyecto"` → `calendar.pdf.metricsTitle`, KPIs reusando `metrics.kpi.*`) para
+que el PDF exportado respete el idioma activo y no quede fijo en español
+mientras el resto de la UI está en otro idioma.
+
+## Charts (Recharts): nunca constantes a nivel de módulo
+
+Los charts (`features/analytics/charts/*`, y por extensión el bloque de métricas
+del PDF en `CalendarPdfReport`) resuelven `title`, `name` de series/barras y
+textos de tooltip/legend/empty-state con `t()` **dentro del render**, llamando
+`useTranslation()` en el propio componente (patrón de `OkrProgressChart`,
+replicado en TSK-020 slice 5 a `BurndownChart`, `VelocityChart`, `AgingChart`).
+
+```jsx
+// ✅ — se re-evalúa en cada render con el idioma activo
+const { t } = useTranslation();
+<Line dataKey="ideal" name={t('metrics.charts.burndown.idealLine')} />
+
+// ❌ — congela el string en el idioma que estaba activo al importar el módulo
+const LABELS = { ideal: 'Ritmo Ideal' };
+<Line dataKey="ideal" name={LABELS.ideal} />
+```
+
+`chartTheme.js` es la única excepción: solo expone paletas de color y clases
+CSS compartidas (`CHART_CARD`, `CHART_TITLE`, `CHART_EMPTY`), nunca copy
+traducible. Los mapas de color por status en `CalendarView`/`CalendarDaySidebar`
+(`STATUS_STYLE`) siguen el mismo criterio — guardan `bg`/`color`, nunca un
+`label`; la etiqueta se resuelve con `taskStatusLabel(status)` en el punto de uso.
+
+## Datos de negocio en español vs. copy de UI (RN-002)
+
+Algunos endpoints devuelven texto en español generado por el backend
+(rule-based o LLM), no copy de interfaz. El caso de referencia es
+`GET /api/v1/ai/daily-summary`, consumido por `DailySummary`:
+
+| Campo | Origen | ¿Se traduce en frontend? |
+|---|---|---|
+| `summary_text` | Rule-based o Gemini, siempre en español (`daily_summary.py`) | **No.** Es dato, no copy. |
+| `blocked.blocked_since` (ej. `"48h"`, `"reciente"`) | Rule-based, en español | **No.** Mismo criterio. |
+| `risks[].reason` (ej. `"Fecha límite vencida"`) | Rule-based, en español | **No.** Mismo criterio. |
+| `advanced[].from_status` / `to_status` | Código de enum (`todo`, `in_progress`, ...) | **Sí** — no es prosa, es un enum: se resuelve con `taskStatusLabel()`. |
+
+Regla: si el backend devuelve **prosa libre en español**, se renderiza tal
+cual (es un dato del dominio, como un nombre o un comentario de usuario) — no
+se le pasa por `t()` ni se intenta traducir client-side. Si el backend
+devuelve un **código de enum**, sí se traduce, porque el enum ya tiene
+catálogo en `enums.task.status.*`.
+
+Cuando el locale activo (`useLocale().locale`) no es `es` y se está mostrando
+`summary_text` real (no el fallback de "sin actividad", que sí está en el
+catálogo como `metrics.summary.noActivity`), `DailySummary` muestra un badge
+con la clave `metrics.summary.generatedInSpanish` para que quede claro que
+ese fragmento específico está en español aunque el resto de la UI esté en
+inglés. El chrome alrededor (título, botón de refresh, categorías, error,
+detalle) sí está 100% traducido.
+
+Si en el futuro se agrega traducción real de `summary_text` (vía LLM
+multi-idioma en el backend), este criterio se revisita — hoy es una decisión
+explícita de scope, no un olvido.
 
 ## Tests: buscar por clave, con red
 
