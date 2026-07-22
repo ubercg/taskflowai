@@ -19,7 +19,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.models.models import Base, UserRole
 from app.db.database import get_db
-from app.core.security import require_authenticated
+from app.core.security import require_authenticated, require_manager_or_above
 
 
 # ---------------------------------------------------------------------------
@@ -76,6 +76,7 @@ def client(sqlite_session):
 
     app.dependency_overrides[get_db] = _override_get_db
     app.dependency_overrides[require_authenticated] = _override_require_authenticated
+    app.dependency_overrides[require_manager_or_above] = _override_require_authenticated
 
     with TestClient(app) as tc:
         yield tc
@@ -101,6 +102,7 @@ def app_client_no_raise(sqlite_session):
 
     app.dependency_overrides[get_db] = _override_get_db
     app.dependency_overrides[require_authenticated] = _override_require_authenticated
+    app.dependency_overrides[require_manager_or_above] = _override_require_authenticated
 
     with TestClient(app, raise_server_exceptions=False) as tc:
         yield tc
