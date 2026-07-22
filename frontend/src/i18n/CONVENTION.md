@@ -11,6 +11,7 @@ Catálogos: `frontend/src/i18n/locales/{es,en}.json`.
 | `nav.*` | Ítems de navegación / sidebar |
 | `auth.*` | Login, sesión, unauthorized |
 | `profile.*` | Pantalla de perfil |
+| `users.*` | Listado, admin, formularios y drawer de tareas de usuario |
 | `enums.*` | Etiquetas de enums (vía `i18n/enums.js`) |
 | `language.*` | Nombres de idiomas en el selector |
 | `errors.*` | Reservado para TSK-021 (`errors.{CODE}`) |
@@ -97,6 +98,31 @@ Usar `t()` por defecto. `<Trans>` **sólo** cuando la frase lleva markup embebid
 ```
 
 La regla de fondo es la misma que en interpolación: **una frase, una clave.** Los fragmentos sueltos no se pueden traducir bien porque el traductor no ve la oración completa.
+
+## Tests: buscar por clave, con red
+
+Los tests resuelven el texto con `i18n.t('...')` en vez de hardcodear el copy, para que un retoque de redacción no rompa la suite.
+
+El riesgo de hacerlo así: componente y aserción resuelven **la misma clave por el mismo catálogo**. Si la clave falta, i18next devuelve la clave en ambos lados, coinciden, y el test pasa mientras la pantalla muestra `users.form.createTitle` como texto visible.
+
+Por eso `src/test/setup.js` hace que una clave faltante **lance**:
+
+```js
+i18n.options.parseMissingKeyHandler = (key) => {
+  throw new Error(`Missing i18n key: "${key}". …`)
+}
+```
+
+El fallo ocurre en el lookup, dentro del render, antes de que haya dos lados que comparar.
+
+**La paridad de catálogos no cubre esto.** Un typo como `t('users.form.creatTitle')` no existe en ningún idioma, así que `es` y `en` siguen sincronizados mientras la pantalla está rota. Son dos chequeos distintos:
+
+| Chequeo | Detecta |
+|---|---|
+| Paridad `es` ↔ `en` | clave en un idioma y no en el otro → fallback silencioso |
+| Guard de clave faltante | clave que no existe en ninguno → clave cruda en pantalla |
+
+Único caso donde una clave faltante es intencional: el test de RN-007, que verifica el fallback. Ese desactiva el guard y lo restaura en un `finally`.
 
 ## Emojis e iconos
 

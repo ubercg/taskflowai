@@ -1,4 +1,6 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/cn';
+import { userRoleLabel } from '../../i18n/enums';
 
 const getInitials = (name) => {
   if (!name) return '??';
@@ -14,6 +16,7 @@ const ROLE_BADGE = {
 };
 
 const UserCard = ({ user, velocity = {} }) => {
+  const { t } = useTranslation();
   const role = user.role || 'developer';
   const uColor = user.color || '#6366f1';
 
@@ -31,7 +34,6 @@ const UserCard = ({ user, velocity = {} }) => {
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 shadow-soft">
-      {/* Header */}
       <div className="relative flex items-center gap-4">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-xl font-semibold text-white" style={{ backgroundColor: uColor }}>
           {getInitials(user.name)}
@@ -45,15 +47,14 @@ const UserCard = ({ user, velocity = {} }) => {
           <h3 className="truncate text-base font-semibold text-fg">{user.name}</h3>
           <p className="mb-1.5 mt-0.5 truncate text-[13px] text-muted">{user.email}</p>
           <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize', ROLE_BADGE[role] || ROLE_BADGE.viewer)}>
-            {role}
+            {userRoleLabel(role)}
           </span>
         </div>
       </div>
 
-      {/* WIP Bar */}
       <div>
         <div className="mb-1.5 flex justify-between text-xs font-medium text-muted">
-          <span>WIP actual</span>
+          <span>{t('users.card.wipCurrent')}</span>
           <span className={cn(wip >= 3 && 'text-status-blocked')}>{wip} / {wipLimit}</span>
         </div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-border">
@@ -61,19 +62,18 @@ const UserCard = ({ user, velocity = {} }) => {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="flex flex-wrap gap-2 border-t border-hairline pt-4">
         <div className="flex-1 rounded-md bg-canvas p-2 text-center">
           <div className="text-base font-semibold text-fg">{completed}</div>
-          <div className="mt-0.5 text-[11px] text-muted">Completadas</div>
+          <div className="mt-0.5 text-[11px] text-muted">{t('users.card.completed')}</div>
         </div>
         <div className="flex-1 rounded-md bg-canvas p-2 text-center">
           <div className="text-base font-semibold text-fg">{wip}</div>
-          <div className="mt-0.5 text-[11px] text-muted">En Progreso</div>
+          <div className="mt-0.5 text-[11px] text-muted">{t('users.card.inProgress')}</div>
         </div>
         <div className="flex-1 rounded-md bg-canvas p-2 text-center">
-          <div className="text-base font-semibold text-fg">{totalHours}h</div>
-          <div className="mt-0.5 text-[11px] text-muted">Registradas</div>
+          <div className="text-base font-semibold text-fg">{t('users.card.hoursValue', { hours: totalHours })}</div>
+          <div className="mt-0.5 text-[11px] text-muted">{t('users.card.logged')}</div>
         </div>
       </div>
 

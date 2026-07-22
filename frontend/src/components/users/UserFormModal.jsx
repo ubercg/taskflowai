@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createAdminUser, updateAdminUser } from '../../services/api';
 import { Modal, Input, Select, Button } from '../ui';
 import { cn } from '../../lib/cn';
+import { userRoleLabel } from '../../i18n/enums';
 
 const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#f97316'];
 const LABEL = 'mb-1.5 block text-[13px] font-medium text-fg';
+const ROLE_OPTIONS = [
+  { value: 'admin', emoji: '⚡' },
+  { value: 'manager', emoji: '🎯' },
+  { value: 'developer', emoji: '💻' },
+  { value: 'viewer', emoji: '👁' },
+];
 
 const getInitials = (name) => {
   if (!name) return '';
@@ -13,6 +21,7 @@ const getInitials = (name) => {
 };
 
 const UserFormModal = ({ user, onClose, onSaved }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({ name: '', email: '', role: 'developer', color: COLORS[0], is_active: true });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,11 +36,11 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
     e.preventDefault();
     setError('');
 
-    if (formData.name.trim().length < 3) return setError('El nombre debe tener al menos 3 caracteres.');
-    if (!formData.email.trim()) return setError('El email es obligatorio.');
+    if (formData.name.trim().length < 3) return setError(t('users.form.errors.nameMin'));
+    if (!formData.email.trim()) return setError(t('users.form.errors.emailRequired'));
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) return setError('Formato de correo inválido.');
+    if (!emailRegex.test(formData.email)) return setError(t('users.form.errors.emailInvalid'));
 
     setIsSubmitting(true);
     try {
@@ -46,7 +55,7 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
       const d = err.response?.data?.detail;
       const msg = (typeof err.detail === 'string' && err.detail)
         || (typeof d === 'string' ? d : Array.isArray(d) ? d.map((e) => e.msg || JSON.stringify(e)).join(' ') : d?.detail ? d.detail : err.message);
-      setError(msg || 'Error al guardar el usuario.');
+      setError(msg || t('users.form.errors.save'));
     } finally {
       setIsSubmitting(false);
     }
@@ -57,7 +66,9 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
   return (
     <Modal open onClose={onClose} className="max-w-lg p-8">
       <div data-testid="user-form-modal">
-        <h2 className="mb-6 text-xl font-semibold text-fg">{isEdit ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
+        <h2 className="mb-6 text-xl font-semibold text-fg">
+          {isEdit ? t('users.form.editTitle') : t('users.form.createTitle')}
+        </h2>
 
         {error && (
           <div className="mb-5 rounded-md border border-status-blocked/40 bg-status-blocked/10 p-3 text-[13px] text-status-blocked">{error}</div>
@@ -69,23 +80,24 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
               {getInitials(formData.name) || '??'}
             </div>
             <div className="flex-1">
-              <label className={LABEL}>Nombre completo *</label>
-              <Input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ej: Jane Doe" />
+              <label className={LABEL}>{t('users.form.name.labelRequired')}</label>
+              <Input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder={t('users.form.name.placeholder')} />
             </div>
           </div>
 
           <div>
-            <label className={LABEL}>Email *</label>
-            <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="jane@example.com" />
+            <label className={LABEL}>{t('users.form.email.labelRequired')}</label>
+            <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder={t('users.form.email.placeholder')} />
           </div>
 
           <div>
-            <label className={LABEL}>Rol de sistema</label>
+            <label className={LABEL}>{t('users.form.systemRole.label')}</label>
             <Select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
-              <option value="admin">⚡ Admin</option>
-              <option value="manager">🎯 Manager</option>
-              <option value="developer">💻 Developer</option>
-              <option value="viewer">👁 Viewer</option>
+              {ROLE_OPTIONS.map(({ value, emoji }) => (
+                <option key={value} value={value}>
+                  {emoji} {userRoleLabel(value)}
+                </option>
+              ))}
             </Select>
           </div>
 
@@ -97,12 +109,12 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                 className="h-4 w-4 accent-[var(--color-accent)]"
               />
-              Usuario activo (puede iniciar sesión)
+              {t('users.form.activeCheckbox')}
             </label>
           )}
 
           <div>
-            <label className={LABEL}>Color de Avatar</label>
+            <label className={LABEL}>{t('users.form.color.label')}</label>
             <div className="flex gap-3">
               {COLORS.map((c) => (
                 <div
@@ -120,8 +132,14 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
           </div>
 
           <div className="mt-4 flex justify-end gap-3">
-            <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Guardando...' : isEdit ? 'Guardar Cambios' : 'Crear Usuario'}</Button>
+            <Button variant="secondary" onClick={onClose}>{t('common.actions.cancel')}</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting
+                ? t('users.form.saving')
+                : isEdit
+                  ? t('users.form.saveChanges')
+                  : t('users.form.create')}
+            </Button>
           </div>
         </form>
       </div>

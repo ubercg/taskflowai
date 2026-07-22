@@ -80,6 +80,114 @@
       "error": "Failed to update password"
     }
   },
+  "users": {
+    "title": "Users",
+    "subtitle": "Team management and capacity analysis (WIP).",
+    "adminTitle": "User Management",
+    "activeCount_one": "{{count}} active user in the system.",
+    "activeCount_other": "{{count}} active users in the system.",
+    "search": {
+      "placeholder": "Search user..."
+    },
+    "adminSearch": {
+      "placeholder": "Search by name or email..."
+    },
+    "newUser": "New User",
+    "loading": "Loading users...",
+    "loadError": "Failed to load users. Check the backend.",
+    "emptySearch": "No users match the search.",
+    "empty": "No users found.",
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "inactive": "Inactive",
+      "admins": "Admins"
+    },
+    "filters": {
+      "allRoles": "All roles",
+      "allActive": "All (Act/Inact)"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "table": {
+      "name": "Avatar + Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "wip": "WIP",
+      "projects": "Projects",
+      "actions": "Actions",
+      "edit": "Edit",
+      "viewTasks": "View tasks",
+      "deactivate": "Deactivate",
+      "activate": "Activate",
+      "delete": "Delete user"
+    },
+    "card": {
+      "wipCurrent": "Current WIP",
+      "completed": "Completed",
+      "inProgress": "In Progress",
+      "logged": "Logged",
+      "hoursValue": "{{hours}}h"
+    },
+    "form": {
+      "createTitle": "New User",
+      "editTitle": "Edit User",
+      "name": {
+        "label": "Full name",
+        "labelRequired": "Full name *",
+        "placeholder": "E.g.: Jane Doe"
+      },
+      "email": {
+        "label": "Email",
+        "labelRequired": "Email *",
+        "placeholder": "jane@example.com"
+      },
+      "role": {
+        "label": "Role"
+      },
+      "systemRole": {
+        "label": "System role"
+      },
+      "color": {
+        "label": "Avatar color"
+      },
+      "identifierColor": {
+        "label": "Identifier color"
+      },
+      "activeCheckbox": "Active user (can sign in)",
+      "create": "Create User",
+      "creating": "Creating...",
+      "saveChanges": "Save Changes",
+      "saving": "Saving...",
+      "errors": {
+        "nameMin": "Name must be at least 3 characters.",
+        "emailRequired": "Email is required.",
+        "emailInvalid": "Invalid email format.",
+        "nameEmailRequired": "Name and email are required.",
+        "save": "Failed to save user.",
+        "create": "Failed to create user."
+      }
+    },
+    "admin": {
+      "toggleError": "Failed to change user status",
+      "deleteError": "Could not delete the user",
+      "deleteConfirm": "Permanently delete \"{{name}}\" ({{email}})? This action cannot be undone."
+    },
+    "tasks": {
+      "completed": "Completed",
+      "inProgress": "In Progress",
+      "hours": "Hours",
+      "completion": "Completion",
+      "loading": "Loading tasks...",
+      "empty": "No tasks assigned in this status.",
+      "viewOnBoard": "View on Kanban →",
+      "hoursValue": "{{hours}}h",
+      "completionValue": "{{rate}}%"
+    }
+  },
   "enums": {
     "task": {
       "status": {

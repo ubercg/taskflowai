@@ -4,7 +4,7 @@ import useSWR from 'swr';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getAdminUserTasks, getAdminUserStats } from '../../services/api';
-import { taskStatusLabel } from '../../i18n/enums';
+import { taskStatusLabel, taskPriorityLabel } from '../../i18n/enums';
 import { cn } from '../../lib/cn';
 
 const getInitials = (name) => {
@@ -44,9 +44,9 @@ const UserTasksDrawer = ({ user, onClose }) => {
 
   const groupedTasks = useMemo(() => {
     if (!tasks) return {};
-    return tasks.reduce((acc, t) => {
-      if (!acc[t.project_name]) acc[t.project_name] = [];
-      acc[t.project_name].push(t);
+    return tasks.reduce((acc, task) => {
+      if (!acc[task.project_name]) acc[task.project_name] = [];
+      acc[task.project_name].push(task);
       return acc;
     }, {});
   }, [tasks]);
@@ -71,7 +71,6 @@ const UserTasksDrawer = ({ user, onClose }) => {
         className="fixed inset-y-0 right-0 z-[51] flex w-[520px] max-w-full flex-col border-l border-border bg-surface shadow-overlay transition-transform duration-200"
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
       >
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-6">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-full text-lg font-semibold text-white" style={{ backgroundColor: user?.color || '#6366f1' }}>
@@ -82,22 +81,20 @@ const UserTasksDrawer = ({ user, onClose }) => {
               <p className="mt-0.5 text-[13px] text-muted">{user?.email}</p>
             </div>
           </div>
-          <button onClick={handleClose} className="text-muted transition-colors hover:text-fg">
+          <button onClick={handleClose} className="text-muted transition-colors hover:text-fg" aria-label={t('common.actions.close')}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
         </div>
 
-        {/* Stats */}
         <div className="flex gap-3 border-b border-border p-6">
-          {statBox(stats?.completed_tasks || 0, 'Completadas')}
-          {statBox(stats?.in_progress_tasks || 0, 'En Progreso')}
-          {statBox(`${stats?.total_logged_hours || 0}h`, 'Horas')}
-          {statBox(`${stats?.completion_rate || 0}%`, 'Completitud')}
+          {statBox(stats?.completed_tasks || 0, t('users.tasks.completed'))}
+          {statBox(stats?.in_progress_tasks || 0, t('users.tasks.inProgress'))}
+          {statBox(t('users.tasks.hoursValue', { hours: stats?.total_logged_hours || 0 }), t('users.tasks.hours'))}
+          {statBox(t('users.tasks.completionValue', { rate: stats?.completion_rate || 0 }), t('users.tasks.completion'))}
         </div>
 
-        {/* Filtros */}
         <div className="flex gap-2 border-b border-border px-6 py-4">
           {filters.map((f) => (
             <button
@@ -113,34 +110,37 @@ const UserTasksDrawer = ({ user, onClose }) => {
           ))}
         </div>
 
-        {/* Lista */}
         <div className="flex-1 overflow-y-auto p-6">
           {!tasks ? (
-            <div className="text-center text-faint">Cargando tareas...</div>
+            <div className="text-center text-faint">{t('users.tasks.loading')}</div>
           ) : Object.keys(groupedTasks).length === 0 ? (
-            <div className="text-center text-faint">No hay tareas asignadas en este estado.</div>
+            <div className="text-center text-faint">{t('users.tasks.empty')}</div>
           ) : (
             Object.entries(groupedTasks).map(([projectName, projectTasks]) => (
               <div key={projectName} className="mb-6">
                 <h4 className="mb-3 border-b border-border pb-1 text-[13px] font-semibold uppercase text-muted">{projectName}</h4>
                 <div className="flex flex-col gap-2">
-                  {projectTasks.map((t) => (
+                  {projectTasks.map((task) => (
                     <div
-                      key={t.id}
+                      key={task.id}
                       className={cn(
                         'flex flex-col gap-2 rounded-lg border border-border p-3',
-                        t.status === 'in_progress' && 'bg-status-in_progress/5',
-                        t.status === 'blocked' && 'bg-status-blocked/5',
-                        t.status !== 'in_progress' && t.status !== 'blocked' && 'bg-surface',
+                        task.status === 'in_progress' && 'bg-status-in_progress/5',
+                        task.status === 'blocked' && 'bg-status-blocked/5',
+                        task.status !== 'in_progress' && task.status !== 'blocked' && 'bg-surface',
                       )}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="rounded bg-raised px-1.5 py-0.5 text-[11px] font-semibold capitalize text-muted">{t.status.replace('_', ' ')}</span>
-                        <span className="text-xs text-faint">{t.priority}</span>
+                        <span className="rounded bg-raised px-1.5 py-0.5 text-[11px] font-semibold capitalize text-muted">
+                          {taskStatusLabel(task.status)}
+                        </span>
+                        <span className="text-xs text-faint">{taskPriorityLabel(task.priority)}</span>
                       </div>
-                      <div className="text-sm font-medium text-fg">{t.title}</div>
+                      <div className="text-sm font-medium text-fg">{task.title}</div>
                       <div className="mt-1 flex justify-end">
-                        <Link to={`/projects/${t.project_id}/board`} className="text-xs font-medium text-accent hover:text-accent-hover">Ver en Kanban →</Link>
+                        <Link to={`/projects/${task.project_id}/board`} className="text-xs font-medium text-accent hover:text-accent-hover">
+                          {t('users.tasks.viewOnBoard')}
+                        </Link>
                       </div>
                     </div>
                   ))}

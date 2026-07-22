@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/cn';
+import { userRoleLabel } from '../../i18n/enums';
 
 const ROLE_BADGE = {
   admin: 'bg-accent-soft text-accent',
@@ -15,6 +17,7 @@ const getInitials = (name) => {
 };
 
 const UserTable = ({ users, onEdit, onToggle, onViewTasks, onDelete, currentUserId, loading }) => {
+  const { t } = useTranslation();
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const sortedUsers = useMemo(() => {
@@ -49,7 +52,7 @@ const UserTable = ({ users, onEdit, onToggle, onViewTasks, onDelete, currentUser
 
   if (!users || users.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-16 text-center text-muted">No se encontraron usuarios.</div>
+      <div className="rounded-lg border border-border bg-surface p-16 text-center text-muted">{t('users.empty')}</div>
     );
   }
 
@@ -60,13 +63,13 @@ const UserTable = ({ users, onEdit, onToggle, onViewTasks, onDelete, currentUser
       <table className="w-full min-w-[800px] border-collapse text-left">
         <thead className="border-b border-border bg-raised">
           <tr>
-            <th onClick={() => requestSort('name')} className={th}>Avatar + Nombre {sortArrow('name')}</th>
-            <th onClick={() => requestSort('email')} className={th}>Email {sortArrow('email')}</th>
-            <th onClick={() => requestSort('role')} className={th}>Rol {sortArrow('role')}</th>
-            <th onClick={() => requestSort('is_active')} className={th}>Estado {sortArrow('is_active')}</th>
-            <th className="px-4 py-4 text-[13px] font-semibold text-muted">WIP</th>
-            <th className="px-4 py-4 text-[13px] font-semibold text-muted">Proyectos</th>
-            <th className="px-4 py-4 text-right text-[13px] font-semibold text-muted">Acciones</th>
+            <th onClick={() => requestSort('name')} className={th}>{t('users.table.name')} {sortArrow('name')}</th>
+            <th onClick={() => requestSort('email')} className={th}>{t('users.table.email')} {sortArrow('email')}</th>
+            <th onClick={() => requestSort('role')} className={th}>{t('users.table.role')} {sortArrow('role')}</th>
+            <th onClick={() => requestSort('is_active')} className={th}>{t('users.table.status')} {sortArrow('is_active')}</th>
+            <th className="px-4 py-4 text-[13px] font-semibold text-muted">{t('users.table.wip')}</th>
+            <th className="px-4 py-4 text-[13px] font-semibold text-muted">{t('users.table.projects')}</th>
+            <th className="px-4 py-4 text-right text-[13px] font-semibold text-muted">{t('users.table.actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -87,13 +90,13 @@ const UserTable = ({ users, onEdit, onToggle, onViewTasks, onDelete, currentUser
                 <td className="px-4 py-3"><span className="text-[13px] text-muted">{user.email}</span></td>
                 <td className="px-4 py-3">
                   <span data-testid="role-badge" className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize', ROLE_BADGE[user.role] || ROLE_BADGE.viewer)}>
-                    {user.role}
+                    {userRoleLabel(user.role)}
                   </span>
                 </td>
                 <td className="px-4 py-3">
                   <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold', user.is_active ? 'bg-status-done/15 text-status-done' : 'bg-raised text-muted')}>
                     <span className={cn('h-1.5 w-1.5 rounded-full', user.is_active ? 'bg-status-done' : 'bg-faint')} />
-                    {user.is_active ? 'Activo' : 'Inactivo'}
+                    {user.is_active ? t('users.status.active') : t('users.status.inactive')}
                   </span>
                 </td>
                 <td className="px-4 py-3">
@@ -109,14 +112,23 @@ const UserTable = ({ users, onEdit, onToggle, onViewTasks, onDelete, currentUser
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => onEdit(user)} title="Editar" className="p-1 text-muted transition-colors hover:text-fg">✏️</button>
-                    <button data-testid="btn-view-tasks" onClick={() => onViewTasks(user)} title="Ver tareas" className="p-1 text-muted transition-colors hover:text-fg">👁</button>
-                    <button data-testid="btn-toggle-user" onClick={() => onToggle(user)} title={user.is_active ? 'Desactivar' : 'Activar'} className="p-1 text-muted transition-colors hover:text-fg">
-                      {user.is_active ? '⏸' : '🔄'}
+                    <button onClick={() => onEdit(user)} title={t('users.table.edit')} className="p-1 text-muted transition-colors hover:text-fg">
+                      <span aria-hidden="true">✏️</span>
+                    </button>
+                    <button data-testid="btn-view-tasks" onClick={() => onViewTasks(user)} title={t('users.table.viewTasks')} className="p-1 text-muted transition-colors hover:text-fg">
+                      <span aria-hidden="true">👁</span>
+                    </button>
+                    <button
+                      data-testid="btn-toggle-user"
+                      onClick={() => onToggle(user)}
+                      title={user.is_active ? t('users.table.deactivate') : t('users.table.activate')}
+                      className="p-1 text-muted transition-colors hover:text-fg"
+                    >
+                      <span aria-hidden="true">{user.is_active ? '⏸' : '🔄'}</span>
                     </button>
                     {onDelete && user.id !== currentUserId && (
-                      <button type="button" data-testid="btn-delete-user" onClick={() => onDelete(user)} title="Eliminar usuario" className="p-1 text-status-blocked transition-colors hover:text-status-blocked/80">
-                        🗑
+                      <button type="button" data-testid="btn-delete-user" onClick={() => onDelete(user)} title={t('users.table.delete')} className="p-1 text-status-blocked transition-colors hover:text-status-blocked/80">
+                        <span aria-hidden="true">🗑</span>
                       </button>
                     )}
                   </div>
