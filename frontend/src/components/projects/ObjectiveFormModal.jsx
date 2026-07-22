@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api/client';
 import { toDateInputValue } from '../../utils/dateUtils';
 import { Modal, Input, Textarea, Button } from '../ui';
@@ -12,6 +13,7 @@ const getProgressColor = (percentage) => {
 };
 
 const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
+  const { t } = useTranslation();
   const isEdit = !!objective;
   const [formData, setFormData] = useState({
     title: '',
@@ -37,8 +39,8 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
     e.preventDefault();
     setError(null);
 
-    if (!formData.title.trim()) return setError('El título es obligatorio');
-    if (!formData.due_date) return setError('La fecha límite es obligatoria');
+    if (!formData.title.trim()) return setError(t('objectives.form.errors.titleRequired'));
+    if (!formData.due_date) return setError(t('objectives.form.errors.dueRequired'));
 
     setIsSubmitting(true);
     try {
@@ -49,7 +51,7 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
       }
       onSaved();
     } catch (err) {
-      setError((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : null) || 'Error al guardar el objetivo');
+      setError((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : null) || t('objectives.form.errors.save'));
     } finally {
       setIsSubmitting(false);
     }
@@ -60,8 +62,10 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
   return (
     <Modal open onClose={onClose} className="max-w-lg p-8">
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-fg">{isEdit ? 'Editar OKR' : 'Nuevo OKR'}</h2>
-        <button onClick={onClose} className="text-muted transition-colors hover:text-fg">
+        <h2 className="text-xl font-semibold text-fg">
+          {isEdit ? t('objectives.form.editTitle') : t('objectives.form.createTitle')}
+        </h2>
+        <button onClick={onClose} className="text-muted transition-colors hover:text-fg" aria-label={t('common.actions.close')}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
@@ -72,24 +76,24 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
 
       <form id="objective-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div>
-          <label className={LABEL}>Título *</label>
+          <label className={LABEL}>{t('objectives.form.title.label')}</label>
           <Input
             type="text"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            placeholder="Ej: Incrementar retención un 20%"
+            placeholder={t('objectives.form.title.placeholder')}
           />
         </div>
 
         <div>
-          <label className={LABEL}>Descripción</label>
+          <label className={LABEL}>{t('objectives.form.description.label')}</label>
           <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="min-h-20" />
         </div>
 
         {isEdit && (
           <div>
             <label className="mb-1.5 flex justify-between text-[13px] font-medium text-fg">
-              <span>Progreso (derivado de tareas)</span>
+              <span>{t('objectives.form.progress.label')}</span>
               <span className="font-semibold" style={{ color: getProgressColor(derivedProgress) }}>{derivedProgress}%</span>
             </label>
             <div className="mt-1 h-2 w-full overflow-hidden rounded bg-border">
@@ -99,15 +103,19 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
         )}
 
         <div>
-          <label className={LABEL}>Fecha Límite *</label>
+          <label className={LABEL}>{t('objectives.form.dueDate.label')}</label>
           <Input type="date" value={formData.due_date} onChange={(e) => setFormData({ ...formData, due_date: e.target.value })} />
         </div>
       </form>
 
       <div className="mt-6 flex justify-end gap-3 border-t border-border pt-5">
-        <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+        <Button variant="secondary" onClick={onClose}>{t('common.actions.cancel')}</Button>
         <Button type="submit" form="objective-form" disabled={isSubmitting}>
-          {isSubmitting ? 'Guardando...' : isEdit ? 'Guardar OKR' : 'Crear OKR'}
+          {isSubmitting
+            ? t('common.actions.saving')
+            : isEdit
+              ? t('objectives.form.save')
+              : t('objectives.form.create')}
         </Button>
       </div>
     </Modal>

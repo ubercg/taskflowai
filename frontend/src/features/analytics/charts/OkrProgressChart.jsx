@@ -1,4 +1,5 @@
 import { RadialBarChart, RadialBar, Legend, Tooltip, ResponsiveContainer } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getObjectives } from '../../../services/api';
 import { useChartColors, tooltipStyles, CHART_CARD, CHART_TITLE, CHART_EMPTY } from './chartTheme';
@@ -6,6 +7,7 @@ import { useChartColors, tooltipStyles, CHART_CARD, CHART_TITLE, CHART_EMPTY } f
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#22c55e', '#06b6d4'];
 
 const OkrProgressChart = ({ projectId, animate = true, forceTheme }) => {
+  const { t } = useTranslation();
   const c = useChartColors(forceTheme);
   const { data, error } = useSWR(
     projectId ? `/api/v1/objectives?project_id=${projectId}` : null,
@@ -23,14 +25,17 @@ const OkrProgressChart = ({ projectId, animate = true, forceTheme }) => {
 
   return (
     <div className={CHART_CARD}>
-      <h4 className={CHART_TITLE}>Progreso de Objetivos (OKRs)</h4>
+      <h4 className={CHART_TITLE}>{t('objectives.chart.title')}</h4>
       {chartData.length === 0 ? (
-        <div className={CHART_EMPTY}>No hay objetivos definidos.</div>
+        <div className={CHART_EMPTY}>{t('objectives.chart.empty')}</div>
       ) : (
         <ResponsiveContainer width="100%" height="100%">
           <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%" barSize={12} data={chartData} startAngle={90} endAngle={-270}>
             <RadialBar minAngle={15} background clockWise dataKey="progress" cornerRadius={10} isAnimationActive={animate} />
-            <Tooltip {...tooltipStyles(c)} formatter={(value) => [`${value}%`, 'Completado']} />
+            <Tooltip
+              {...tooltipStyles(c)}
+              formatter={(value) => [`${value}%`, t('objectives.chart.completed')]}
+            />
             <Legend iconSize={10} layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '12px', color: c.fg, lineHeight: '24px' }} />
           </RadialBarChart>
         </ResponsiveContainer>

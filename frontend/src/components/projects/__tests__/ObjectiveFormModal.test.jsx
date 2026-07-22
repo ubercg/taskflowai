@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import ObjectiveFormModal from '../ObjectiveFormModal';
+import i18n from '../../../i18n';
 
 vi.mock('../../../services/api/client', () => ({
   default: {
@@ -84,7 +85,7 @@ describe('ObjectiveFormModal — edit mode', () => {
         onSaved={() => {}}
       />
     );
-    fireEvent.click(screen.getByText('Guardar OKR'));
+    fireEvent.click(screen.getByText(i18n.t('objectives.form.save')));
     await waitFor(() => expect(api.patch).toHaveBeenCalled());
     const callArgs = api.patch.mock.calls[0];
     expect(callArgs[0]).toBe('/api/v1/objectives/1');
@@ -106,7 +107,6 @@ describe('ObjectiveFormModal — create mode', () => {
         onSaved={() => {}}
       />
     );
-    // In create mode there should be no progress percentage shown
     const rangeInput = document.querySelector('input[type="range"]');
     expect(rangeInput).not.toBeInTheDocument();
   });
@@ -121,12 +121,12 @@ describe('ObjectiveFormModal — create mode', () => {
         onSaved={() => {}}
       />
     );
-    fireEvent.change(screen.getByPlaceholderText(/Ej: Incrementar/i), {
+    fireEvent.change(screen.getByPlaceholderText(i18n.t('objectives.form.title.placeholder')), {
       target: { value: 'New Objective' },
     });
     const dateInput = document.querySelector('input[type="date"]');
     fireEvent.change(dateInput, { target: { value: '2026-12-31' } });
-    fireEvent.click(screen.getByText('Crear OKR'));
+    fireEvent.click(screen.getByText(i18n.t('objectives.form.create')));
     await waitFor(() => expect(api.post).toHaveBeenCalled());
   });
 });
