@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getProject, getObjectives, getProjectMetrics } from '../services/api';
 import api from '../services/api/client';
@@ -10,6 +11,7 @@ import ObjectiveFormModal from '../components/projects/ObjectiveFormModal';
 import MembersPanel from '../components/projects/MembersPanel';
 import ObjectiveTasksPanel from '../components/projects/ObjectiveTasksPanel';
 import { formatCalendarLocale } from '../utils/dateUtils';
+import { projectStatusLabel, userRoleLabel } from '../i18n/enums';
 import { Button } from '../components/ui';
 import { cn } from '../lib/cn';
 
@@ -26,6 +28,7 @@ const getProgressColor = (percentage) => {
 };
 
 const ProjectDetailPage = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { canEditProject } = usePermissions();
@@ -50,15 +53,13 @@ const ProjectDetailPage = () => {
     : { total_tasks: 0, completed_tasks: 0, in_progress_tasks: 0, blocked_tasks: 0 };
 
   if (!project) {
-    return <div className="p-8 text-muted">Cargando proyecto...</div>;
+    return <div className="p-8 text-muted">{t('projects.detail.loading')}</div>;
   }
 
   return (
     <div className="mx-auto max-w-[1400px] px-4">
       <div className="flex flex-wrap items-start gap-6">
-        {/* Columna izquierda (70%) */}
         <div className="flex flex-[1_1_600px] flex-col gap-6">
-          {/* Header del proyecto */}
           <div className="relative rounded-xl border border-border bg-surface p-8">
             <div className="mb-4 flex items-center gap-4">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-3xl" style={{ backgroundColor: project.color || '#6366f1' }}>
@@ -73,48 +74,47 @@ const ProjectDetailPage = () => {
                       project.status === 'active' ? 'bg-status-done/15 text-status-done' : 'bg-raised text-muted',
                     )}
                   >
-                    {project.status?.replace('_', ' ') || 'Active'}
+                    {projectStatusLabel(project.status || 'active')}
                   </span>
                   <span className="flex items-center gap-1 text-[13px] text-muted">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                    Creado el {new Date(project.created_at).toLocaleDateString()}
+                    {t('projects.detail.createdOn', { date: formatCalendarLocale(project.created_at) })}
                   </span>
                 </div>
               </div>
             </div>
 
             <p className="mb-6 text-[15px] leading-relaxed text-fg">
-              {project.description || 'Sin descripción proporcionada para este proyecto.'}
+              {project.description || t('projects.detail.noDescription')}
             </p>
 
             <div className="flex gap-3">
               <Can permission={canEditProject}>
                 <Button variant="secondary" size="sm" onClick={() => setShowEditProject(true)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                  Editar Proyecto
+                  {t('projects.detail.editProject')}
                 </Button>
               </Can>
-              <Button size="sm" onClick={() => navigate(`/projects/${id}/board`)}>Ir al Kanban →</Button>
+              <Button size="sm" onClick={() => navigate(`/projects/${id}/board`)}>{t('projects.detail.goToBoard')}</Button>
             </div>
           </div>
 
-          {/* Objetivos (OKRs) */}
           <div className="rounded-xl border border-border bg-surface p-6">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-fg">Objetivos (OKRs)</h2>
+              <h2 className="text-lg font-semibold text-fg">{t('projects.objectives.title')}</h2>
               <Can permission={canEditProject}>
                 <button
                   onClick={() => { setEditingObjective(null); setShowObjectiveForm(true); }}
                   className="rounded-md border border-accent/40 bg-canvas px-3 py-1.5 text-xs font-semibold text-accent transition-colors hover:bg-accent-soft"
                 >
-                  + Nuevo Objetivo
+                  {t('projects.objectives.new')}
                 </button>
               </Can>
             </div>
 
             {!objectives || objectives.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-8 text-center text-faint">
-                No hay objetivos estratégicos definidos aún.
+                {t('projects.objectives.empty')}
               </div>
             ) : (
               <div className="flex flex-col gap-3">
@@ -136,13 +136,13 @@ const ProjectDetailPage = () => {
 
                       <div className="flex items-center gap-3">
                         <div className="text-right text-xs text-muted">
-                          <div>Vence</div>
+                          <div>{t('projects.objectives.due')}</div>
                           <div className="font-medium text-fg">{formatCalendarLocale(obj.due_date)}</div>
                         </div>
                         <Can permission={canEditProject}>
                           <button
                             onClick={(e) => { e.stopPropagation(); setEditingObjective(obj); setShowObjectiveForm(true); }}
-                            title="Editar objetivo"
+                            title={t('projects.objectives.edit')}
                             className="flex p-1 text-faint transition-colors hover:text-fg"
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -174,15 +174,13 @@ const ProjectDetailPage = () => {
           </div>
         </div>
 
-        {/* Columna derecha (30%) */}
         <div className="flex flex-[1_1_300px] flex-col gap-6">
-          {/* Equipo */}
           <div className="rounded-xl border border-border bg-surface p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-fg">Equipo</h3>
+              <h3 className="text-base font-semibold text-fg">{t('projects.detail.team')}</h3>
               <Can permission={canEditProject}>
                 <button onClick={() => setShowMembersPanel(true)} className="text-[13px] font-medium text-accent hover:text-accent-hover">
-                  + Administrar
+                  {t('projects.detail.manageTeam')}
                 </button>
               </Can>
             </div>
@@ -195,41 +193,39 @@ const ProjectDetailPage = () => {
                   </div>
                   <div className="flex-1 overflow-hidden">
                     <div className="truncate text-sm font-medium text-fg">{member.name}</div>
-                    <div className="text-xs text-muted">{member.role}</div>
+                    <div className="text-xs text-muted">{userRoleLabel(member.role)}</div>
                   </div>
                 </div>
               ))}
-              {members?.length === 0 && <span className="text-[13px] text-faint">Sin miembros asignados.</span>}
+              {members?.length === 0 && <span className="text-[13px] text-faint">{t('projects.detail.noMembers')}</span>}
             </div>
           </div>
 
-          {/* Resumen rápido */}
           <div className="rounded-xl border border-border bg-surface p-6">
-            <h3 className="mb-4 text-base font-semibold text-fg">Resumen Rápido</h3>
+            <h3 className="mb-4 text-base font-semibold text-fg">{t('projects.detail.quickSummary')}</h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg border border-border bg-canvas p-4">
                 <div className="text-2xl font-bold text-fg">{projectMetrics?.total_tasks || 0}</div>
-                <div className="text-xs font-medium uppercase text-muted">Total</div>
+                <div className="text-xs font-medium uppercase text-muted">{t('projects.detail.stats.total')}</div>
               </div>
               <div className="rounded-lg border border-status-done/20 bg-status-done/10 p-4">
                 <div className="text-2xl font-bold text-status-done">{projectMetrics?.completed_tasks || 0}</div>
-                <div className="text-xs font-medium uppercase text-status-done">Hechas</div>
+                <div className="text-xs font-medium uppercase text-status-done">{t('projects.detail.stats.done')}</div>
               </div>
               <div className="rounded-lg border border-status-in_progress/20 bg-status-in_progress/10 p-4">
                 <div className="text-2xl font-bold text-status-in_progress">{projectMetrics?.in_progress_tasks || 0}</div>
-                <div className="text-xs font-medium uppercase text-status-in_progress">WIP</div>
+                <div className="text-xs font-medium uppercase text-status-in_progress">{t('projects.detail.stats.wip')}</div>
               </div>
               <div className="rounded-lg border border-status-blocked/20 bg-status-blocked/10 p-4">
                 <div className="text-2xl font-bold text-status-blocked">{projectMetrics?.blocked_tasks || 0}</div>
-                <div className="text-xs font-medium uppercase text-status-blocked">Bloqueo</div>
+                <div className="text-xs font-medium uppercase text-status-blocked">{t('projects.detail.stats.blocked')}</div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modales */}
       {showEditProject && (
         <ProjectFormModal project={project} onClose={() => setShowEditProject(false)} onSaved={() => { mutateProject(); setShowEditProject(false); }} />
       )}

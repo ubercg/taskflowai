@@ -80,6 +80,109 @@
       "error": "Error al actualizar contraseña"
     }
   },
+  "projects": {
+    "title": "Proyectos",
+    "subtitle": "Gestiona tus portafolios y visualiza el progreso estratégico.",
+    "newProject": "Nuevo Proyecto",
+    "loadError": {
+      "title": "Error al cargar proyectos",
+      "fallback": "No se pudo conectar con el servidor. Verifica que el backend esté arriba."
+    },
+    "card": {
+      "defaultDescription": "Gestión y ejecución de tareas estratégicas. Enfocado en reducir el Cycle Time y mejorar el delivery.",
+      "ownerAvatarAlt": "Avatar del propietario",
+      "actionsAria": "Acciones del proyecto",
+      "edit": "Editar proyecto",
+      "archive": "Archivar",
+      "progress": "Progreso",
+      "tasksCount_one": "{{count}} Tarea",
+      "tasksCount_other": "{{count}} Tareas",
+      "inProgressCount_one": "{{count}} En curso",
+      "inProgressCount_other": "{{count}} En curso",
+      "blockedCount_one": "{{count}} Bloqueada",
+      "blockedCount_other": "{{count}} Bloqueadas",
+      "viewDetail": "Ver detalle",
+      "viewBoard": "Ver Kanban →"
+    },
+    "form": {
+      "createTitle": "Nuevo Proyecto",
+      "editTitle": "Editar Proyecto",
+      "preview": "Preview",
+      "namePlaceholderPreview": "Nombre del Proyecto",
+      "name": {
+        "label": "Nombre *",
+        "placeholder": "Ej: Lanzamiento V2"
+      },
+      "description": {
+        "label": "Descripción",
+        "placeholder": "Describe el objetivo general..."
+      },
+      "icon": {
+        "label": "Icono"
+      },
+      "color": {
+        "label": "Color"
+      },
+      "startDate": {
+        "label": "Fecha Inicio"
+      },
+      "endDate": {
+        "label": "Fecha Fin estimada"
+      },
+      "status": {
+        "label": "Estado"
+      },
+      "create": "Crear Proyecto",
+      "saveChanges": "Guardar Cambios",
+      "saving": "Guardando...",
+      "errors": {
+        "nameRequired": "El nombre es obligatorio",
+        "endBeforeStart": "La fecha fin debe ser posterior al inicio",
+        "save": "Error al guardar el proyecto"
+      }
+    },
+    "detail": {
+      "loading": "Cargando proyecto...",
+      "createdOn": "Creado el {{date}}",
+      "noDescription": "Sin descripción proporcionada para este proyecto.",
+      "editProject": "Editar Proyecto",
+      "goToBoard": "Ir al Kanban →",
+      "team": "Equipo",
+      "manageTeam": "+ Administrar",
+      "noMembers": "Sin miembros asignados.",
+      "quickSummary": "Resumen Rápido",
+      "stats": {
+        "total": "Total",
+        "done": "Hechas",
+        "wip": "WIP",
+        "blocked": "Bloqueo"
+      }
+    },
+    "objectives": {
+      "title": "Objetivos (OKRs)",
+      "new": "+ Nuevo Objetivo",
+      "empty": "No hay objetivos estratégicos definidos aún.",
+      "due": "Vence",
+      "edit": "Editar objetivo"
+    },
+    "members": {
+      "title": "Equipo del Proyecto",
+      "current": "Miembros Actuales ({{count}})",
+      "owner": "Owner",
+      "remove": "Remover miembro",
+      "removeConfirm": "¿Seguro que quieres remover a {{name}} del proyecto?",
+      "addSection": "Agregar Miembro",
+      "searchPlaceholder": "Buscar por nombre o email...",
+      "searching": "Buscando...",
+      "noAvailable": "No hay usuarios disponibles.",
+      "add": "+ Añadir",
+      "errors": {
+        "add": "Error al agregar miembro",
+        "role": "Error al cambiar rol",
+        "remove": "Error al remover miembro"
+      }
+    }
+  },
   "users": {
     "title": "Usuarios",
     "subtitle": "Gestión del equipo y análisis de capacidad (WIP).",

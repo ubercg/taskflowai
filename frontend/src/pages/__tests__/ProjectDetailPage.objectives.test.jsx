@@ -47,6 +47,7 @@ vi.mock('../../components/projects/ProjectFormModal', () => ({
 import useSWR from 'swr';
 import usePermissions from '../../hooks/usePermissions';
 import ProjectDetailPage from '../ProjectDetailPage';
+import i18n from '../../i18n';
 
 const mockProject = {
   id: 1,
@@ -100,13 +101,13 @@ describe('ProjectDetailPage — objective Edit buttons', () => {
 
   test('renders an Edit button for each objective', () => {
     renderPage();
-    const editButtons = screen.getAllByTitle('Editar objetivo');
+    const editButtons = screen.getAllByTitle(i18n.t('projects.objectives.edit'));
     expect(editButtons).toHaveLength(2);
   });
 
   test('clicking Edit button opens modal with the correct objective', () => {
     renderPage();
-    const editButtons = screen.getAllByTitle('Editar objetivo');
+    const editButtons = screen.getAllByTitle(i18n.t('projects.objectives.edit'));
     // Click the first edit button (Objective 1)
     fireEvent.click(editButtons[0]);
     const modal = screen.getByTestId('objective-modal');
@@ -119,7 +120,7 @@ describe('ProjectDetailPage — objective Edit buttons', () => {
     // The tasks panel should not be visible before clicking
     expect(screen.queryByTestId('tasks-panel')).not.toBeInTheDocument();
     // Click edit button (has stopPropagation)
-    const editButtons = screen.getAllByTitle('Editar objetivo');
+    const editButtons = screen.getAllByTitle(i18n.t('projects.objectives.edit'));
     fireEvent.click(editButtons[0]);
     // Tasks panel should still NOT be visible (accordion not expanded)
     expect(screen.queryByTestId('tasks-panel')).not.toBeInTheDocument();

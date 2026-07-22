@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import usePermissions from '../../hooks/usePermissions';
+import { projectStatusLabel } from '../../i18n/enums';
 import { cn } from '../../lib/cn';
 
 const getStatusColor = (status) => {
@@ -19,6 +21,7 @@ const getProgressColor = (percentage) => {
 };
 
 const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef();
   const { canEditProject, canDeleteProject } = usePermissions();
@@ -34,7 +37,7 @@ const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
 
   const color = project.color || '#6366f1';
   const icon = project.icon || '🚀';
-  const description = project.description || 'Gestión y ejecución de tareas estratégicas. Enfocado en reducir el Cycle Time y mejorar el delivery.';
+  const description = project.description || t('projects.card.defaultDescription');
   const ownerAvatar = project.owner_avatar || `https://ui-avatars.com/api/?name=${project.name}&background=random&color=fff`;
 
   const completionPercentage = metrics?.completion_percentage || 0;
@@ -54,31 +57,30 @@ const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
       )}
       style={{ borderLeft: `4px solid ${color}` }}
     >
-      {/* Header */}
       <div className="relative flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">{icon}</span>
+          <span className="text-2xl" aria-hidden="true">{icon}</span>
           <div>
             <h3 className="text-[1.1rem] font-semibold text-fg">{project.name}</h3>
             <span
               className="mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize"
               style={{ backgroundColor: `${statusColor}20`, color: statusColor }}
             >
-              {project.status.replace('_', ' ')}
+              {projectStatusLabel(project.status)}
             </span>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <img
             src={ownerAvatar}
-            alt="Owner Avatar"
+            alt={t('projects.card.ownerAvatarAlt')}
             className="h-8 w-8 rounded-full border-2 border-surface ring-1 ring-border"
           />
           {showMenuTrigger && (
             <div ref={menuRef} className="relative">
               <button
                 type="button"
-                aria-label="Acciones del proyecto"
+                aria-label={t('projects.card.actionsAria')}
                 aria-expanded={menuOpen}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(!menuOpen); }}
                 className="flex p-1 text-muted opacity-60 transition-opacity hover:opacity-100"
@@ -95,7 +97,7 @@ const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(false); onEdit && onEdit(project); }}
                       className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] text-fg transition-colors hover:bg-raised"
                     >
-                      <span>✏️</span> Editar proyecto
+                      <span aria-hidden="true">✏️</span> {t('projects.card.edit')}
                     </button>
                   )}
                   {canDeleteProject && (
@@ -105,7 +107,7 @@ const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(false); onArchive && onArchive(project); }}
                       className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] text-status-blocked transition-colors hover:bg-status-blocked/10"
                     >
-                      <span>📦</span> Archivar
+                      <span aria-hidden="true">📦</span> {t('projects.card.archive')}
                     </button>
                   )}
                 </div>
@@ -115,13 +117,11 @@ const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
         </div>
       </div>
 
-      {/* Descripción */}
       <p className="line-clamp-2 text-sm leading-relaxed text-muted">{description}</p>
 
-      {/* Barra de progreso */}
       <div>
         <div className="mb-1.5 flex justify-between text-xs font-medium text-muted">
-          <span>Progreso</span>
+          <span>{t('projects.card.progress')}</span>
           <span>{completionPercentage}%</span>
         </div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-border">
@@ -132,29 +132,33 @@ const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
         </div>
       </div>
 
-      {/* Chips de métricas */}
       <div className="flex flex-wrap gap-2">
-        <span className="rounded-2xl bg-raised px-2.5 py-1 text-[13px] font-medium text-muted">📋 {totalTasks} Tareas</span>
-        <span className="rounded-2xl bg-raised px-2.5 py-1 text-[13px] font-medium text-status-in_progress">⏳ {inProgressTasks} En curso</span>
+        <span className="rounded-2xl bg-raised px-2.5 py-1 text-[13px] font-medium text-muted">
+          <span aria-hidden="true">📋 </span>{t('projects.card.tasksCount', { count: totalTasks })}
+        </span>
+        <span className="rounded-2xl bg-raised px-2.5 py-1 text-[13px] font-medium text-status-in_progress">
+          <span aria-hidden="true">⏳ </span>{t('projects.card.inProgressCount', { count: inProgressTasks })}
+        </span>
         {blockedTasks > 0 && (
-          <span className="rounded-2xl bg-status-blocked/15 px-2.5 py-1 text-[13px] font-medium text-status-blocked">🛑 {blockedTasks} Bloqueadas</span>
+          <span className="rounded-2xl bg-status-blocked/15 px-2.5 py-1 text-[13px] font-medium text-status-blocked">
+            <span aria-hidden="true">🛑 </span>{t('projects.card.blockedCount', { count: blockedTasks })}
+          </span>
         )}
       </div>
 
-      {/* Acciones */}
       <div className="mt-auto flex gap-2 border-t border-hairline pt-4">
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/projects/${project.id}`); }}
           className="flex-1 rounded-md border border-border bg-canvas px-4 py-2 text-center text-[13px] font-medium text-fg transition-colors hover:bg-raised"
         >
-          Ver detalle
+          {t('projects.card.viewDetail')}
         </button>
         <Link
           data-testid="btn-open-board"
           to={`/projects/${project.id}/board`}
           className="flex-1 rounded-md border border-border bg-surface px-4 py-2 text-center text-[13px] font-medium text-fg transition-colors hover:bg-raised"
         >
-          Ver Kanban →
+          {t('projects.card.viewBoard')}
         </Link>
       </div>
     </div>
