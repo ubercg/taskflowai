@@ -15,11 +15,6 @@ class UserBase(BaseModel):
     email: EmailStr
 
 
-class UserCreate(UserBase):
-    role: Optional[str] = "developer"
-    color: Optional[str] = "#6366f1"
-
-
 class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
     id: int

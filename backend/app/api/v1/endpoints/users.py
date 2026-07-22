@@ -1,15 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
+
+from app.core.security import require_authenticated
 from app.db.database import get_db
 from app.models.models import User
-from app.schemas.schemas import UserResponse, UserCreate
-from app.core.security import require_authenticated, hash_password
-from app.core.config import settings
+from app.schemas.schemas import UserResponse
 
 router = APIRouter()
-
-
-from sqlalchemy import or_
 
 
 @router.get("", response_model=list[UserResponse])
@@ -26,18 +24,3 @@ def read_users(
             or_(User.name.ilike(f"%{search}%"), User.email.ilike(f"%{search}%"))
         )
     return query.offset(skip).limit(limit).all()
-
-
-@router.post("", response_model=UserResponse)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == user.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    data = user.model_dump()
-    data["password_hash"] = hash_password(settings.DEFAULT_NEW_USER_PASSWORD)
-    db_user = User(**data)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
