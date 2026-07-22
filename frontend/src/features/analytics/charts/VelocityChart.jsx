@@ -1,4 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getVelocity } from '../../../services/api';
 import { useChartColors, tooltipStyles, CHART_CARD, CHART_TITLE, CHART_EMPTY } from './chartTheme';
@@ -9,6 +10,7 @@ import { useChartColors, tooltipStyles, CHART_CARD, CHART_TITLE, CHART_EMPTY } f
  * @param {{ projectId: number, startDate: string, endDate: string, animate?: boolean }} props
  */
 const VelocityChart = ({ projectId, startDate, endDate, animate = true, forceTheme }) => {
+  const { t } = useTranslation();
   const c = useChartColors(forceTheme);
   const { data, error, isLoading } = useSWR(
     projectId ? ['/api/v1/metrics/velocity', projectId, startDate, endDate] : null,
@@ -21,10 +23,10 @@ const VelocityChart = ({ projectId, startDate, endDate, animate = true, forceThe
 
   return (
     <div className={CHART_CARD}>
-      <h4 className={CHART_TITLE}>Velocity por Usuario</h4>
+      <h4 className={CHART_TITLE}>{t('metrics.charts.velocity.title')}</h4>
 
       {isEmpty ? (
-        <div className={CHART_EMPTY}>Sin datos de velocity para este período.</div>
+        <div className={CHART_EMPTY}>{t('metrics.charts.velocity.empty')}</div>
       ) : (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 5, right: 20, bottom: 20, left: -20 }}>
@@ -32,7 +34,7 @@ const VelocityChart = ({ projectId, startDate, endDate, animate = true, forceThe
             <XAxis dataKey="name" stroke={c.axis} fontSize={12} tickLine={false} axisLine={false} dy={10} />
             <YAxis stroke={c.axis} fontSize={12} tickLine={false} axisLine={false} />
             <Tooltip cursor={{ fill: c.cursor }} {...tooltipStyles(c)} />
-            <Bar dataKey="completed" name="Tareas completadas" radius={[4, 4, 0, 0]} isAnimationActive={animate}>
+            <Bar dataKey="completed" name={t('metrics.charts.velocity.completedTasks')} radius={[4, 4, 0, 0]} isAnimationActive={animate}>
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color || c.accent} />
               ))}

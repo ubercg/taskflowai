@@ -479,6 +479,93 @@
       "hoursLoggedOnly": "{{logged}}h registradas"
     }
   },
+  "metrics": {
+    "page": {
+      "exportPdf": "Exportar PDF"
+    },
+    "dashboard": {
+      "loading": "Analizando métricas de flujo..."
+    },
+    "kpi": {
+      "leadTime": {
+        "title": "Lead Time",
+        "subtitle": "Promedio desde creación"
+      },
+      "cycleTime": {
+        "title": "Cycle Time",
+        "subtitle": "Promedio desde inicio"
+      },
+      "throughput": {
+        "title": "Throughput",
+        "subtitle": "Tareas completadas / sem"
+      },
+      "wip": {
+        "title": "WIP Actual",
+        "subtitleActive": "Tareas en progreso",
+        "subtitleInactive": "Solo mes actual"
+      }
+    },
+    "summary": {
+      "title": "Resumen del Día",
+      "refresh": "Actualizar",
+      "retry": "Reintentar",
+      "errorTitle": "No se pudo generar el resumen inteligente.",
+      "noActivity": "Sin actividad registrada en las últimas 24 horas",
+      "generatedInSpanish": "Generado en español",
+      "categories": {
+        "blocked": "Bloqueadas",
+        "advanced": "Avanzadas",
+        "risks": "En Riesgo"
+      },
+      "detailTitle": "Detalle de tareas",
+      "detailEmpty": "No hay tareas en esta categoría.",
+      "blockedSince": "Tiempo en bloqueo: {{time}}",
+      "movedFromTo": "Movida: {{from}} → {{to}}"
+    },
+    "charts": {
+      "burndown": {
+        "title": "Burndown Chart",
+        "empty": "Sin tareas con fecha de entrega en este período.",
+        "idealLine": "Ritmo Ideal",
+        "realLine": "Progreso Real"
+      },
+      "velocity": {
+        "title": "Velocity por Usuario",
+        "empty": "Sin datos de velocity para este período.",
+        "completedTasks": "Tareas completadas"
+      },
+      "aging": {
+        "title": "Aging (Horas promedio por Status)",
+        "empty": "No hay datos de aging disponibles.",
+        "onlyCurrentMonth": "El aging solo está disponible para el mes actual.",
+        "selectCurrentMonthHint": "Seleccioná el mes en curso para ver datos de aging.",
+        "tooltipAverage": "Promedio",
+        "tooltipValue": "{{value}} hrs"
+      }
+    }
+  },
+  "calendar": {
+    "view": {
+      "title": "Calendario del Proyecto",
+      "noProject": "Por favor selecciona un proyecto para ver el calendario.",
+      "filterByDate": "Filtrar por fecha:",
+      "filterByStatus": "Filtrar por estado:",
+      "allStatuses": "Todos los estados",
+      "clearFilters": "Limpiar Filtros",
+      "exportPdf": "Exportar PDF",
+      "exportingPdf": "Preparando…",
+      "exportPdfTitle": "Exportar el calendario y las métricas a PDF (horizontal)",
+      "loading": "Cargando...",
+      "loadError": "Error al cargar las tareas.",
+      "printHeader": "Calendario — {{month}}",
+      "prevMonth": "Mes anterior",
+      "nextMonth": "Mes siguiente",
+      "overflowMore": "+{{count}} más"
+    },
+    "pdf": {
+      "metricsTitle": "Métricas del Proyecto"
+    }
+  },
   "enums": {
     "task": {
       "status": {

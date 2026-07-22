@@ -1,6 +1,8 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getAgingMetrics } from '../../../services/api';
+import { taskStatusLabel } from '../../../i18n/enums';
 import { useChartColors, tooltipStyles, CHART_CARD, CHART_TITLE, CHART_EMPTY } from './chartTheme';
 
 // Color por aging (semántico: verde/amarillo/rojo, válido en ambos temas).
@@ -17,6 +19,7 @@ const getColor = (hours) => {
  * @param {{ projectId: number, isCurrentMonth: boolean, animate?: boolean }} props
  */
 const AgingChart = ({ projectId, isCurrentMonth = true, animate = true, forceTheme }) => {
+  const { t } = useTranslation();
   const c = useChartColors(forceTheme);
   const { data } = useSWR(
     projectId && isCurrentMonth ? ['/api/v1/metrics/aging', projectId] : null,
@@ -29,11 +32,11 @@ const AgingChart = ({ projectId, isCurrentMonth = true, animate = true, forceThe
   if (!isCurrentMonth) {
     return (
       <div className={CHART_CARD}>
-        <h4 className={CHART_TITLE}>Aging (Horas promedio por Status)</h4>
+        <h4 className={CHART_TITLE}>{t('metrics.charts.aging.title')}</h4>
         <div className="flex h-[80%] flex-col items-center justify-center gap-2 text-center text-[13px] text-faint">
-          <span className="text-xl">ℹ️</span>
-          <span>El aging solo está disponible para el mes actual.</span>
-          <span className="text-xs">Seleccioná el mes en curso para ver datos de aging.</span>
+          <span className="text-xl" aria-hidden="true">ℹ️</span>
+          <span>{t('metrics.charts.aging.onlyCurrentMonth')}</span>
+          <span className="text-xs">{t('metrics.charts.aging.selectCurrentMonthHint')}</span>
         </div>
       </div>
     );
@@ -41,9 +44,9 @@ const AgingChart = ({ projectId, isCurrentMonth = true, animate = true, forceThe
 
   return (
     <div className={CHART_CARD}>
-      <h4 className={CHART_TITLE}>Aging (Horas promedio por Status)</h4>
+      <h4 className={CHART_TITLE}>{t('metrics.charts.aging.title')}</h4>
       {chartData.length === 0 ? (
-        <div className={CHART_EMPTY}>No hay datos de aging disponibles.</div>
+        <div className={CHART_EMPTY}>{t('metrics.charts.aging.empty')}</div>
       ) : (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, bottom: 20, left: 10 }}>
@@ -57,9 +60,13 @@ const AgingChart = ({ projectId, isCurrentMonth = true, animate = true, forceThe
               tickLine={false}
               axisLine={false}
               width={80}
-              tickFormatter={(val) => val.replace('_', ' ').toUpperCase()}
+              tickFormatter={(val) => taskStatusLabel(val).toUpperCase()}
             />
-            <Tooltip cursor={{ fill: c.cursor }} {...tooltipStyles(c)} formatter={(value) => [`${value} hrs`, 'Promedio']} />
+            <Tooltip
+              cursor={{ fill: c.cursor }}
+              {...tooltipStyles(c)}
+              formatter={(value) => [t('metrics.charts.aging.tooltipValue', { value }), t('metrics.charts.aging.tooltipAverage')]}
+            />
             <Bar dataKey="avg_hours" radius={[0, 4, 4, 0]} barSize={20} isAnimationActive={animate}>
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={getColor(entry.avg_hours)} />

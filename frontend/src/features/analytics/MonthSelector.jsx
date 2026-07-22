@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { addMonths, subMonths } from 'date-fns';
 import { formatLocalized } from '../../utils/dateUtils';
 import { useLocale } from '../../store/localeStore';
@@ -8,6 +9,7 @@ import { useLocale } from '../../store/localeStore';
  * @param {{ value: Date, onChange: (date: Date) => void }} props
  */
 const MonthSelector = ({ value, onChange }) => {
+  const { t } = useTranslation();
   // Re-render when locale changes so month names follow i18n (TSK-018).
   useLocale();
 
@@ -20,9 +22,9 @@ const MonthSelector = ({ value, onChange }) => {
 
   return (
     <div className="flex items-center gap-3">
-      <button aria-label="Mes anterior" onClick={handlePrev} className={navBtn}>‹</button>
+      <button aria-label={t('calendar.view.prevMonth')} onClick={handlePrev} className={navBtn}>‹</button>
       <span className="min-w-[140px] text-center text-[15px] font-semibold capitalize text-fg">{label}</span>
-      <button aria-label="Mes siguiente" onClick={handleNext} className={navBtn}>›</button>
+      <button aria-label={t('calendar.view.nextMonth')} onClick={handleNext} className={navBtn}>›</button>
     </div>
   );
 };

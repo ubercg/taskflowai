@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { format, startOfMonth, addMonths, isSameMonth } from 'date-fns';
 import { getFlowMetrics, getTasks } from '../../services/api';
@@ -34,6 +35,7 @@ const KPICard = ({ title, value, subtitle, borderColor, alertValue }) => (
 );
 
 const MetricsDashboard = ({ projectId }) => {
+  const { t } = useTranslation();
   const [month, setMonth] = useState(new Date());
 
   const startDate = format(startOfMonth(month), 'yyyy-MM-dd');
@@ -59,7 +61,7 @@ const MetricsDashboard = ({ projectId }) => {
   const throughput = flowMetrics?.throughput ?? flowMetrics?.throughput_week ?? 0;
   const wipTasks = isCurrentMonth && tasks ? tasks.filter((t) => t.status === 'in_progress').length : null;
 
-  if (isLoading) return <div className="p-6 text-muted">Analizando métricas de flujo...</div>;
+  if (isLoading) return <div className="p-6 text-muted">{t('metrics.dashboard.loading')}</div>;
 
   return (
     <div className="flex min-h-full flex-col gap-6 bg-canvas p-6">
@@ -71,13 +73,13 @@ const MetricsDashboard = ({ projectId }) => {
 
       {/* 4 KPI Cards */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-6">
-        <KPICard title="Lead Time" value={`${leadTime.toFixed(2)}h`} subtitle="Promedio desde creación" borderColor="#3b82f6" />
-        <KPICard title="Cycle Time" value={`${cycleTime.toFixed(2)}h`} subtitle="Promedio desde inicio" borderColor="#8b5cf6" />
-        <KPICard title="Throughput" value={`${throughput}`} subtitle="Tareas completadas / sem" borderColor="#10b981" />
+        <KPICard title={t('metrics.kpi.leadTime.title')} value={`${leadTime.toFixed(2)}h`} subtitle={t('metrics.kpi.leadTime.subtitle')} borderColor="#3b82f6" />
+        <KPICard title={t('metrics.kpi.cycleTime.title')} value={`${cycleTime.toFixed(2)}h`} subtitle={t('metrics.kpi.cycleTime.subtitle')} borderColor="#8b5cf6" />
+        <KPICard title={t('metrics.kpi.throughput.title')} value={`${throughput}`} subtitle={t('metrics.kpi.throughput.subtitle')} borderColor="#10b981" />
         <KPICard
-          title="WIP Actual"
+          title={t('metrics.kpi.wip.title')}
           value={wipTasks !== null ? `${wipTasks}` : '—'}
-          subtitle={wipTasks !== null ? 'Tareas en progreso' : 'Solo mes actual'}
+          subtitle={wipTasks !== null ? t('metrics.kpi.wip.subtitleActive') : t('metrics.kpi.wip.subtitleInactive')}
           borderColor={wipTasks !== null && wipTasks >= 3 ? '#ef4444' : '#eab308'}
           alertValue={wipTasks !== null ? wipTasks : undefined}
         />

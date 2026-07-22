@@ -12,6 +12,7 @@ vi.mock('../../../../services/api', () => ({
 
 import VelocityChart from '../VelocityChart';
 import { getVelocity } from '../../../../services/api';
+import i18n from '../../../../i18n';
 
 const START = '2026-06-01';
 const END = '2026-07-01';
@@ -39,7 +40,7 @@ describe('VelocityChart', () => {
     renderChart();
 
     await waitFor(() => {
-      expect(screen.getByText(/sin datos de velocity/i)).toBeInTheDocument();
+      expect(screen.getByText(i18n.t('metrics.charts.velocity.empty'))).toBeInTheDocument();
     });
   });
 
@@ -67,7 +68,7 @@ describe('VelocityChart', () => {
 
     // Con datos disponibles NO debe mostrar el estado vacío
     // (Recharts ResponsiveContainer no renderiza ticks en jsdom, pero el empty-state sí es testeable)
-    expect(screen.queryByText(/sin datos de velocity/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('metrics.charts.velocity.empty'))).not.toBeInTheDocument();
   });
 
   it('NO contiene la cadena "mockVelocityData" en el componente', async () => {
@@ -77,7 +78,7 @@ describe('VelocityChart', () => {
     const { container } = renderChart();
     // El component no debe tener texto de datos mock hardcodeados como "Alice", "Bob", etc.
     await waitFor(() => {
-      expect(screen.getByText(/sin datos de velocity/i)).toBeInTheDocument();
+      expect(screen.getByText(i18n.t('metrics.charts.velocity.empty'))).toBeInTheDocument();
     });
     // No deben aparecer nombres de mock hardcodeados cuando data es []
     expect(screen.queryByText('Charlie')).not.toBeInTheDocument();
@@ -90,6 +91,6 @@ describe('VelocityChart', () => {
     renderChart();
 
     // El componente no debe crashear durante la carga
-    expect(screen.getByText(/velocity por usuario/i)).toBeInTheDocument();
+    expect(screen.getByText(i18n.t('metrics.charts.velocity.title'))).toBeInTheDocument();
   });
 });

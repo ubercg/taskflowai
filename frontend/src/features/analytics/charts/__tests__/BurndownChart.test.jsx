@@ -10,6 +10,7 @@ vi.mock('../../../../services/api', () => ({
 
 import BurndownChart from '../BurndownChart';
 import { getBurndown } from '../../../../services/api';
+import i18n from '../../../../i18n';
 
 const START = '2026-06-01';
 const END = '2026-07-01';
@@ -46,7 +47,7 @@ describe('BurndownChart', () => {
     renderChart();
 
     await waitFor(() => {
-      expect(screen.getByText(/sin tareas con fecha de entrega/i)).toBeInTheDocument();
+      expect(screen.getByText(i18n.t('metrics.charts.burndown.empty'))).toBeInTheDocument();
     });
   });
 
@@ -60,7 +61,7 @@ describe('BurndownChart', () => {
     renderChart();
 
     await waitFor(() => {
-      expect(screen.getByText(/sin tareas con fecha de entrega/i)).toBeInTheDocument();
+      expect(screen.getByText(i18n.t('metrics.charts.burndown.empty'))).toBeInTheDocument();
     });
   });
 
@@ -78,13 +79,13 @@ describe('BurndownChart', () => {
     });
 
     // Con datos disponibles NO debe mostrar el estado vacío
-    expect(screen.queryByText(/sin tareas con fecha de entrega/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('metrics.charts.burndown.empty'))).not.toBeInTheDocument();
   });
 
   it('renderiza el título del chart', () => {
     getBurndown.mockReturnValue(new Promise(() => {}));
     renderChart();
-    expect(screen.getByText(/burndown/i)).toBeInTheDocument();
+    expect(screen.getByText(i18n.t('metrics.charts.burndown.title'))).toBeInTheDocument();
   });
 
   it('no usa mockData hardcodeado — el chart muestra estado vacío sin projectId', async () => {
