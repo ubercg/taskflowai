@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -6,6 +7,7 @@ from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from app.api.v1.endpoints.objectives import _PROGRESS_SELECT
+from app.core.security import hash_password
 from app.core.sigao_auth import verify_sigao_api_key
 from app.db.database import get_db
 from app.models.models import (
@@ -138,16 +140,23 @@ def _get_user_by_email_ci(db: Session, email: str) -> User | None:
 def _ensure_sigao_user(db: Session, email: str, name: str) -> tuple[User, bool]:
     """Find-or-create a User for SIGAO-driven flows.
 
-    New users are provisioned as global `developer` role with the model's
-    default `password_hash` (SIGAO users authenticate via the SIGAO SSO, not
-    TaskFlow's local password login) and `is_active=True`.
+    New users are provisioned as global `developer` with `is_active=True`.
+    They authenticate via SIGAO SSO, not TaskFlow local login, so the
+    password is a random unrecoverable value (never the model/init.sql
+    shared default hash, and never `DEFAULT_NEW_USER_PASSWORD`).
     Returns (user, created).
     """
     existing = _get_user_by_email_ci(db, email)
     if existing:
         return existing, False
 
-    user = User(email=email, name=name, role=UserRole.developer, is_active=True)
+    user = User(
+        email=email,
+        name=name,
+        role=UserRole.developer,
+        is_active=True,
+        password_hash=hash_password(secrets.token_urlsafe(32)),
+    )
     db.add(user)
     db.flush()
     return user, True

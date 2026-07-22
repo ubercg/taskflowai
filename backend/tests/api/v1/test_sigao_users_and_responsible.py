@@ -8,9 +8,15 @@ import uuid
 import pytest
 
 from app.core.config import settings
+from app.core.security import verify_password
 from app.models.models import Project, ProjectMember, User, UserRole
 
 SIGAO_KEY = "test-sigao-key-req024"
+# Hardcoded shared default from models.py / docker/init.sql — must NEVER
+# be inherited by SIGAO-provisioned users (auth bypass if cracked once).
+_SHARED_DEFAULT_PASSWORD_HASH = (
+    "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniJ7HQxQZFx3g8K5vP.8X/5oq"
+)
 
 
 @pytest.fixture(autouse=True)
@@ -61,8 +67,32 @@ class TestEnsureSigaoUser:
         assert user is not None
         assert user.role == UserRole.developer
         assert user.is_active is True
-        # password_hash keeps the model's default; ensure never sets it manually.
+        # Random unrecoverable hash — must not inherit the shared model default.
         assert user.password_hash
+        assert user.password_hash != _SHARED_DEFAULT_PASSWORD_HASH
+        assert not verify_password(
+            settings.DEFAULT_NEW_USER_PASSWORD, user.password_hash
+        )
+
+    def test_two_provisioned_users_do_not_share_password_hash(
+        self, client, sqlite_session
+    ):
+        first = client.post(
+            "/api/v1/integrations/sigao/users/ensure",
+            json={"email": "a@example.com", "name": "Usuario A"},
+            headers=_headers(),
+        )
+        second = client.post(
+            "/api/v1/integrations/sigao/users/ensure",
+            json={"email": "b@example.com", "name": "Usuario B"},
+            headers=_headers(),
+        )
+        assert first.status_code == 200 and second.status_code == 200
+        user_a = sqlite_session.query(User).filter(User.id == first.json()["id"]).one()
+        user_b = sqlite_session.query(User).filter(User.id == second.json()["id"]).one()
+        assert user_a.password_hash != user_b.password_hash
+        assert user_a.password_hash != _SHARED_DEFAULT_PASSWORD_HASH
+        assert user_b.password_hash != _SHARED_DEFAULT_PASSWORD_HASH
 
     def test_returns_existing_user_without_duplicating(self, client, sqlite_session):
         first = client.post(
