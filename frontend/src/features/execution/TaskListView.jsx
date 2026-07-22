@@ -78,7 +78,7 @@ const TaskListView = ({ projectId, onOpen }) => {
       setMassAssigneeId('');
       setMassPriority('');
     } catch (err) {
-      alert('Error en actualización masiva: ' + (err.response?.data?.detail || err.message));
+      alert('Error en actualización masiva: ' + ((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message));
     } finally {
       setIsMassUpdating(false);
     }
@@ -90,9 +90,11 @@ const TaskListView = ({ projectId, onOpen }) => {
       mutate();
     } catch (err) {
       if (err.code === 'WIP_LIMIT_EXCEEDED') {
-        alert(`WIP Limit alcanzado: ${err.response?.data?.detail?.current_wip}/3`);
+        const current = err.meta?.current_wip ?? '?';
+        const limit = err.meta?.limit ?? 3;
+        alert(`WIP Limit alcanzado: ${current}/${limit}`);
       } else {
-        alert('Error cambiando estado');
+        alert(typeof err.detail === 'string' ? err.detail : 'Error cambiando estado');
       }
       mutate();
     }

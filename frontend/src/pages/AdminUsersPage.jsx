@@ -28,9 +28,11 @@ const AdminUsersPage = () => {
       await toggleAdminUser(user.id);
       mutate();
     } catch (err) {
-      const d = err.response?.data?.detail;
-      const msg = typeof d === 'string' ? d : d?.detail || (Array.isArray(d) ? d.map((e) => e.msg).join(' ') : JSON.stringify(d));
-      alert(msg || 'Error al cambiar el estado del usuario');
+      const msg = (typeof err.detail === 'string' && err.detail)
+        || err.meta?.detail
+        || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : err.response?.data?.detail?.detail)
+        || 'Error al cambiar el estado del usuario';
+      alert(msg);
     }
   };
 
@@ -40,8 +42,11 @@ const AdminUsersPage = () => {
       await deleteAdminUser(u.id);
       mutate();
     } catch (err) {
-      const d = err.response?.data?.detail;
-      alert((typeof d === 'string' ? d : err.message) || 'No se pudo eliminar el usuario');
+      const msg = (typeof err.detail === 'string' && err.detail)
+        || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : err.response?.data?.detail?.detail)
+        || err.message
+        || 'No se pudo eliminar el usuario';
+      alert(msg);
     }
   };
 

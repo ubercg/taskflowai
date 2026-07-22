@@ -1,10 +1,11 @@
 from typing import Any
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.errors import api_error
 from app.core.security import decode_token
 from app.db.database import get_db
 
@@ -20,12 +21,9 @@ def verify_sigao_api_key(
     ),
 ) -> bool:
     if not settings.SIGAO_API_KEY:
-        raise HTTPException(
-            status_code=503,
-            detail="Integración SIGAO no configurada (SIGAO_API_KEY ausente)",
-        )
+        raise api_error(503, "SIGAO_NOT_CONFIGURED", "Integración SIGAO no configurada (SIGAO_API_KEY ausente)")
     if x_sigao_key != settings.SIGAO_API_KEY:
-        raise HTTPException(status_code=401, detail="API key inválida")
+        raise api_error(401, "SIGAO_API_KEY_INVALID", "API key inválida")
     return True
 
 
@@ -48,21 +46,18 @@ def require_jwt_or_sigao_key(
 ) -> AuthContext:
     if api_key:
         if not settings.SIGAO_API_KEY:
-            raise HTTPException(
-                status_code=503,
-                detail="Integración SIGAO no configurada (SIGAO_API_KEY ausente)",
-            )
+            raise api_error(503, "SIGAO_NOT_CONFIGURED", "Integración SIGAO no configurada (SIGAO_API_KEY ausente)")
         if api_key == settings.SIGAO_API_KEY:
             return AuthContext(auth_type="sigao", user=None)
-        raise HTTPException(status_code=401, detail="API key inválida")
+        raise api_error(401, "SIGAO_API_KEY_INVALID", "API key inválida")
 
     if not token:
-        raise HTTPException(status_code=401, detail="Credenciales requeridas")
+        raise api_error(401, "AUTH_CREDENTIALS_REQUIRED", "Credenciales requeridas")
 
     payload = decode_token(token)
     user_id = payload.get("sub")
     if not user_id:
-        raise HTTPException(status_code=401, detail="Token sin subject")
+        raise api_error(401, "AUTH_TOKEN_NO_SUBJECT", "Token sin subject")
 
     from app.models.models import User
 
@@ -70,7 +65,7 @@ def require_jwt_or_sigao_key(
         db.query(User).filter(User.id == int(user_id), User.is_active == True).first()
     )
     if not user:
-        raise HTTPException(status_code=401, detail="Usuario no encontrado o inactivo")
+        raise api_error(401, "AUTH_USER_INACTIVE", "Usuario no encontrado o inactivo")
     return AuthContext(auth_type="jwt", user=user)
 
 
@@ -86,7 +81,7 @@ def check_project_access_or_sigao(
 
         project = db.query(Project).filter(Project.id == project_id).first()
         if not project:
-            raise HTTPException(status_code=404, detail="Project not found")
+            raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
         return
 
     from app.core.security import check_project_access

@@ -41,7 +41,7 @@ const ObjectiveTasksPanel = ({ objective, projectId, onClose }) => {
       setNewTaskTitle('');
       mutate();
     } catch (err) {
-      alert('Error creando tarea: ' + (err.response?.data?.detail || err.message));
+      alert('Error creando tarea: ' + ((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message));
     } finally {
       setIsSubmitting(false);
     }

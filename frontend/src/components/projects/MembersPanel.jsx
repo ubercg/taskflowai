@@ -63,7 +63,7 @@ const MembersPanel = ({ projectId, onClose }) => {
       mutate();
       setSearch('');
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error al agregar miembro');
+      alert((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || 'Error al agregar miembro');
     }
   };
 
@@ -72,7 +72,7 @@ const MembersPanel = ({ projectId, onClose }) => {
       await api.patch(`/api/v1/projects/${projectId}/members/${userId}`, { role: newRole });
       mutate();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error al cambiar rol');
+      alert((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || 'Error al cambiar rol');
       mutate();
     }
   };
@@ -83,7 +83,7 @@ const MembersPanel = ({ projectId, onClose }) => {
         await api.delete(`/api/v1/projects/${projectId}/members/${userId}`);
         mutate();
       } catch (err) {
-        alert(err.response?.data?.detail || 'Error al remover miembro');
+        alert((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || 'Error al remover miembro');
       }
     }
   };

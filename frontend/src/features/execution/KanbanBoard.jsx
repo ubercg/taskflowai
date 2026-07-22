@@ -94,14 +94,14 @@ const KanbanBoard = ({ projectId, onTaskClick, onAddTask }) => {
       if (err.code === 'WIP_LIMIT_EXCEEDED') {
         const event = new CustomEvent('wip-exceeded', { 
           detail: { 
-            current_wip: err.response?.data?.detail?.current_wip || wipCount, 
-            limit: WIP_LIMIT 
+            current_wip: err.meta?.current_wip ?? wipCount, 
+            limit: err.meta?.limit ?? WIP_LIMIT 
           } 
         });
         window.dispatchEvent(event);
       } else {
         console.error("Error moviendo tarea:", err);
-        alert(err.detail || "Error interno al mover la tarea");
+        alert(typeof err.detail === 'string' ? err.detail : "Error interno al mover la tarea");
       }
     }
   };

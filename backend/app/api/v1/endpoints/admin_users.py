@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, text, func
 from sqlalchemy.exc import IntegrityError
@@ -9,6 +9,7 @@ from datetime import datetime
 from app.db.database import get_db
 from app.models.models import User, UserRole, Task, TaskStatus, TimeLog
 from app.core.security import require_admin, hash_password
+from app.core.errors import api_error
 from app.core.config import settings
 
 router = APIRouter()
@@ -128,7 +129,7 @@ def get_user_detail(
 ):
     u = db.query(User).filter(User.id == user_id).first()
     if not u:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise api_error(404, "USER_NOT_FOUND", "Usuario no encontrado")
 
     tasks_cnt = db.query(Task).filter(Task.assignee_id == u.id).count()
     hours = (
@@ -157,7 +158,7 @@ def create_admin_user(
 ):
     existing = db.query(User).filter(User.email == payload.email).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Email ya registrado")
+        raise api_error(400, "USER_EMAIL_TAKEN", "Email ya registrado")
 
     db_user = User(
         name=payload.name,
@@ -193,13 +194,11 @@ def update_user(
 ):
     u = db.query(User).filter(User.id == user_id).first()
     if not u:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise api_error(404, "USER_NOT_FOUND", "Usuario no encontrado")
 
     # No permitir que un admin se quite a sí mismo el rol admin
     if u.id == current_user.id and payload.role and payload.role != UserRole.admin:
-        raise HTTPException(
-            status_code=403, detail="No puedes quitarte el rol de admin a ti mismo"
-        )
+        raise api_error(403, "USER_CANNOT_DEMOTE_SELF", "No puedes quitarte el rol de admin a ti mismo")
 
     update_data = payload.model_dump(exclude_unset=True)
     if "email" in update_data:
@@ -209,9 +208,7 @@ def update_user(
             .first()
         )
         if existing:
-            raise HTTPException(
-                status_code=400, detail="Email ya en uso por otro usuario"
-            )
+            raise api_error(400, "USER_EMAIL_TAKEN", "Email ya en uso por otro usuario")
 
     for key, value in update_data.items():
         setattr(u, key, value)
@@ -245,31 +242,23 @@ def delete_admin_user(
     current_user: User = Depends(require_admin),
 ):
     if user_id == current_user.id:
-        raise HTTPException(
-            status_code=403, detail="No puedes eliminar tu propio usuario"
-        )
+        raise api_error(403, "USER_CANNOT_DELETE_SELF", "No puedes eliminar tu propio usuario")
 
     u = db.query(User).filter(User.id == user_id).first()
     if not u:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise api_error(404, "USER_NOT_FOUND", "Usuario no encontrado")
 
     if u.role == UserRole.admin:
         admin_count = db.query(User).filter(User.role == UserRole.admin).count()
         if admin_count <= 1:
-            raise HTTPException(
-                status_code=400,
-                detail="No se puede eliminar el único administrador del sistema",
-            )
+            raise api_error(400, "USER_LAST_ADMIN", "No se puede eliminar el único administrador del sistema")
 
     try:
         db.delete(u)
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail="No se puede eliminar el usuario por restricciones en la base de datos",
-        )
+        raise api_error(409, "USER_DELETE_CONFLICT", "No se puede eliminar el usuario por restricciones en la base de datos")
 
     return {"message": "Usuario eliminado", "id": user_id}
 
@@ -282,12 +271,10 @@ def toggle_user(
 ):
     u = db.query(User).filter(User.id == user_id).first()
     if not u:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise api_error(404, "USER_NOT_FOUND", "Usuario no encontrado")
 
     if u.id == current_user.id:
-        raise HTTPException(
-            status_code=403, detail="No puedes desactivar tu propio usuario"
-        )
+        raise api_error(403, "USER_CANNOT_DEACTIVATE_SELF", "No puedes desactivar tu propio usuario")
 
     new_state = not u.is_active
 
@@ -302,14 +289,12 @@ def toggle_user(
             .count()
         )
         if in_progress_count > 0:
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "detail": "El usuario tiene tareas activas",
-                    "code": "HAS_ACTIVE_TASKS",
-                    "active_tasks": in_progress_count,
-                    "suggestion": "Reasigna las tareas antes de desactivar",
-                },
+            raise api_error(
+                422,
+                "HAS_ACTIVE_TASKS",
+                "El usuario tiene tareas activas",
+                active_tasks=in_progress_count,
+                suggestion="Reasigna las tareas antes de desactivar",
             )
 
     u.is_active = new_state
@@ -372,7 +357,7 @@ def get_user_stats(
 ):
     u = db.query(User).filter(User.id == user_id).first()
     if not u:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise api_error(404, "USER_NOT_FOUND", "Usuario no encontrado")
 
     # Tasks stats using efficient single query
     stats_query = text("""

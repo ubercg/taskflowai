@@ -2,12 +2,13 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from app.api.v1.endpoints.objectives import _PROGRESS_SELECT
 from app.core.security import hash_password
+from app.core.errors import api_error
 from app.core.sigao_auth import verify_sigao_api_key
 from app.db.database import get_db
 from app.models.models import (
@@ -69,13 +70,13 @@ def _resolve_kpi_due_date(project: Project) -> datetime:
 def _get_objective_or_404(db: Session, objective_id: int, project_id: int) -> Objective:
     obj = db.query(Objective).filter(Objective.id == objective_id).first()
     if not obj:
-        raise HTTPException(status_code=404, detail="Objective not found")
+        raise api_error(404, "OBJECTIVE_NOT_FOUND", "Objective not found")
     # Compound scoping (mandatory): the objective must actually belong to the
     # caller's project — mirrors how native `project_kpis` already
     # compound-scope by (id, project_id). `project_id` is a required query
     # param on every objective_id-keyed route, so this check always runs.
     if obj.project_id != project_id:
-        raise HTTPException(status_code=404, detail="Objective not found")
+        raise api_error(404, "OBJECTIVE_NOT_FOUND", "Objective not found")
     return obj
 
 
@@ -100,7 +101,7 @@ def _build_kpi_objective_response(db: Session, objective_id: int) -> KpiObjectiv
         {"objective_id": objective_id},
     ).mappings().first()
     if not row:
-        raise HTTPException(status_code=404, detail="Objective not found")
+        raise api_error(404, "OBJECTIVE_NOT_FOUND", "Objective not found")
 
     hitos = (
         db.query(Task)
@@ -186,10 +187,7 @@ def _seed_kpi_hitos(
         if len(clean_title) > 255:
             # Belt-and-suspenders: schema validation already rejects this at
             # the request boundary (422), this guards any internal caller.
-            raise HTTPException(
-                status_code=422,
-                detail="El título del hito no puede superar 255 caracteres",
-            )
+            raise api_error(422, "SIGAO_HITO_TITLE_TOO_LONG", "El título del hito no puede superar 255 caracteres")
         db.add(
             Task(
                 project_id=project_id,
@@ -293,7 +291,7 @@ def list_sigao_projects(
 def get_sigao_project(external_uuid: UUID, db: Session = Depends(get_db)):
     project = get_project_by_external_uuid(db, external_uuid)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
     return build_sigao_project_response(db, project)
 
 
@@ -305,7 +303,7 @@ def update_sigao_project(
 ):
     project = get_project_by_external_uuid(db, external_uuid)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
 
     data = payload.model_dump(exclude_unset=True)
     actor_name = data.pop("actor_name", None)
@@ -331,7 +329,7 @@ def update_sigao_project(
 def delete_sigao_project(external_uuid: UUID, db: Session = Depends(get_db)):
     project = get_project_by_external_uuid(db, external_uuid)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
     db.delete(project)
     db.commit()
     return None
@@ -349,7 +347,7 @@ def delete_sigao_project(external_uuid: UUID, db: Session = Depends(get_db)):
 def list_kpi_objectives(external_uuid: UUID, db: Session = Depends(get_db)):
     project = get_project_by_external_uuid(db, external_uuid)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
     ids = [
         row.id
         for row in db.query(Objective.id)
@@ -372,7 +370,7 @@ def create_kpi_objective(
 ):
     project = get_project_by_external_uuid(db, external_uuid)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
 
     due_date = payload.due_date or _resolve_kpi_due_date(project)
     # progress_pct is only settable for manual mode (Invariant 9);
@@ -473,10 +471,7 @@ def update_kpi_objective_progress(
     objective = _get_objective_or_404(db, objective_id, project_id)
     if objective.mode != "manual":
         # Derived (milestone) progress is never hand-set — ADR-11/ADR-12.
-        raise HTTPException(
-            status_code=409,
-            detail="El progreso de un KPI por hitos se deriva de los hitos, no se edita manualmente",
-        )
+        raise api_error(409, "SIGAO_KPI_PROGRESS_IMMUTABLE", "El progreso de un KPI por hitos se deriva de los hitos, no se edita manualmente")
 
     objective.progress_pct = payload.progress_pct
     if payload.comment:
@@ -540,10 +535,7 @@ def create_kpi_hito(
 ):
     objective = _get_objective_or_404(db, objective_id, project_id)
     if objective.mode != "milestone":
-        raise HTTPException(
-            status_code=400,
-            detail="Los hitos solo aplican a KPIs en modo por hitos",
-        )
+        raise api_error(400, "SIGAO_HITOS_MILESTONE_ONLY", "Los hitos solo aplican a KPIs en modo por hitos")
 
     task = Task(
         project_id=objective.project_id,
@@ -566,7 +558,7 @@ def _get_kpi_hito_or_404(db: Session, objective_id: int, task_id: int) -> Task:
         .first()
     )
     if not task:
-        raise HTTPException(status_code=404, detail="Hito not found")
+        raise api_error(404, "SIGAO_HITO_NOT_FOUND", "Hito not found")
     return task
 
 
@@ -584,10 +576,7 @@ def update_kpi_hito(
 ):
     objective = _get_objective_or_404(db, objective_id, project_id)
     if objective.mode != "milestone":
-        raise HTTPException(
-            status_code=400,
-            detail="Los hitos solo aplican a KPIs en modo por hitos",
-        )
+        raise api_error(400, "SIGAO_HITOS_MILESTONE_ONLY", "Los hitos solo aplican a KPIs en modo por hitos")
     task = _get_kpi_hito_or_404(db, objective_id, task_id)
 
     data = payload.model_dump(exclude_unset=True)
@@ -615,10 +604,7 @@ def delete_kpi_hito(
 ):
     objective = _get_objective_or_404(db, objective_id, project_id)
     if objective.mode != "milestone":
-        raise HTTPException(
-            status_code=400,
-            detail="Los hitos solo aplican a KPIs en modo por hitos",
-        )
+        raise api_error(400, "SIGAO_HITOS_MILESTONE_ONLY", "Los hitos solo aplican a KPIs en modo por hitos")
     task = _get_kpi_hito_or_404(db, objective_id, task_id)
     db.delete(task)
     db.commit()
@@ -702,7 +688,7 @@ def set_sigao_project_responsible(
 ):
     project = get_project_by_external_uuid(db, external_uuid)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
 
     user, _created = _ensure_sigao_user(db, payload.email, payload.name)
     project.responsible_name = payload.name

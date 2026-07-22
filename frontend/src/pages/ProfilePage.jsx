@@ -27,7 +27,7 @@ const ProfilePage = () => {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      setError(err.response?.data?.detail || err.detail || 'Error al actualizar contraseña');
+      setError((typeof err.detail === 'string' && err.detail) || (typeof err.response?.data?.detail === 'string' && err.response.data.detail) || err.response?.data?.detail?.detail || 'Error al actualizar contraseña');
     }
   };
 

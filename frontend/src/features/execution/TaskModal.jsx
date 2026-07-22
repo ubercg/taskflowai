@@ -139,7 +139,7 @@ const TaskModal = ({ taskId, onClose }) => {
       setNewSubtaskTitle('');
       mutateSubtasks();
     } catch (err) {
-      alert('Error al crear subtarea: ' + (err.response?.data?.detail || err.message));
+      alert('Error al crear subtarea: ' + ((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message));
     }
   };
 
@@ -149,7 +149,7 @@ const TaskModal = ({ taskId, onClose }) => {
       await api.patch(`/api/v1/tasks/${subtask.id}`, { status: newStatus });
       mutateSubtasks();
     } catch (err) {
-      alert('Error al actualizar subtarea: ' + (err.response?.data?.detail || err.message));
+      alert('Error al actualizar subtarea: ' + ((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message));
     }
   };
 
@@ -169,7 +169,7 @@ const TaskModal = ({ taskId, onClose }) => {
       mutateLogs();
       mutate();
     } catch (err) {
-      alert('Error al registrar tiempo: ' + (err.detail || err.message));
+      alert('Error al registrar tiempo: ' + ((typeof err.detail === 'string' && err.detail) || err.message));
     }
   };
 

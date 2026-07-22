@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.sigao_auth import AuthContext, check_project_access_or_sigao, require_jwt_or_sigao_key
+from app.core.errors import api_error
 from app.db.database import get_db
 from app.models.models import Milestone, MilestoneStatus
 from app.schemas.sigao_schemas import MilestoneCreate, MilestoneResponse, MilestoneUpdate
@@ -17,10 +18,7 @@ def _require_manager_if_jwt(auth: AuthContext) -> None:
     if auth.is_sigao_service:
         return
     if auth.user.role not in ("admin", "manager"):
-        raise HTTPException(
-            status_code=403,
-            detail="Se requiere rol manager o superior",
-        )
+        raise api_error(403, "PROJECT_MANAGER_REQUIRED", "Se requiere rol manager o superior")
 
 
 @router.get("/{project_id}/milestones", response_model=list[MilestoneResponse])
@@ -94,7 +92,7 @@ def update_milestone(
         .first()
     )
     if not milestone:
-        raise HTTPException(status_code=404, detail="Milestone not found")
+        raise api_error(404, "MILESTONE_NOT_FOUND", "Milestone not found")
 
     data = payload.model_dump(exclude_unset=True)
     actor_name = data.pop("actor_name", None)
@@ -137,7 +135,7 @@ def delete_milestone(
         .first()
     )
     if not milestone:
-        raise HTTPException(status_code=404, detail="Milestone not found")
+        raise api_error(404, "MILESTONE_NOT_FOUND", "Milestone not found")
     db.delete(milestone)
     db.commit()
     return None

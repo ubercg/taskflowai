@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.models import Project, ProjectMember, ProjectStatus
 from app.schemas.schemas import ProjectResponse, ProjectCreate, ProjectUpdate
 from sqlalchemy import text
+from app.core.errors import api_error
 from app.core.security import (
     require_authenticated,
     require_manager_or_above,
@@ -35,7 +36,7 @@ def read_project(
     check_project_access(project_id, current_user, db)
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
     return project
 
 
@@ -70,7 +71,7 @@ def update_project(
     check_project_access(project_id, current_user, db, require_ownership=True)
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        raise HTTPException(404, "Project not found")
+        raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
     data = project_update.model_dump(exclude_unset=True)
     for k, v in data.items():
         if k == "status" and v is not None:
@@ -89,10 +90,10 @@ def delete_project(
     current_user=Depends(require_authenticated),
 ):
     if current_user.role != "admin":
-        raise HTTPException(403, "Solo admins pueden eliminar proyectos")
+        raise api_error(403, "PROJECT_DELETE_FORBIDDEN", "Solo admins pueden eliminar proyectos")
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        raise HTTPException(404, "Project not found")
+        raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
     db.delete(project)
     db.commit()
     return {"message": "Project deleted"}
@@ -157,7 +158,7 @@ def update_project_member_role(
 
     role = payload.get("role")
     if not role:
-        raise HTTPException(400, "Role is required")
+        raise api_error(400, "PROJECT_ROLE_REQUIRED", "Role is required")
 
     member = (
         db.query(ProjectMember)
@@ -165,7 +166,7 @@ def update_project_member_role(
         .first()
     )
     if not member:
-        raise HTTPException(404, "Miembro no encontrado en el proyecto")
+        raise api_error(404, "PROJECT_MEMBER_NOT_FOUND", "Miembro no encontrado en el proyecto")
 
     member.role = role
     db.commit()
@@ -194,7 +195,7 @@ def remove_project_member(
         .first()
     )
     if not member:
-        raise HTTPException(404, "Miembro no encontrado en el proyecto")
+        raise api_error(404, "PROJECT_MEMBER_NOT_FOUND", "Miembro no encontrado en el proyecto")
 
     db.delete(member)
     db.commit()

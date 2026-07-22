@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.models import TimeLog, Task, UserRole
 from app.schemas.schemas import TimeLogResponse, TimeLogCreate
 from app.core.security import require_authenticated
+from app.core.errors import api_error
 
 router = APIRouter()
 
@@ -29,14 +30,14 @@ def create_timelog(
     current_user=Depends(require_authenticated),
 ):
     if current_user.role == UserRole.viewer:
-        raise HTTPException(403, "Viewers no pueden registrar tiempo")
+        raise api_error(403, "TIMELOG_VIEWER_FORBIDDEN", "Viewers no pueden registrar tiempo")
 
     task = db.query(Task).filter(Task.id == log.task_id).with_for_update().first()
     if not task:
-        raise HTTPException(404, "Task no encontrada")
+        raise api_error(404, "TASK_NOT_FOUND", "Task no encontrada")
 
     if current_user.role == UserRole.developer and task.assignee_id != current_user.id:
-        raise HTTPException(403, "Developers solo pueden registrar horas en sus tareas")
+        raise api_error(403, "TIMELOG_OWN_ONLY", "Developers solo pueden registrar horas en sus tareas")
 
     db_log = TimeLog(**log.model_dump())
     db_log.user_id = current_user.id  # Aseguramos user_id

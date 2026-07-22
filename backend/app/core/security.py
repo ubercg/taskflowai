@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, Header
+from fastapi import Depends, Header
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.core.config import settings
+from app.core.errors import api_error
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -41,7 +42,7 @@ def decode_token(token: str) -> dict:
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError:
-        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+        raise api_error(401, "AUTH_TOKEN_INVALID", "Token inválido o expirado")
 
 
 # Dependencia principal — inyectar en cualquier endpoint
@@ -51,14 +52,14 @@ def get_current_user(
     payload = decode_token(token)
     user_id = payload.get("sub")
     if not user_id:
-        raise HTTPException(401, "Token sin subject")
+        raise api_error(401, "AUTH_TOKEN_NO_SUBJECT", "Token sin subject")
     from app.models.models import User
 
     user = (
         db.query(User).filter(User.id == int(user_id), User.is_active == True).first()
     )
     if not user:
-        raise HTTPException(401, "Usuario no encontrado o inactivo")
+        raise api_error(401, "AUTH_USER_INACTIVE", "Usuario no encontrado o inactivo")
     return user
 
 
@@ -67,9 +68,10 @@ def require_role(*roles):
 
     def checker(current_user=Depends(get_current_user)):
         if current_user.role not in roles:
-            raise HTTPException(
-                status_code=403,
-                detail=f"Acceso denegado. Roles permitidos: {', '.join(roles)}",
+            raise api_error(
+                403,
+                "AUTH_ROLE_FORBIDDEN",
+                f"Acceso denegado. Roles permitidos: {', '.join(roles)}",
                 headers={"X-Required-Role": ", ".join(roles)},
             )
         return current_user
@@ -104,7 +106,7 @@ def check_project_access(
         .first()
     )
     if not member:
-        raise HTTPException(403, "No tienes acceso a este proyecto")
+        raise api_error(403, "PROJECT_ACCESS_DENIED", "No tienes acceso a este proyecto")
     if require_ownership and member.role not in ("admin", "manager"):
-        raise HTTPException(403, "Se requiere rol de manager en este proyecto")
+        raise api_error(403, "PROJECT_MANAGER_REQUIRED", "Se requiere rol de manager en este proyecto")
     return member

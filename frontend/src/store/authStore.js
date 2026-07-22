@@ -41,7 +41,8 @@ export const useAuthStore = create(persist(
           isLoading: false 
         })
       } catch (err) {
-        const msg = err.response?.data?.detail || 'Error al iniciar sesión'
+        const d = err.response?.data?.detail
+        const msg = typeof d === 'string' ? d : (d && typeof d === 'object' && d.detail) ? d.detail : 'Error al iniciar sesión'
         set({ error: msg, isLoading: false })
         throw err
       }

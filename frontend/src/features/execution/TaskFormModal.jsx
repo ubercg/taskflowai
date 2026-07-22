@@ -83,7 +83,7 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
       const newTask = await createTask(payload);
       onCreated(newTask);
     } catch (err) {
-      setError(err.response?.data?.detail || err.detail || 'Error al crear la tarea');
+      setError((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : null) || 'Error al crear la tarea');
     } finally {
       setIsSubmitting(false);
     }

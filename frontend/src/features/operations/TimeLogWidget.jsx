@@ -44,7 +44,7 @@ const TimeLogWidget = ({ task, anchor, onClose, onLogged }) => {
       onLogged(newLog);
       onClose();
     } catch (err) {
-      alert('Error al registrar tiempo: ' + (err.response?.data?.detail || err.message));
+      alert('Error al registrar tiempo: ' + ((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message));
     } finally {
       setIsSubmitting(false);
     }
