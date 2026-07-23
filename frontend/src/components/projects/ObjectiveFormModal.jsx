@@ -16,11 +16,13 @@ const getProgressColor = (percentage) => {
 const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
   const { t } = useTranslation();
   const isEdit = !!objective;
+  const isManual = objective?.mode === 'manual';
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     due_date: '',
     project_id: projectId,
+    progress_pct: 0,
   });
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,6 +34,7 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
         description: objective.description || '',
         due_date: objective.due_date ? toDateInputValue(objective.due_date) : '',
         project_id: objective.project_id || projectId,
+        progress_pct: Number(objective.progress ?? 0),
       });
     }
   }, [objective, isEdit, projectId]);
@@ -45,10 +48,19 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
 
     setIsSubmitting(true);
     try {
+      const payload = {
+        title: formData.title,
+        description: formData.description,
+        due_date: formData.due_date,
+        project_id: formData.project_id,
+      };
+      if (isEdit && isManual) {
+        payload.progress_pct = Number(formData.progress_pct);
+      }
       if (isEdit) {
-        await api.patch(`/api/v1/objectives/${objective.id}`, formData);
+        await api.patch(`/api/v1/objectives/${objective.id}`, payload);
       } else {
-        await api.post('/api/v1/objectives', formData);
+        await api.post('/api/v1/objectives', payload);
       }
       onSaved();
     } catch (err) {
@@ -58,7 +70,7 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
     }
   };
 
-  const derivedProgress = objective?.progress || 0;
+  const displayProgress = isManual ? Number(formData.progress_pct) : (objective?.progress || 0);
 
   return (
     <Modal open onClose={onClose} className="max-w-lg p-8">
@@ -94,12 +106,30 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
         {isEdit && (
           <div>
             <label className="mb-1.5 flex justify-between text-[13px] font-medium text-fg">
-              <span>{t('objectives.form.progress.label')}</span>
-              <span className="font-semibold" style={{ color: getProgressColor(derivedProgress) }}>{derivedProgress}%</span>
+              <span>
+                {t('objectives.form.progress.label')}
+                {isManual
+                  ? ` (${t('objectives.form.progress.manualHint')})`
+                  : ` (${t('objectives.form.progress.milestoneHint')})`}
+              </span>
+              <span className="font-semibold" style={{ color: getProgressColor(displayProgress) }}>{displayProgress}%</span>
             </label>
-            <div className="mt-1 h-2 w-full overflow-hidden rounded bg-border">
-              <div className="h-full" style={{ width: `${derivedProgress}%`, backgroundColor: getProgressColor(derivedProgress) }} />
-            </div>
+            {isManual ? (
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={formData.progress_pct}
+                onChange={(e) => setFormData({ ...formData, progress_pct: Number(e.target.value) })}
+                className="mt-1 w-full accent-[var(--color-accent,#6366f1)]"
+                data-testid="objective-progress-slider"
+              />
+            ) : (
+              <div className="mt-1 h-2 w-full overflow-hidden rounded bg-border">
+                <div className="h-full" style={{ width: `${displayProgress}%`, backgroundColor: getProgressColor(displayProgress) }} />
+              </div>
+            )}
           </div>
         )}
 

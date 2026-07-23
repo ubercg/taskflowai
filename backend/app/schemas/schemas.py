@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator, Field
 from typing import List, Optional
 from datetime import date, datetime
 from app.models.models import TaskStatus, TaskPriority, TaskType
@@ -92,6 +92,8 @@ class ObjectiveUpdate(BaseModel):
     title: Optional[str] = None
     due_date: Optional[datetime] = None
     description: Optional[str] = None
+    # Manual KPIs only — milestone mode rejects this with 409 (REQ-003 RN-O-01).
+    progress_pct: Optional[int] = Field(default=None, ge=0, le=100)
 
 
 class ObjectiveResponse(ObjectiveBase):

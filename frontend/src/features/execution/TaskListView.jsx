@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getTasks, updateTask, moveTask } from '../../services/api';
@@ -25,16 +25,22 @@ const getInitials = (name) => {
   return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
 };
 
-const TaskListView = ({ projectId, onOpen }) => {
+const TaskListView = ({ projectId, onOpen, initialObjective }) => {
   const { t } = useTranslation();
   const { canAssignTask, editableFields } = usePermissions();
   const [filterAssignee, setFilterAssignee] = useState('all');
   const [filterPriority, setFilterPriority] = useState([]);
-  const [filterObjective, setFilterObjective] = useState('all');
+  const [filterObjective, setFilterObjective] = useState(
+    initialObjective ? String(initialObjective) : 'all',
+  );
   const [selectedIds, setSelectedIds] = useState([]);
   const [massAssigneeId, setMassAssigneeId] = useState('');
   const [massPriority, setMassPriority] = useState('');
   const [isMassUpdating, setIsMassUpdating] = useState(false);
+
+  useEffect(() => {
+    if (initialObjective) setFilterObjective(String(initialObjective));
+  }, [initialObjective]);
   const { data: tasks, error, isLoading, mutate } = useSWR(
     `/api/v1/tasks?project_id=${projectId}`,
     () => getTasks({ project_id: projectId }),

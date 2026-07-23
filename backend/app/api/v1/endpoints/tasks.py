@@ -9,7 +9,7 @@ from app.models.models import Task, Activity, TaskStatus, UserRole
 from app.schemas.schemas import TaskMove, TaskResponse, TaskResponseFull
 from app.modules.intelligence.bottleneck import analyze_bottleneck
 from app.api.v1.endpoints.tasks_crud import router
-from app.core.security import require_authenticated, check_project_access
+from app.core.security import require_authenticated, check_project_access, has_project_manage_role
 from app.core.errors import api_error
 
 WIP_LIMIT = int(os.getenv("WIP_LIMIT", "3"))
@@ -157,7 +157,9 @@ def get_calendar_tasks(
         )
     )
 
-    if current_user.role == UserRole.developer:
+    if current_user.role == UserRole.developer and not has_project_manage_role(
+        db, current_user, project_id
+    ):
         query = query.filter(Task.assignee_id == current_user.id)
 
     tasks = query.all()

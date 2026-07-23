@@ -13,7 +13,7 @@ import WipToast from './WipToast';
 
 const WIP_LIMIT = 3;
 
-const KanbanBoard = ({ projectId, onTaskClick, onAddTask }) => {
+const KanbanBoard = ({ projectId, objectiveId, onTaskClick, onAddTask }) => {
   const { t } = useTranslation();
   const { data, error, isLoading } = useSWR(`/api/v1/tasks?project_id=${projectId}`, () => getTasks({ project_id: projectId }));
   
@@ -44,6 +44,10 @@ const KanbanBoard = ({ projectId, onTaskClick, onAddTask }) => {
 
   useEffect(() => {
     if (data) {
+      const scoped = objectiveId
+        ? data.filter((task) => task.objective_id === Number(objectiveId))
+        : data;
+
       // Si recibimos tasks del backend, armamos las columnas
       const initialCols = {
         backlog: [],
@@ -54,7 +58,7 @@ const KanbanBoard = ({ projectId, onTaskClick, onAddTask }) => {
         done: []
       };
 
-      data.forEach(task => {
+      scoped.forEach(task => {
         if (initialCols[task.status]) {
           initialCols[task.status].push(task);
         }
@@ -68,7 +72,7 @@ const KanbanBoard = ({ projectId, onTaskClick, onAddTask }) => {
       setColumns(initialCols);
       setIsInitializing(false);
     }
-  }, [data, setColumns]);
+  }, [data, objectiveId, setColumns]);
 
   const wipCount = useMemo(() => columns.in_progress.length, [columns.in_progress]);
 

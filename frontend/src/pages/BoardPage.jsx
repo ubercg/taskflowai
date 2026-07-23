@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getProject } from '../services/api';
@@ -31,6 +31,8 @@ const ViewTab = ({ active, children, ...props }) => (
 const BoardPage = () => {
   const { t } = useTranslation();
   const { id } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const objectiveParam = searchParams.get('objective');
   const [viewMode, setViewMode] = useState('list'); // 'kanban' | 'list' | 'calendar'
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
@@ -39,6 +41,12 @@ const BoardPage = () => {
   const { canCreateTask, canViewMetrics } = usePermissions();
 
   const { data: project, isLoading } = useSWR(`/api/v1/projects/${id}`, () => getProject(id));
+
+  const clearObjectiveFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('objective');
+    setSearchParams(next, { replace: true });
+  };
 
   return (
     <div className="flex h-[calc(100vh-64px)] flex-col">
@@ -82,6 +90,19 @@ const BoardPage = () => {
         </Can>
       </div>
 
+      {objectiveParam && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-accent-soft/40 px-3 py-2 text-[13px] text-fg">
+          <span>{t('execution.board.objectiveFilter', { id: objectiveParam })}</span>
+          <button
+            type="button"
+            onClick={clearObjectiveFilter}
+            className="font-medium text-accent hover:text-accent-hover"
+          >
+            {t('execution.board.clearObjectiveFilter')}
+          </button>
+        </div>
+      )}
+
       {/* Daily Summary */}
       {showSummary && (
         <div className="pb-4">
@@ -94,12 +115,17 @@ const BoardPage = () => {
         {viewMode === 'kanban' ? (
           <KanbanBoard
             projectId={id}
+            objectiveId={objectiveParam}
             onTaskClick={(taskId) => setSelectedTaskId(taskId)}
             onAddTask={(status) => { setTaskFormStatus(status); setShowTaskForm(true); }}
           />
         ) : viewMode === 'list' ? (
           <div className="h-full overflow-y-auto pr-1">
-            <TaskListView projectId={id} onOpen={(taskId) => setSelectedTaskId(taskId)} />
+            <TaskListView
+              projectId={id}
+              initialObjective={objectiveParam}
+              onOpen={(taskId) => setSelectedTaskId(taskId)}
+            />
           </div>
         ) : (
           <CalendarView projectId={id} onTaskClick={(taskId) => setSelectedTaskId(taskId)} />
@@ -114,6 +140,7 @@ const BoardPage = () => {
         <TaskFormModal
           projectId={id}
           defaultStatus={taskFormStatus}
+          defaultObjectiveId={objectiveParam ? Number(objectiveParam) : undefined}
           onClose={() => setShowTaskForm(false)}
           onCreated={(task) => {
             setShowTaskForm(false);

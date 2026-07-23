@@ -156,3 +156,26 @@ def accessible_project_ids(db: Session, current_user):
         .all()
     )
     return [r[0] for r in rows]
+
+
+def has_project_manage_role(db: Session, user, project_id: int) -> bool:
+    """True if global admin/manager OR project membership admin/manager.
+
+    SIGAO (and local admin) often grant project `manager` while the user keeps
+    global role `developer`. Without this check, project leads cannot see the
+    team board (RN-09 assignee filter) even though they manage the project.
+    """
+    role = getattr(user, "role", None)
+    role_val = getattr(role, "value", role)
+    if role_val in ("admin", "manager"):
+        return True
+    from app.models.models import ProjectMember, UserRole
+
+    member = (
+        db.query(ProjectMember)
+        .filter_by(project_id=project_id, user_id=user.id)
+        .first()
+    )
+    if not member:
+        return False
+    return member.role in (UserRole.admin, UserRole.manager)
