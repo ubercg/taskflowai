@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { createTask } from '../../services/api';
 import api from '../../services/api/client';
+import { resolveApiError } from '../../services/api/errors';
 import { useAuth } from '../../store/authStore';
 import { taskPriorityLabel } from '../../i18n/enums';
 import { Modal, Input, Select, Textarea, Button } from '../../components/ui';
@@ -87,7 +88,7 @@ const TaskFormModal = ({ projectId, defaultStatus = 'backlog', defaultObjectiveI
       const newTask = await createTask(payload);
       onCreated(newTask);
     } catch (err) {
-      setError((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : null) || t('tasks.form.errors.create'));
+      setError(resolveApiError(err, 'tasks.form.errors.create'));
     } finally {
       setIsSubmitting(false);
     }

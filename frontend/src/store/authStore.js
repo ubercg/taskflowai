@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import axios from 'axios'
+import { normalizeApiError, resolveApiError } from '../services/api/errors'
 
 export const useAuthStore = create(persist(
   (set) => ({
@@ -41,8 +42,8 @@ export const useAuthStore = create(persist(
           isLoading: false 
         })
       } catch (err) {
-        const d = err.response?.data?.detail
-        const msg = typeof d === 'string' ? d : (d && typeof d === 'object' && d.detail) ? d.detail : 'Error al iniciar sesión'
+        normalizeApiError(err)
+        const msg = resolveApiError(err, 'errors.LOGIN_FAILED')
         set({ error: msg, isLoading: false })
         throw err
       }

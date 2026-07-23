@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api/client';
+import { resolveApiError } from '../../services/api/errors';
 import { toDateInputValue } from '../../utils/dateUtils';
 import { projectStatusLabel } from '../../i18n/enums';
 import { Modal, Input, Textarea, Select, Button } from '../ui';
@@ -72,10 +73,7 @@ const ProjectFormModal = ({ project, onClose, onSaved }) => {
         : await api.post('/api/v1/projects', payload);
       onSaved(res.data);
     } catch (err) {
-      const d = err.response?.data?.detail;
-      const msg = (typeof err.detail === 'string' && err.detail)
-        || (typeof d === 'string' ? d : Array.isArray(d) ? d.map((e) => e.msg || JSON.stringify(e)).join(' ') : d?.detail ? d.detail : err.message);
-      setError(msg || t('projects.form.errors.save'));
+      setError(resolveApiError(err, 'projects.form.errors.save'));
     } finally {
       setIsSubmitting(false);
     }
@@ -122,7 +120,7 @@ const ProjectFormModal = ({ project, onClose, onSaved }) => {
           <div>
             <label className="mb-1.5 flex justify-between text-[13px] font-medium text-fg">
               <span>{t('projects.form.description.label')}</span>
-              <span className="text-faint">{formData.description.length}/300</span>
+              <span className="text-faint">{t('common.charCount', { current: formData.description.length, max: 300 })}</span>
             </label>
             <Textarea
               maxLength={300}

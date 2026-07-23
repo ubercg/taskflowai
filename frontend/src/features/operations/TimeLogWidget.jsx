@@ -3,6 +3,7 @@ import useSWR from 'swr';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../store/authStore';
 import api from '../../services/api/client';
+import { resolveApiError } from '../../services/api/errors';
 
 const FIELD = 'w-full rounded-md border border-border bg-canvas px-2 py-2 text-[13px] text-fg outline-none focus:border-accent';
 const LABEL = 'mb-1 block text-xs font-semibold text-muted';
@@ -46,10 +47,7 @@ const TimeLogWidget = ({ task, anchor, onClose, onLogged }) => {
       onLogged(newLog);
       onClose();
     } catch (err) {
-      const detail = (typeof err.detail === 'string' && err.detail)
-        || err.response?.data?.detail?.detail
-        || err.message;
-      alert(t('tasks.detail.timeLog.error', { detail }));
+      alert(resolveApiError(err, 'errors.UNKNOWN_ERROR'));
     } finally {
       setIsSubmitting(false);
     }

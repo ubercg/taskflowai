@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getProjects, getProjectMetrics } from '../services/api';
+import { resolveApiError } from '../services/api/errors';
 import ProjectCard from '../components/projects/ProjectCard';
 import ProjectFormModal from '../components/projects/ProjectFormModal';
 import Can from '../components/shared/Can';
@@ -69,7 +70,7 @@ const ProjectsPage = () => {
           </svg>
           <div>
             <h4 className="font-semibold">{t('projects.loadError.title')}</h4>
-            <p className="mt-1 text-sm">{projectsError?.detail || t('projects.loadError.fallback')}</p>
+            <p className="mt-1 text-sm">{resolveApiError(projectsError, 'projects.loadError.fallback')}</p>
           </div>
         </div>
       )}

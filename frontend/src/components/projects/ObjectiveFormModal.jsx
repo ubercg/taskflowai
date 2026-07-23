@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api/client';
+import { resolveApiError } from '../../services/api/errors';
 import { toDateInputValue } from '../../utils/dateUtils';
 import { Modal, Input, Textarea, Button } from '../ui';
 
@@ -51,7 +52,7 @@ const ObjectiveFormModal = ({ projectId, objective, onClose, onSaved }) => {
       }
       onSaved();
     } catch (err) {
-      setError((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : null) || t('objectives.form.errors.save'));
+      setError(resolveApiError(err, 'objectives.form.errors.save'));
     } finally {
       setIsSubmitting(false);
     }

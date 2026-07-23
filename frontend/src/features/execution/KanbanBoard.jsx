@@ -4,6 +4,7 @@ import { DragDropContext } from '@hello-pangea/dnd';
 import useSWR from 'swr';
 import { getTasks, moveTask, getBottlenecks } from '../../services/api';
 import api from '../../services/api/client';
+import { resolveApiError } from '../../services/api/errors';
 import { useKanbanStore } from '../../store/kanbanStore';
 import { useAuth } from '../../store/authStore';
 import { taskStatusLabel } from '../../i18n/enums';
@@ -104,7 +105,7 @@ const KanbanBoard = ({ projectId, onTaskClick, onAddTask }) => {
         window.dispatchEvent(event);
       } else {
         console.error("Error moviendo tarea:", err);
-        alert(typeof err.detail === 'string' ? err.detail : t('execution.kanban.moveError'));
+        alert(resolveApiError(err, 'execution.kanban.moveError'));
       }
     }
   };

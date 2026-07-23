@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createUser } from '../../services/api';
+import { resolveApiError } from '../../services/api/errors';
 import { Modal, Input, Select, Button } from '../ui';
 import { cn } from '../../lib/cn';
 import { userRoleLabel } from '../../i18n/enums';
@@ -30,7 +31,7 @@ const NewUserModal = ({ onClose, onSuccess }) => {
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
-      setError(err.detail || t('users.form.errors.create'));
+      setError(resolveApiError(err, 'users.form.errors.create'));
     } finally {
       setIsSubmitting(false);
     }

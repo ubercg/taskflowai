@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getAdminUsers, toggleAdminUser, deleteAdminUser } from '../services/api';
+import { resolveApiError } from '../services/api/errors';
 import { useAuth } from '../store/authStore';
 import UserTable from '../components/users/UserTable';
 import UserFormModal from '../components/users/UserFormModal';
@@ -33,11 +34,7 @@ const AdminUsersPage = () => {
       await toggleAdminUser(user.id);
       mutate();
     } catch (err) {
-      const msg = (typeof err.detail === 'string' && err.detail)
-        || err.meta?.detail
-        || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : err.response?.data?.detail?.detail)
-        || t('users.admin.toggleError');
-      alert(msg);
+      alert(resolveApiError(err, 'users.admin.toggleError'));
     }
   };
 
@@ -47,11 +44,7 @@ const AdminUsersPage = () => {
       await deleteAdminUser(u.id);
       mutate();
     } catch (err) {
-      const msg = (typeof err.detail === 'string' && err.detail)
-        || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : err.response?.data?.detail?.detail)
-        || err.message
-        || t('users.admin.deleteError');
-      alert(msg);
+      alert(resolveApiError(err, 'users.admin.deleteError'));
     }
   };
 

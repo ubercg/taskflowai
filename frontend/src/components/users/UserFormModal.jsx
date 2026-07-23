@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createAdminUser, updateAdminUser } from '../../services/api';
+import { resolveApiError } from '../../services/api/errors';
 import { Modal, Input, Select, Button } from '../ui';
 import { cn } from '../../lib/cn';
 import { userRoleLabel } from '../../i18n/enums';
@@ -52,10 +53,7 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
       }
       onSaved();
     } catch (err) {
-      const d = err.response?.data?.detail;
-      const msg = (typeof err.detail === 'string' && err.detail)
-        || (typeof d === 'string' ? d : Array.isArray(d) ? d.map((e) => e.msg || JSON.stringify(e)).join(' ') : d?.detail ? d.detail : err.message);
-      setError(msg || t('users.form.errors.save'));
+      setError(resolveApiError(err, 'users.form.errors.save'));
     } finally {
       setIsSubmitting(false);
     }

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { createTask, updateTask } from '../../services/api';
 import api from '../../services/api/client';
+import { resolveApiError } from '../../services/api/errors';
 import { Link } from 'react-router-dom';
 import { taskStatusLabel } from '../../i18n/enums';
 import { cn } from '../../lib/cn';
@@ -44,8 +45,7 @@ const ObjectiveTasksPanel = ({ objective, projectId, onClose }) => {
       setNewTaskTitle('');
       mutate();
     } catch (err) {
-      const detail = (typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message || '';
-      alert(t('objectives.tasks.createError', { detail }));
+      alert(resolveApiError(err, 'objectives.tasks.assignError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -58,7 +58,7 @@ const ObjectiveTasksPanel = ({ objective, projectId, onClose }) => {
       await updateTask(taskId, { assignee_id: assigneeId });
       mutate();
     } catch (err) {
-      alert(t('objectives.tasks.assignError'));
+      alert(resolveApiError(err, 'objectives.tasks.assignError'));
       mutate();
     }
   };

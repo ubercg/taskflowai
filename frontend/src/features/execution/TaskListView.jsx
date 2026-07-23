@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getTasks, updateTask, moveTask } from '../../services/api';
 import api from '../../services/api/client';
+import { resolveApiError } from '../../services/api/errors';
 import usePermissions from '../../hooks/usePermissions';
 import { taskStatusLabel, taskPriorityLabel } from '../../i18n/enums';
 import { Select, Button } from '../../components/ui';
@@ -81,8 +82,7 @@ const TaskListView = ({ projectId, onOpen }) => {
       setMassAssigneeId('');
       setMassPriority('');
     } catch (err) {
-      const detail = (typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message;
-      alert(t('execution.list.massUpdateError', { detail }));
+      alert(resolveApiError(err, 'execution.list.massUpdateError'));
     } finally {
       setIsMassUpdating(false);
     }
@@ -93,13 +93,7 @@ const TaskListView = ({ projectId, onOpen }) => {
       await moveTask(task.id, { status: newStatus, position: 0, user_id: 1 });
       mutate();
     } catch (err) {
-      if (err.code === 'WIP_LIMIT_EXCEEDED') {
-        const current = err.meta?.current_wip ?? '?';
-        const limit = err.meta?.limit ?? 3;
-        alert(t('execution.list.wipLimitReached', { current, limit }));
-      } else {
-        alert(typeof err.detail === 'string' ? err.detail : t('execution.list.statusChangeError'));
-      }
+      alert(resolveApiError(err, 'execution.list.statusChangeError'));
       mutate();
     }
   };
@@ -111,7 +105,7 @@ const TaskListView = ({ projectId, onOpen }) => {
       await updateTask(task.id, { assignee_id: assigneeId });
       mutate();
     } catch (err) {
-      alert(t('execution.list.assignError'));
+      alert(resolveApiError(err, 'execution.list.assignError'));
       mutate();
     }
   };
