@@ -2,6 +2,9 @@
 # Usar junto con docker-compose.yml:
 #   docker compose -f docker-compose.yml -f docker-compose.sigao.yml up -d
 #
+# El conf de nginx lo monta el compose base (nginx/nginx.sigao.conf). Este
+# overlay no lo re-monta: su valor real es ports/HMR/DATABASE_URL host.
+#
 # Local (SIGAO en :8080): export VITE_HMR_CLIENT_PORT=8080
 # Prod  (SIGAO en :80):   VITE_HMR_CLIENT_PORT=80 (default)
 
@@ -23,5 +26,3 @@ services:
 
   nginx:
     ports: !override []
-    volumes:
-      - ./nginx/nginx.sigao.conf:/etc/nginx/nginx.conf:ro
