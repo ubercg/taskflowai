@@ -25,7 +25,7 @@ const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
   const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef();
-  const { canEditProject } = usePermissions();
+  const { canEditProject, isDeveloper } = usePermissions();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,7 +47,10 @@ const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
   const blockedTasks = metrics?.blocked_tasks || 0;
 
   const isArchived = project.status === 'archived';
-  const showMenuTrigger = canEditProject && !isArchived;
+  // Global admin/manager OR global developer (project-manager membership
+  // enforced by POST /archive — same pattern as board visibility).
+  const canArchive = Boolean(onArchive) && (canEditProject || isDeveloper);
+  const showMenuTrigger = !isArchived && (canEditProject || canArchive);
   const statusColor = getStatusColor(project.status);
 
   return (
@@ -102,7 +105,7 @@ const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
                       <span aria-hidden="true">✏️</span> {t('projects.card.edit')}
                     </button>
                   )}
-                  {canEditProject && (
+                  {canArchive && (
                     <button
                       type="button"
                       role="menuitem"

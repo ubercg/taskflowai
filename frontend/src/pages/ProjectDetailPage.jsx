@@ -31,7 +31,8 @@ const ProjectDetailPage = () => {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
-  const { canEditProject } = usePermissions();
+  const { canEditProject, isDeveloper } = usePermissions();
+  const canManageProject = canEditProject || isDeveloper;
 
   const [showEditProject, setShowEditProject] = useState(false);
   const [showMembersPanel, setShowMembersPanel] = useState(false);
@@ -102,7 +103,7 @@ const ProjectDetailPage = () => {
           <div className="rounded-xl border border-border bg-surface p-6">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-fg">{t('projects.objectives.title')}</h2>
-              <Can permission={canEditProject}>
+              <Can permission={canManageProject}>
                 <button
                   onClick={() => { setEditingObjective(null); setShowObjectiveForm(true); }}
                   className="rounded-md border border-accent/40 bg-canvas px-3 py-1.5 text-xs font-semibold text-accent transition-colors hover:bg-accent-soft"
@@ -125,9 +126,18 @@ const ProjectDetailPage = () => {
                       className={cn('flex cursor-pointer items-center gap-4 p-4 transition-colors', expandedObjectiveId === obj.id ? 'bg-raised' : 'bg-surface')}
                     >
                       <div className="flex-1">
-                        <div className="mb-2 flex items-center justify-between">
-                          <h3 className="text-[15px] font-semibold text-fg">{obj.title}</h3>
-                          <span className="text-xs font-medium text-muted">{obj.progress || 0}%</span>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <h3 className="truncate text-[15px] font-semibold text-fg">{obj.title}</h3>
+                            {obj.mode && (
+                              <span className="shrink-0 rounded-full bg-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                                {obj.mode === 'manual'
+                                  ? t('projects.objectives.modeManual')
+                                  : t('projects.objectives.modeMilestone')}
+                              </span>
+                            )}
+                          </div>
+                          <span className="shrink-0 text-xs font-medium text-muted">{obj.progress || 0}%</span>
                         </div>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-border">
                           <div className="h-full" style={{ width: `${obj.progress || 0}%`, backgroundColor: getProgressColor(obj.progress || 0) }} />
@@ -139,7 +149,7 @@ const ProjectDetailPage = () => {
                           <div>{t('projects.objectives.due')}</div>
                           <div className="font-medium text-fg">{formatCalendarLocale(obj.due_date)}</div>
                         </div>
-                        <Can permission={canEditProject}>
+                        <Can permission={canManageProject}>
                           <button
                             onClick={(e) => { e.stopPropagation(); setEditingObjective(obj); setShowObjectiveForm(true); }}
                             title={t('projects.objectives.edit')}

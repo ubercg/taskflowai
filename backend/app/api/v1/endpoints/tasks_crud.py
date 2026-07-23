@@ -11,6 +11,7 @@ from app.core.security import (
     require_manager_or_above,
     check_project_access,
     accessible_project_ids,
+    has_project_manage_role,
 )
 
 router = APIRouter()
@@ -42,13 +43,26 @@ def read_tasks(
                 return []
             query = query.filter(Task.project_id.in_(accessible))
 
-    # Mis Tareas (y filtros admin): ?assignee_id= — antes se ignoraba y los números no coincidían con la lista
+    # Mis Tareas (y filtros admin): ?assignee_id=
+    # RN-09: global developer without project-manage role only sees own tasks.
+    # Project membership manager/admin (even with global developer) sees the
+    # full project board — otherwise leads cannot operate the Kanban.
     if assignee_id is not None:
-        if current_user.role == UserRole.developer and assignee_id != current_user.id:
+        if (
+            current_user.role == UserRole.developer
+            and assignee_id != current_user.id
+            and not (
+                project_id
+                and has_project_manage_role(db, current_user, project_id)
+            )
+        ):
             raise api_error(403, "TASK_LIST_OTHER_USER_FORBIDDEN", "No puedes ver las tareas de otro usuario")
         query = query.filter(Task.assignee_id == assignee_id)
     elif current_user.role == UserRole.developer:
-        query = query.filter(Task.assignee_id == current_user.id)
+        if not (
+            project_id and has_project_manage_role(db, current_user, project_id)
+        ):
+            query = query.filter(Task.assignee_id == current_user.id)
 
     return query.order_by(Task.position).all()
 
@@ -65,7 +79,11 @@ def read_task(
 
     check_project_access(task.project_id, current_user, db)
 
-    if current_user.role == UserRole.developer and task.assignee_id != current_user.id:
+    if (
+        current_user.role == UserRole.developer
+        and task.assignee_id != current_user.id
+        and not has_project_manage_role(db, current_user, task.project_id)
+    ):
         raise api_error(403, "TASK_VIEW_FORBIDDEN", "No puedes ver esta tarea")
 
     return task

@@ -90,6 +90,19 @@
     "subtitle": "Gestiona tus portafolios y visualiza el progreso estratégico.",
     "newProject": "Nuevo Proyecto",
     "showArchived": "Mostrar archivados",
+    "viewToggle": {
+      "aria": "Vista de proyectos",
+      "cards": "Tarjetas",
+      "list": "Lista"
+    },
+    "list": {
+      "name": "Proyecto",
+      "status": "Estado",
+      "progress": "Progreso",
+      "tasks": "Tareas",
+      "actions": "Acciones"
+    },
+    "empty": "No hay proyectos para mostrar.",
     "archiveError": {
       "fallback": "No se pudo archivar el proyecto."
     },
@@ -171,7 +184,9 @@
       "new": "+ Nuevo Objetivo",
       "empty": "No hay objetivos estratégicos definidos aún.",
       "due": "Vence",
-      "edit": "Editar objetivo"
+      "edit": "Editar objetivo",
+      "modeManual": "manual",
+      "modeMilestone": "hitos"
     },
     "members": {
       "title": "Equipo del Proyecto",
@@ -203,7 +218,9 @@
         "label": "Descripción"
       },
       "progress": {
-        "label": "Progreso (derivado de tareas)"
+        "label": "Progreso",
+        "manualHint": "manual — editable",
+        "milestoneHint": "derivado de tareas"
       },
       "dueDate": {
         "label": "Fecha Límite *"
@@ -373,7 +390,9 @@
         "calendar": "Calendario"
       },
       "metricsLink": "Métricas",
-      "newTask": "+ Nueva Tarea"
+      "newTask": "+ Nueva Tarea",
+      "objectiveFilter": "Filtrado por objetivo #{{id}}",
+      "clearObjectiveFilter": "Quitar filtro"
     },
     "kanban": {
       "loading": "Cargando Tablero Kanban...",
@@ -726,6 +745,7 @@
     "TIMELOG_OWN_ONLY": "Solo podés registrar horas en tus propias tareas",
     "OBJECTIVE_NOT_FOUND": "Objetivo no encontrado",
     "OBJECTIVE_TITLE_EMPTY": "El título no puede estar vacío",
+    "OBJECTIVE_PROGRESS_IMMUTABLE": "El progreso de un KPI por hitos se deriva de las tareas",
     "KPI_NOT_FOUND": "KPI no encontrado",
     "MILESTONE_NOT_FOUND": "Hito no encontrado",
     "METRICS_INVALID_DATE_RANGE": "La fecha de inicio debe ser anterior a la de fin",

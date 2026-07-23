@@ -90,6 +90,19 @@
     "subtitle": "Manage your portfolios and see strategic progress.",
     "newProject": "New Project",
     "showArchived": "Show archived",
+    "viewToggle": {
+      "aria": "Projects view",
+      "cards": "Cards",
+      "list": "List"
+    },
+    "list": {
+      "name": "Project",
+      "status": "Status",
+      "progress": "Progress",
+      "tasks": "Tasks",
+      "actions": "Actions"
+    },
+    "empty": "No projects to show.",
     "archiveError": {
       "fallback": "Could not archive the project."
     },
@@ -171,7 +184,9 @@
       "new": "+ New Objective",
       "empty": "No strategic objectives defined yet.",
       "due": "Due",
-      "edit": "Edit objective"
+      "edit": "Edit objective",
+      "modeManual": "manual",
+      "modeMilestone": "milestones"
     },
     "members": {
       "title": "Project Team",
@@ -203,7 +218,9 @@
         "label": "Description"
       },
       "progress": {
-        "label": "Progress (derived from tasks)"
+        "label": "Progress",
+        "manualHint": "manual — editable",
+        "milestoneHint": "derived from tasks"
       },
       "dueDate": {
         "label": "Due date *"
@@ -373,7 +390,9 @@
         "calendar": "Calendar"
       },
       "metricsLink": "Metrics",
-      "newTask": "+ New Task"
+      "newTask": "+ New Task",
+      "objectiveFilter": "Filtered by objective #{{id}}",
+      "clearObjectiveFilter": "Clear filter"
     },
     "kanban": {
       "loading": "Loading Kanban Board...",
@@ -726,6 +745,7 @@
     "TIMELOG_OWN_ONLY": "You can only log hours on your own tasks",
     "OBJECTIVE_NOT_FOUND": "Objective not found",
     "OBJECTIVE_TITLE_EMPTY": "Title cannot be empty",
+    "OBJECTIVE_PROGRESS_IMMUTABLE": "Milestone KPI progress is derived from tasks",
     "KPI_NOT_FOUND": "KPI not found",
     "MILESTONE_NOT_FOUND": "Milestone not found",
     "METRICS_INVALID_DATE_RANGE": "Start date must be before end date",

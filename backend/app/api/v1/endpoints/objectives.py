@@ -27,10 +27,12 @@ _PROGRESS_SELECT = """
         CASE
             WHEN o.mode = 'manual' THEN COALESCE(o.progress_pct, 0)
             ELSE COALESCE(
-                ROUND(
-                    100.0 * SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END)
-                    / NULLIF(COUNT(t.id), 0)
-                )::int,
+                CAST(
+                    ROUND(
+                        100.0 * SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END)
+                        / NULLIF(COUNT(t.id), 0)
+                    ) AS INTEGER
+                ),
                 0
             )
         END AS progress
@@ -109,16 +111,25 @@ def update_objective(
     objective_id: int,
     payload: ObjectiveUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_manager_or_above),
+    current_user=Depends(require_authenticated),
 ):
     # 404 before 403 — fetch to get project_id for access check
     obj = db.query(Objective).filter(Objective.id == objective_id).first()
     if not obj:
         raise api_error(404, "OBJECTIVE_NOT_FOUND", "Objective not found")
+    # Project manager membership (even with global developer) may edit — same
+    # bar as archive / board manage.
     check_project_access(obj.project_id, current_user, db, require_ownership=True)
     data = payload.model_dump(exclude_unset=True)
     if "title" in data and not data["title"].strip():
         raise api_error(422, "OBJECTIVE_TITLE_EMPTY", "El título no puede estar vacío")
+    if "progress_pct" in data:
+        if obj.mode != "manual":
+            raise api_error(
+                409,
+                "OBJECTIVE_PROGRESS_IMMUTABLE",
+                "El progreso de un KPI por hitos se deriva de las tareas, no se edita manualmente",
+            )
     for k, v in data.items():
         setattr(obj, k, v)
     db.commit()
