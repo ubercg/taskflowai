@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { createAdminUser, updateAdminUser } from '../../services/api';
+import { createAdminUser, updateAdminUser, toggleUser } from '../../services/api';
 import { resolveApiError } from '../../services/api/errors';
 import { Modal, Input, Select, Button } from '../ui';
 import { cn } from '../../lib/cn';
@@ -46,7 +46,14 @@ const UserFormModal = ({ user, onClose, onSaved }) => {
     setIsSubmitting(true);
     try {
       if (user) {
-        await updateAdminUser(user.id, formData);
+        const { name, email, role, color } = formData;
+        await updateAdminUser(user.id, { name, email, role, color });
+        // Activation state has its own guarded path (/toggle) that enforces
+        // HAS_ACTIVE_TASKS. Only call it when the checkbox actually changed
+        // (TSK-026) — the generic update no longer accepts is_active.
+        if (formData.is_active !== user.is_active) {
+          await toggleUser(user.id);
+        }
       } else {
         const { name, email, role, color } = formData;
         await createAdminUser({ name, email, role, color });

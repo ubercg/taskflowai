@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import useSWR from 'swr';
-import { getTask, getTasks, updateTask, deleteTask, getTimeLogs, createTimeLog } from '../../services/api';
+import { getTask, getTasks, updateTask, moveTask, deleteTask, getTimeLogs, createTimeLog } from '../../services/api';
 import api from '../../services/api/client';
 import { resolveApiError } from '../../services/api/errors';
 import { toDateInputValue, formatCalendarLocale, getBcp47Locale } from '../../utils/dateUtils';
@@ -150,7 +150,9 @@ const TaskModal = ({ taskId, onClose }) => {
   const handleToggleSubtask = async (subtask) => {
     const newStatus = subtask.status === 'done' ? 'backlog' : 'done';
     try {
-      await api.patch(`/api/v1/tasks/${subtask.id}`, { status: newStatus });
+      // Status transitions go through /move so the WIP / open-subtasks
+      // guards and the audit trail are enforced (TSK-004).
+      await moveTask(subtask.id, { status: newStatus, user_id: user?.id });
       mutateSubtasks();
     } catch (err) {
       alert(resolveApiError(err));
@@ -240,10 +242,13 @@ const TaskModal = ({ taskId, onClose }) => {
                   onChange={async (e) => {
                     const newStatus = e.target.value;
                     try {
-                      await updateTask(taskId, { status: newStatus });
-                      mutate({ ...task, status: newStatus }, false);
-                    } catch {
-                      /* keep previous status on failure */
+                      // Status transitions go through /move so the WIP /
+                      // open-subtasks guards are enforced (TSK-004).
+                      await moveTask(taskId, { status: newStatus, user_id: user?.id });
+                      mutate();
+                    } catch (err) {
+                      // Surface the guard violation instead of swallowing it.
+                      alert(resolveApiError(err));
                     }
                   }}
                   className={FIELD}

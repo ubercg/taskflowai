@@ -104,7 +104,8 @@ def update_task(
             raise api_error(403, "TASK_EDIT_FORBIDDEN", "No puedes editar esta tarea")
         # Restrict fields
         update_data = payload.model_dump(exclude_unset=True)
-        allowed_fields = {"status", "logged_hours", "description"}
+        # `status` is no longer part of TaskUpdate — it moves only via /move.
+        allowed_fields = {"logged_hours", "description"}
         for key in update_data.keys():
             if key not in allowed_fields:
                 raise api_error(
