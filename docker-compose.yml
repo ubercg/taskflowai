@@ -28,8 +28,11 @@ services:
       - ./backend/.env
     environment:
       DATABASE_URL: postgresql://taskflow:taskflow_secret@db:5432/taskflow_db
-      # Must match SIGAO's TASKFLOW_SIGAO_API_KEY (see root docker-compose.yml).
-      SIGAO_API_KEY: ${TASKFLOW_SIGAO_API_KEY:-dev-sigao-integration-key}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      # SIGAO_API_KEY: no va acá. Viene de backend/.env (env_file) o, si
+      # necesitás inyectarla desde el host, exportá SIGAO_API_KEY antes de
+      # `compose up` (Compose pasa el entorno del shell). Sin `:-dev-...`
+      # (TSK-014): un default silencioso enmascaraba despliegues sin key.
     volumes:
       - ./backend:/app
     depends_on:

@@ -81,7 +81,8 @@
       "submit": "Update password",
       "success": "Password updated successfully!",
       "mismatch": "New passwords do not match",
-      "error": "Failed to update password"
+      "error": "Failed to update password",
+      "required": "You must change your temporary password before continuing."
     }
   },
   "projects": {
@@ -660,6 +661,7 @@
     "UNKNOWN_ERROR": "An unexpected error occurred",
     "LOGIN_FAILED": "Failed to sign in",
     "AUTH_TOKEN_INVALID": "Invalid or expired session. Please sign in again.",
+    "PASSWORD_CHANGE_REQUIRED": "You must change your password before continuing.",
     "AUTH_TOKEN_NO_SUBJECT": "Invalid session. Please sign in again.",
     "AUTH_USER_INACTIVE": "User not found or inactive",
     "AUTH_INVALID_CREDENTIALS": "Incorrect credentials",

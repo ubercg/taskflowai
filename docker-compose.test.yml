@@ -21,6 +21,7 @@ services:
     environment:
       DATABASE_URL: postgresql://taskflow:taskflow_secret@db_test:5432/taskflow_db
       SECRET_KEY: test-secret-key-not-for-production
+      ENVIRONMENT: test
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
     depends_on:
@@ -42,6 +43,7 @@ services:
     environment:
       DATABASE_URL: postgresql://taskflow:taskflow_secret@db_test:5432/taskflow_db
       SECRET_KEY: test-secret-key-not-for-production
+      ENVIRONMENT: test
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
     volumes:

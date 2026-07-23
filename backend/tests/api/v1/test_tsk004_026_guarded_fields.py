@@ -141,3 +141,33 @@ def test_toggle_endpoint_still_enforces_active_tasks_guard(admin_client, sqlite_
     assert resp.json()["detail"]["code"] == "HAS_ACTIVE_TASKS"
     sqlite_session.expire_all()
     assert sqlite_session.get(User, 2).is_active is True
+
+
+# ---------------------------------------------------------------------------
+# Schema-shape seal — the behavioral tests above prove the field is inert
+# *today*, but they pass by coincidence if the field is re-added and the
+# guard silently drops. These fail the instant a guarded field reappears in
+# its generic update schema, naming the regression directly.
+# ---------------------------------------------------------------------------
+
+
+def test_task_update_schema_has_no_status_field():
+    """`status` must never live on TaskUpdate — its only path is /move."""
+    from app.schemas.schemas import TaskUpdate
+
+    assert "status" not in TaskUpdate.model_fields, (
+        "TSK-004 regression: `status` is back on TaskUpdate, so a generic "
+        "PATCH /tasks/{id} bypasses the WIP / open-subtasks guard. Its only "
+        "write path is PATCH /tasks/{id}/move."
+    )
+
+
+def test_user_admin_update_schema_has_no_is_active_field():
+    """`is_active` must never live on UserAdminUpdate — its only path is /toggle."""
+    from app.api.v1.endpoints.admin_users import UserAdminUpdate
+
+    assert "is_active" not in UserAdminUpdate.model_fields, (
+        "TSK-026 regression: `is_active` is back on UserAdminUpdate, so a "
+        "generic PATCH /admin/users/{id} bypasses the HAS_ACTIVE_TASKS guard. "
+        "Its only write path is PATCH /admin/users/{id}/toggle."
+    )

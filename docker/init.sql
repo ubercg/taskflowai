@@ -13,10 +13,12 @@ CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) DEFAULT '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniJ7HQxQZFx3g8K5vP.8X/5oq',
+    -- Sin DEFAULT de hash compartido (TSK-014): cada INSERT debe proveer password_hash.
+    password_hash VARCHAR(255) NOT NULL,
     role user_role NOT NULL DEFAULT 'developer',
     color VARCHAR(7) DEFAULT '#6366f1',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -224,12 +226,15 @@ CREATE TABLE kanban_bottlenecks (
 CREATE INDEX idx_kanban_bottlenecks_project ON kanban_bottlenecks(project_id);
 
 -- 6. Datos iniciales
-INSERT INTO users (name, email, password_hash, role, color, is_active)
+-- Seed admin: hash de la contraseña documentada en README / .env.example.
+-- must_change_password=TRUE fuerza el cambio en el primer login (TSK-014).
+INSERT INTO users (name, email, password_hash, role, color, is_active, must_change_password)
 VALUES (
     'Admin',
     'admin@taskflow.com',
     '$2b$12$EmDne7HgDLrc5yXsaj08G.g3tOi4UULL.malxrljmZXS8jEzw9myO',
     'admin',
     '#6366f1',
+    TRUE,
     TRUE
 );

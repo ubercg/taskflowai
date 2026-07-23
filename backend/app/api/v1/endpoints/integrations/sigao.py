@@ -157,6 +157,7 @@ def _ensure_sigao_user(db: Session, email: str, name: str) -> tuple[User, bool]:
         role=UserRole.developer,
         is_active=True,
         password_hash=hash_password(secrets.token_urlsafe(32)),
+        must_change_password=False,
     )
     db.add(user)
     db.flush()
