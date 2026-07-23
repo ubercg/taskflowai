@@ -19,6 +19,7 @@ Catálogos: `frontend/src/i18n/locales/{es,en}.json`.
 | `metrics.*` | Dashboard de métricas: `MetricsPage`, `MetricsDashboard` (KPIs), `DailySummary`, charts de `features/analytics/charts/*` |
 | `calendar.*` | Calendario del proyecto: `CalendarView`, `CalendarDaySidebar`, bloque de métricas del PDF (`CalendarPdfReport`) |
 | `myTasks.*` | Pantalla Mis Tareas (`MyTasksPage`) y el widget de registro de tiempo (`TimeLogWidget`); reusa `nav.myTasks`, `tasks.card.okr`, `tasks.detail.timeLog.submit`/`error` y `common.actions.cancel` |
+| `errors.*` | Mensajes de API por código estable (`errors.WIP_LIMIT_EXCEEDED`, …). Resolver siempre vía `resolveApiError()` en `services/api/errors.js` — no leer `err.detail` a mano en la UI |
 | `enums.*` | Etiquetas de enums (vía `i18n/enums.js`) |
 | `language.*` | Nombres de idiomas en el selector |
 | `errors.*` | Reservado para TSK-021 (`errors.{CODE}`) |
@@ -217,6 +218,31 @@ El emoji/icono es presentación, **no** va dentro de la clave traducible.
 ## Marca
 
 `common.brand` = `TaskFlow` en ambos locales (nombre propio). No localizar.
+
+## Errores de API y copy fuera de React (TSK-021)
+
+`i18next/no-literal-string` usa `markupOnly: true` — **sólo ve JSX**. Stores, `alert()` y helpers son invisibles al lint.
+
+Para traducir fuera de componentes, usar el singleton:
+
+```js
+import i18n from '../i18n'
+import { resolveApiError } from '../services/api/errors'
+
+// En un store / módulo:
+set({ error: resolveApiError(err, 'errors.LOGIN_FAILED') })
+
+// En un catch de UI (también válido con useTranslation):
+alert(resolveApiError(err, 'projects.form.errors.save'))
+```
+
+`resolveApiError` (RN-013):
+
+1. Si existe `errors.{code}` → `i18n.t` con meta (sin `suggestion` del backend).
+2. Si no, `error.detail` (fallback RN-007).
+3. Si no, la clave `fallback` / `errors.UNKNOWN_ERROR`.
+
+Validaciones de formulario viven en `*.form.errors.*` del dominio (patrón de TSK-020) — **no** se renombraron a `validation.*`.
 
 ## Cómo agregar un idioma (RN-008)
 

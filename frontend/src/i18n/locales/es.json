@@ -17,7 +17,10 @@
     "theme": {
       "light": "Tema claro",
       "dark": "Tema oscuro"
-    }
+    },
+    "charCount": "{{current}}/{{max}}",
+    "countInParens": "({{count}})",
+    "userPrefix": "U{{id}}"
   },
   "language": {
     "es": "Español",
@@ -652,5 +655,55 @@
         "completed": "Completado"
       }
     }
+  },
+  "errors": {
+    "UNKNOWN_ERROR": "Ocurrió un error inesperado",
+    "LOGIN_FAILED": "Error al iniciar sesión",
+    "AUTH_TOKEN_INVALID": "Sesión inválida o expirada. Volvé a iniciar sesión.",
+    "AUTH_TOKEN_NO_SUBJECT": "Sesión inválida. Volvé a iniciar sesión.",
+    "AUTH_USER_INACTIVE": "Usuario no encontrado o inactivo",
+    "AUTH_INVALID_CREDENTIALS": "Credenciales incorrectas",
+    "AUTH_ACCOUNT_DISABLED": "Cuenta desactivada",
+    "AUTH_WRONG_PASSWORD": "Contraseña actual incorrecta",
+    "AUTH_CREDENTIALS_REQUIRED": "Credenciales requeridas",
+    "AUTH_ROLE_FORBIDDEN": "No tenés permiso para esta acción",
+    "PROJECT_NOT_FOUND": "Proyecto no encontrado",
+    "PROJECT_ACCESS_DENIED": "No tenés acceso a este proyecto",
+    "PROJECT_MANAGER_REQUIRED": "Se requiere rol manager o superior",
+    "PROJECT_DELETE_FORBIDDEN": "Solo admins pueden eliminar proyectos",
+    "PROJECT_ROLE_REQUIRED": "El rol es obligatorio",
+    "PROJECT_MEMBER_NOT_FOUND": "Miembro no encontrado en el proyecto",
+    "USER_NOT_FOUND": "Usuario no encontrado",
+    "USER_EMAIL_TAKEN": "Ese email ya está en uso",
+    "USER_CANNOT_DEMOTE_SELF": "No podés quitarte el rol de admin a vos mismo",
+    "USER_CANNOT_DELETE_SELF": "No podés eliminar tu propio usuario",
+    "USER_LAST_ADMIN": "No se puede eliminar el único administrador",
+    "USER_DELETE_CONFLICT": "No se puede eliminar: hay restricciones en la base de datos",
+    "USER_CANNOT_DEACTIVATE_SELF": "No podés desactivar tu propio usuario",
+    "HAS_ACTIVE_TASKS": "Este usuario tiene {{active_tasks}} tareas activas. Reasignalas antes de desactivar.",
+    "TASK_NOT_FOUND": "Tarea no encontrada",
+    "TASK_VIEWER_CANNOT_MOVE": "Los viewers no pueden mover tareas",
+    "TASK_MOVE_OWN_ONLY": "Solo podés mover tus propias tareas",
+    "TASK_LIST_OTHER_USER_FORBIDDEN": "No podés ver las tareas de otro usuario",
+    "TASK_VIEW_FORBIDDEN": "No podés ver esta tarea",
+    "TASK_EDIT_FORBIDDEN": "No podés editar esta tarea",
+    "TASK_FIELD_FORBIDDEN": "No podés editar ese campo",
+    "TASK_PARENT_REQUIRES_PROJECT": "project_id es obligatorio con parent_id",
+    "TASK_MOVE_INTERNAL_ERROR": "Error interno al mover la tarea",
+    "WIP_LIMIT_EXCEEDED": "Alcanzaste el límite de {{limit}} tareas en progreso (tenés {{current_wip}}).",
+    "OPEN_SUBTASKS": "Hay {{open_count}} subtareas abiertas. Cerralas antes de completar.",
+    "TIMELOG_VIEWER_FORBIDDEN": "Los viewers no pueden registrar tiempo",
+    "TIMELOG_OWN_ONLY": "Solo podés registrar horas en tus propias tareas",
+    "OBJECTIVE_NOT_FOUND": "Objetivo no encontrado",
+    "OBJECTIVE_TITLE_EMPTY": "El título no puede estar vacío",
+    "KPI_NOT_FOUND": "KPI no encontrado",
+    "MILESTONE_NOT_FOUND": "Hito no encontrado",
+    "METRICS_INVALID_DATE_RANGE": "La fecha de inicio debe ser anterior a la de fin",
+    "SIGAO_NOT_CONFIGURED": "Integración SIGAO no configurada",
+    "SIGAO_API_KEY_INVALID": "API key de SIGAO inválida",
+    "SIGAO_HITO_NOT_FOUND": "Hito no encontrado",
+    "SIGAO_HITO_TITLE_TOO_LONG": "El título del hito supera el máximo permitido",
+    "SIGAO_KPI_PROGRESS_IMMUTABLE": "El progreso del hito no es editable",
+    "SIGAO_HITOS_MILESTONE_ONLY": "Los hitos solo aplican en modo milestone"
   }
 }

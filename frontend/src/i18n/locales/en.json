@@ -17,7 +17,10 @@
     "theme": {
       "light": "Light theme",
       "dark": "Dark theme"
-    }
+    },
+    "charCount": "{{current}}/{{max}}",
+    "countInParens": "({{count}})",
+    "userPrefix": "U{{id}}"
   },
   "language": {
     "es": "Español",
@@ -652,5 +655,55 @@
         "completed": "Completed"
       }
     }
+  },
+  "errors": {
+    "UNKNOWN_ERROR": "An unexpected error occurred",
+    "LOGIN_FAILED": "Failed to sign in",
+    "AUTH_TOKEN_INVALID": "Invalid or expired session. Please sign in again.",
+    "AUTH_TOKEN_NO_SUBJECT": "Invalid session. Please sign in again.",
+    "AUTH_USER_INACTIVE": "User not found or inactive",
+    "AUTH_INVALID_CREDENTIALS": "Incorrect credentials",
+    "AUTH_ACCOUNT_DISABLED": "Account disabled",
+    "AUTH_WRONG_PASSWORD": "Current password is incorrect",
+    "AUTH_CREDENTIALS_REQUIRED": "Credentials required",
+    "AUTH_ROLE_FORBIDDEN": "You do not have permission for this action",
+    "PROJECT_NOT_FOUND": "Project not found",
+    "PROJECT_ACCESS_DENIED": "You do not have access to this project",
+    "PROJECT_MANAGER_REQUIRED": "Manager role or higher is required",
+    "PROJECT_DELETE_FORBIDDEN": "Only admins can delete projects",
+    "PROJECT_ROLE_REQUIRED": "Role is required",
+    "PROJECT_MEMBER_NOT_FOUND": "Member not found in this project",
+    "USER_NOT_FOUND": "User not found",
+    "USER_EMAIL_TAKEN": "That email is already in use",
+    "USER_CANNOT_DEMOTE_SELF": "You cannot remove your own admin role",
+    "USER_CANNOT_DELETE_SELF": "You cannot delete your own user",
+    "USER_LAST_ADMIN": "Cannot delete the only administrator",
+    "USER_DELETE_CONFLICT": "Cannot delete: database constraints apply",
+    "USER_CANNOT_DEACTIVATE_SELF": "You cannot deactivate your own user",
+    "HAS_ACTIVE_TASKS": "This user has {{active_tasks}} active tasks. Reassign them before deactivating.",
+    "TASK_NOT_FOUND": "Task not found",
+    "TASK_VIEWER_CANNOT_MOVE": "Viewers cannot move tasks",
+    "TASK_MOVE_OWN_ONLY": "You can only move your own tasks",
+    "TASK_LIST_OTHER_USER_FORBIDDEN": "You cannot view another user's tasks",
+    "TASK_VIEW_FORBIDDEN": "You cannot view this task",
+    "TASK_EDIT_FORBIDDEN": "You cannot edit this task",
+    "TASK_FIELD_FORBIDDEN": "You cannot edit that field",
+    "TASK_PARENT_REQUIRES_PROJECT": "project_id is required with parent_id",
+    "TASK_MOVE_INTERNAL_ERROR": "Internal error while moving the task",
+    "WIP_LIMIT_EXCEEDED": "You reached the limit of {{limit}} in-progress tasks (you have {{current_wip}}).",
+    "OPEN_SUBTASKS": "There are {{open_count}} open subtasks. Close them before completing.",
+    "TIMELOG_VIEWER_FORBIDDEN": "Viewers cannot log time",
+    "TIMELOG_OWN_ONLY": "You can only log hours on your own tasks",
+    "OBJECTIVE_NOT_FOUND": "Objective not found",
+    "OBJECTIVE_TITLE_EMPTY": "Title cannot be empty",
+    "KPI_NOT_FOUND": "KPI not found",
+    "MILESTONE_NOT_FOUND": "Milestone not found",
+    "METRICS_INVALID_DATE_RANGE": "Start date must be before end date",
+    "SIGAO_NOT_CONFIGURED": "SIGAO integration is not configured",
+    "SIGAO_API_KEY_INVALID": "Invalid SIGAO API key",
+    "SIGAO_HITO_NOT_FOUND": "Milestone not found",
+    "SIGAO_HITO_TITLE_TOO_LONG": "Milestone title exceeds the maximum length",
+    "SIGAO_KPI_PROGRESS_IMMUTABLE": "Milestone progress is not editable",
+    "SIGAO_HITOS_MILESTONE_ONLY": "Milestones only apply in milestone mode"
   }
 }

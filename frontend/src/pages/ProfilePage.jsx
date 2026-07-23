@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../store/authStore';
 import api from '../services/api/client';
+import { resolveApiError } from '../services/api/errors';
 import { Input, Button } from '../components/ui';
 import { userRoleLabel } from '../i18n/enums';
 
@@ -30,7 +31,7 @@ const ProfilePage = () => {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      setError((typeof err.detail === 'string' && err.detail) || (typeof err.response?.data?.detail === 'string' && err.response.data.detail) || err.response?.data?.detail?.detail || t('profile.changePassword.error'));
+      setError(resolveApiError(err, 'profile.changePassword.error'));
     }
   };
 

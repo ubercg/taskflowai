@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import api from '../../services/api/client';
+import { resolveApiError } from '../../services/api/errors';
 import { userRoleLabel } from '../../i18n/enums';
 
 const getInitials = (name) => {
@@ -68,7 +69,7 @@ const MembersPanel = ({ projectId, onClose }) => {
       mutate();
       setSearch('');
     } catch (err) {
-      alert((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || t('projects.members.errors.add'));
+      alert(resolveApiError(err, 'projects.members.errors.add'));
     }
   };
 
@@ -77,7 +78,7 @@ const MembersPanel = ({ projectId, onClose }) => {
       await api.patch(`/api/v1/projects/${projectId}/members/${userId}`, { role: newRole });
       mutate();
     } catch (err) {
-      alert((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || t('projects.members.errors.role'));
+      alert(resolveApiError(err, 'projects.members.errors.role'));
       mutate();
     }
   };
@@ -88,7 +89,7 @@ const MembersPanel = ({ projectId, onClose }) => {
         await api.delete(`/api/v1/projects/${projectId}/members/${userId}`);
         mutate();
       } catch (err) {
-        alert((typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || t('projects.members.errors.remove'));
+        alert(resolveApiError(err, 'projects.members.errors.remove'));
       }
     }
   };

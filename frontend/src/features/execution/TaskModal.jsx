@@ -4,6 +4,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getTask, getTasks, updateTask, deleteTask, getTimeLogs, createTimeLog } from '../../services/api';
 import api from '../../services/api/client';
+import { resolveApiError } from '../../services/api/errors';
 import { toDateInputValue, formatCalendarLocale, getBcp47Locale } from '../../utils/dateUtils';
 import Linkify from '../../components/shared/Linkify';
 import usePermissions from '../../hooks/usePermissions';
@@ -142,8 +143,7 @@ const TaskModal = ({ taskId, onClose }) => {
       setNewSubtaskTitle('');
       mutateSubtasks();
     } catch (err) {
-      const detail = (typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message;
-      alert(t('tasks.detail.subtasks.createError', { detail }));
+      alert(resolveApiError(err));
     }
   };
 
@@ -153,8 +153,7 @@ const TaskModal = ({ taskId, onClose }) => {
       await api.patch(`/api/v1/tasks/${subtask.id}`, { status: newStatus });
       mutateSubtasks();
     } catch (err) {
-      const detail = (typeof err.detail === 'string' && err.detail) || err.response?.data?.detail?.detail || err.message;
-      alert(t('tasks.detail.subtasks.toggleError', { detail }));
+      alert(resolveApiError(err));
     }
   };
 
@@ -174,8 +173,7 @@ const TaskModal = ({ taskId, onClose }) => {
       mutateLogs();
       mutate();
     } catch (err) {
-      const detail = (typeof err.detail === 'string' && err.detail) || err.message;
-      alert(t('tasks.detail.timeLog.error', { detail }));
+      alert(resolveApiError(err));
     }
   };
 
@@ -188,8 +186,8 @@ const TaskModal = ({ taskId, onClose }) => {
       try {
         await deleteTask(taskId);
         handleClose();
-      } catch {
-        alert(t('tasks.detail.deleteError'));
+      } catch (err) {
+        alert(resolveApiError(err, 'tasks.detail.deleteError'));
       }
     }
   };
@@ -244,7 +242,9 @@ const TaskModal = ({ taskId, onClose }) => {
                     try {
                       await updateTask(taskId, { status: newStatus });
                       mutate({ ...task, status: newStatus }, false);
-                    } catch {}
+                    } catch {
+                      /* keep previous status on failure */
+                    }
                   }}
                   className={FIELD}
                 >
@@ -261,7 +261,7 @@ const TaskModal = ({ taskId, onClose }) => {
                     try {
                       await updateTask(taskId, { priority: newPriority });
                       mutate({ ...task, priority: newPriority }, false);
-                    } catch {}
+                    } catch { /* keep previous priority on failure */ }
                   }}
                   disabled={!canEditField('priority')}
                   className={FIELD}
@@ -279,7 +279,7 @@ const TaskModal = ({ taskId, onClose }) => {
                     try {
                       await updateTask(taskId, { assignee_id: newAssignee });
                       mutate({ ...task, assignee_id: newAssignee }, false);
-                    } catch {}
+                    } catch { /* keep previous assignee on failure */ }
                   }}
                   disabled={!canAssignTask}
                   className={FIELD}
@@ -298,7 +298,7 @@ const TaskModal = ({ taskId, onClose }) => {
                     try {
                       await updateTask(taskId, { objective_id: newObjective });
                       mutate({ ...task, objective_id: newObjective }, false);
-                    } catch {}
+                    } catch { /* keep previous objective on failure */ }
                   }}
                   disabled={!canEditField('objective_id')}
                   className={FIELD}
@@ -316,7 +316,7 @@ const TaskModal = ({ taskId, onClose }) => {
                     try {
                       await updateTask(taskId, { due_date: newDate });
                       mutate({ ...task, due_date: newDate }, false);
-                    } catch {}
+                    } catch { /* keep previous due date on failure */ }
                   }}
                   disabled={!canEditField('due_date')}
                   className={FIELD}

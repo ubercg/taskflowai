@@ -2,10 +2,11 @@ import js from '@eslint/js'
 import i18next from 'eslint-plugin-i18next'
 
 /**
- * TSK-018 guardrail for REQ-009 RN-002 (no visible string literals).
- * Starts as `warn`; promote to `error` when closing TSK-020.
+ * TSK-018 / TSK-021 guardrail for REQ-009 RN-002 (no visible string literals).
+ * Promoted to `error` in TSK-021 once core screens were migrated.
  *
- * Allowlist: punctuation, symbols, units, and attributes that are not copy.
+ * Allowlist: punctuation, symbols, brand abbreviations, and decorative
+ * glyphs (emoji / chevrons). Those are not copy — see TSK-021 insumos.
  */
 export default [
   js.configs.recommended,
@@ -27,7 +28,7 @@ export default [
     },
     rules: {
       'i18next/no-literal-string': [
-        'warn',
+        'error',
         {
           markupOnly: true,
           ignoreAttribute: [
@@ -71,16 +72,24 @@ export default [
           words: {
             // Non-copy tokens: punctuation, icons, units, brand abbreviations.
             //
-            // Each entry is interpolated into /^…$/ by the plugin with NO
+            // Each string entry is interpolated into /^…$/ by the plugin with NO
             // escaping, so regex metacharacters must be escaped here:
             //   '+' would throw "Nothing to repeat" and kill the whole lint,
             //   '|' would compile to /^|$/, which matches every string and
             //   silently disables the rule — worse than crashing, because it
             //   reports zero warnings and looks like a finished migration.
+            //
+            // RegExp instances are accepted as-is (emoji / symbol classes).
             exclude: [
               '•', '–', '—', '…', '·', '/', '×', '%', '-',
               '\\+', '\\|',
               'h', 'OKR', 'WIP', 'AI', 'PDF',
+              'T', 'U',
+              '\\(', '\\)',
+              // Decorative glyphs (emoji, chevrons, arrows). Trimmed by the
+              // plugin before matching, so trailing spaces in JSX don't matter.
+              /^\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*$/u,
+              /^[‹›←→⤓↻↳✕⚠ℹ️✨]$/u,
             ],
           },
         },

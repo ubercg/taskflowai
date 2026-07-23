@@ -1,5 +1,8 @@
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
+import { normalizeApiError } from './errors';
+
+export { normalizeApiError, getErrorMessage, resolveApiError } from './errors';
 
 // Vacío = misma origen que la página (vital detrás de Nginx o en IP pública).
 // Con Vite `base` (/taskflow/) prefixamos la API para que no choque con SIGAO /api.
@@ -15,42 +18,6 @@ const api = axios.create({
   timeout: 10000,
 });
 
-/**
- * Normalize FastAPI error bodies.
- *
- * Structured (preferred): { detail: { code, detail, ...meta } }
- * Legacy plain string:    { detail: "message" }
- */
-export function normalizeApiError(error) {
-  const payload = error.response?.data?.detail;
-  const isEnvelope =
-    payload &&
-    typeof payload === 'object' &&
-    !Array.isArray(payload) &&
-    'code' in payload;
-
-  error.code = isEnvelope ? payload.code : 'UNKNOWN_ERROR';
-  error.detail = isEnvelope
-    ? payload.detail
-    : (typeof payload === 'string' ? payload : (payload ?? error.message));
-  error.meta = isEnvelope ? payload : null;
-  return error;
-}
-
-/** Human-readable message from a normalized or raw Axios error. */
-export function getErrorMessage(error, fallback = 'Error') {
-  if (typeof error?.detail === 'string' && error.detail) return error.detail;
-  const payload = error?.response?.data?.detail;
-  if (typeof payload === 'string' && payload) return payload;
-  if (payload && typeof payload === 'object' && typeof payload.detail === 'string') {
-    return payload.detail;
-  }
-  if (Array.isArray(payload)) {
-    return payload.map((e) => e.msg || JSON.stringify(e)).join(' ');
-  }
-  return error?.message || fallback;
-}
-
 api.interceptors.request.use((config) => {
   // Acceso directo al store sin usar hook
   const token = useAuthStore.getState().token;
@@ -64,7 +31,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const loginPath = `${baseURL}/login` || '/login';
+    // baseURL may be '' behind nginx — always land on /login of this origin.
+    const loginPath = baseURL ? `${baseURL}/login` : '/login';
     if (error.response?.status === 401 && window.location.pathname !== loginPath) {
       window.dispatchEvent(new CustomEvent('session-expired'));
       setTimeout(() => {
