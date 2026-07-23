@@ -540,7 +540,8 @@ def trigger_bottleneck_analysis(
     current_user=Depends(require_manager_or_above),
 ):
     _authorize_project_metrics(db, project_id, current_user)
-    background_tasks.add_task(analyze_bottleneck, project_id, db)
+    # Own session inside analyze_bottleneck — never pass request `db` (TSK-005).
+    background_tasks.add_task(analyze_bottleneck, project_id)
     return {"message": "Análisis iniciado en background", "project_id": project_id}
 
 
