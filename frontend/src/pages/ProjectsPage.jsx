@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
-import { getProjects, getProjectMetrics } from '../services/api';
+import { getProjects, getProjectMetrics, archiveProject } from '../services/api';
 import { resolveApiError } from '../services/api/errors';
 import ProjectCard from '../components/projects/ProjectCard';
 import ProjectFormModal from '../components/projects/ProjectFormModal';
@@ -31,9 +31,19 @@ const ProjectsPage = () => {
   const { t } = useTranslation();
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiveError, setArchiveError] = useState(null);
   const { canCreateProject } = usePermissions();
 
-  const { data: projects, error: projectsError, isLoading: isLoadingProjects, mutate } = useSWR('/api/v1/projects', getProjects);
+  const listKey = showArchived
+    ? '/api/v1/projects?include_archived=true'
+    : '/api/v1/projects';
+  const listParams = showArchived ? { include_archived: true } : undefined;
+
+  const { data: projects, error: projectsError, isLoading: isLoadingProjects, mutate } = useSWR(
+    listKey,
+    () => getProjects(listParams),
+  );
   const { data: metricsData, isLoading: isLoadingMetrics } = useSWR('/api/v1/metrics/projects', getProjectMetrics, {
     shouldRetryOnError: false,
     onError: (err) => console.warn('Endpoint de métricas pendiente de implementación:', err),
@@ -42,23 +52,44 @@ const ProjectsPage = () => {
   const isLoading = isLoadingProjects || isLoadingMetrics;
   const hasError = projectsError;
 
+  const handleArchive = async (project) => {
+    setArchiveError(null);
+    try {
+      await archiveProject(project.id);
+      await mutate();
+    } catch (err) {
+      setArchiveError(resolveApiError(err, 'projects.archiveError.fallback'));
+    }
+  };
+
   return (
     <div className="mx-auto max-w-[1200px] px-4">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-semibold tracking-tight text-fg">{t('projects.title')}</h1>
           <p className="mt-1 text-[15px] text-muted">{t('projects.subtitle')}</p>
         </div>
 
-        <Can permission={canCreateProject}>
-          <Button onClick={() => { setEditingProject(null); setShowForm(true); }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            {t('projects.newProject')}
-          </Button>
-        </Can>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-[13px] text-muted">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="rounded border-border"
+            />
+            {t('projects.showArchived')}
+          </label>
+          <Can permission={canCreateProject}>
+            <Button onClick={() => { setEditingProject(null); setShowForm(true); }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              {t('projects.newProject')}
+            </Button>
+          </Can>
+        </div>
       </div>
 
       {hasError && (
@@ -72,6 +103,12 @@ const ProjectsPage = () => {
             <h4 className="font-semibold">{t('projects.loadError.title')}</h4>
             <p className="mt-1 text-sm">{resolveApiError(projectsError, 'projects.loadError.fallback')}</p>
           </div>
+        </div>
+      )}
+
+      {archiveError && (
+        <div className="mb-6 rounded-lg border border-status-blocked/40 bg-status-blocked/10 p-4 text-sm text-status-blocked">
+          {archiveError}
         </div>
       )}
 
@@ -101,7 +138,7 @@ const ProjectsPage = () => {
                 project={project}
                 metrics={fallbackMetrics}
                 onEdit={(p) => { setEditingProject(p); setShowForm(true); }}
-                onArchive={() => {}}
+                onArchive={handleArchive}
               />
             );
           })

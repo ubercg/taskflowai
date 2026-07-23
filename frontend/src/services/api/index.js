@@ -5,7 +5,11 @@ import api from './client';
 /**
  * @returns {Promise<Project[]>}
  */
-export const getProjects = () => api.get('/api/v1/projects').then(res => res.data); // ✓ EXISTÍA
+export const getProjects = (params) =>
+  api.get('/api/v1/projects', { params }).then((res) => res.data);
+
+export const archiveProject = (id) =>
+  api.post(`/api/v1/projects/${id}/archive`).then((res) => res.data);
 
 /**
  * @param {number} id
