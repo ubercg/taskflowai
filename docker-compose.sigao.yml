@@ -17,7 +17,9 @@ services:
       # Evita colisión DNS con otros servicios llamados "db" en la red compartida
       # (p. ej. bloque-hub). El nombre estable del contenedor Compose es taskflowai-db-1.
       DATABASE_URL: postgresql://taskflow:taskflow_secret@taskflowai-db-1:5432/taskflow_db
-      SIGAO_API_KEY: ${TASKFLOW_SIGAO_API_KEY:-dev-sigao-integration-key}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      # Requiere exportar la key (sin default de desarrollo).
+      SIGAO_API_KEY: ${TASKFLOW_SIGAO_API_KEY:?set TASKFLOW_SIGAO_API_KEY for the SIGAO overlay}
 
   nginx:
     ports: !override []

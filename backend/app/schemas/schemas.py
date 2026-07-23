@@ -22,6 +22,7 @@ class UserResponse(UserBase):
     role: str
     color: Optional[str] = "#6366f1"
     is_active: bool = True
+    must_change_password: bool = False
 
 
 # Project Schemas

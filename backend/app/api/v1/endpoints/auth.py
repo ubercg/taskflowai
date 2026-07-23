@@ -22,6 +22,17 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 
 
+def _user_public(user: User) -> dict:
+    return {
+        "id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "role": user.role,
+        "color": user.color,
+        "must_change_password": bool(user.must_change_password),
+    }
+
+
 @router.post("/login")
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
@@ -41,17 +52,11 @@ def login(
     payload = {"sub": str(user.id), "role": user.role, "email": user.email}
     access_token = create_access_token(payload)
 
-    # 6. Retornar
+    # 6. Retornar (incluye must_change_password para el gate del FE)
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": {
-            "id": user.id,
-            "name": user.name,
-            "email": user.email,
-            "role": user.role,
-            "color": user.color,
-        },
+        "user": _user_public(user),
     }
 
 
@@ -75,5 +80,9 @@ def change_password(
         raise api_error(400, "AUTH_WRONG_PASSWORD", "Contraseña actual incorrecta")
 
     current_user.password_hash = hash_password(payload.new_password)
+    current_user.must_change_password = False
     db.commit()
-    return {"message": "Contraseña actualizada"}
+    return {
+        "message": "Contraseña actualizada",
+        "must_change_password": False,
+    }

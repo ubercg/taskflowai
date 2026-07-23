@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../store/authStore';
+import { useAuth, useAuthStore } from '../store/authStore';
 import { Button, Input } from '../components/ui';
 import { cn } from '../lib/cn';
 import LanguageSelector from '../components/shared/LanguageSelector';
@@ -28,7 +28,11 @@ const LoginPage = () => {
     clearError();
     try {
       await login(email, password);
-      navigate(from, { replace: true });
+      const loggedIn = useAuthStore.getState().user;
+      navigate(
+        loggedIn?.must_change_password ? '/profile' : from,
+        { replace: true },
+      );
     } catch {
       // El error ya está manejado en el store
     }

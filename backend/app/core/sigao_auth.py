@@ -1,18 +1,30 @@
+import secrets
 from typing import Any
 
 from fastapi import Depends
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
+from fastapi import Request
+
 from app.core.config import settings
 from app.core.errors import api_error
-from app.core.security import decode_token
+from app.core.security import _enforce_password_change, decode_token
 from app.db.database import get_db
 
 oauth2_scheme_optional = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login", auto_error=False
 )
 sigao_api_key_header = APIKeyHeader(name="X-SIGAO-Key", auto_error=False)
+
+
+def _api_key_matches(provided: str | None) -> bool:
+    """Constant-time compare against the configured SIGAO API key."""
+    expected = settings.SIGAO_API_KEY or ""
+    # compare_digest requires equal-length str/bytes; unequal lengths are
+    # still constant-time for the shorter path in CPython 3.12+, but we
+    # reject empty expected earlier via SIGAO_NOT_CONFIGURED.
+    return secrets.compare_digest(provided or "", expected)
 
 
 def verify_sigao_api_key(
@@ -22,7 +34,7 @@ def verify_sigao_api_key(
 ) -> bool:
     if not settings.SIGAO_API_KEY:
         raise api_error(503, "SIGAO_NOT_CONFIGURED", "Integración SIGAO no configurada (SIGAO_API_KEY ausente)")
-    if x_sigao_key != settings.SIGAO_API_KEY:
+    if not _api_key_matches(x_sigao_key):
         raise api_error(401, "SIGAO_API_KEY_INVALID", "API key inválida")
     return True
 
@@ -40,6 +52,7 @@ class AuthContext:
 
 
 def require_jwt_or_sigao_key(
+    request: Request,
     token: str | None = Depends(oauth2_scheme_optional),
     api_key: str | None = Depends(sigao_api_key_header),
     db: Session = Depends(get_db),
@@ -47,7 +60,7 @@ def require_jwt_or_sigao_key(
     if api_key:
         if not settings.SIGAO_API_KEY:
             raise api_error(503, "SIGAO_NOT_CONFIGURED", "Integración SIGAO no configurada (SIGAO_API_KEY ausente)")
-        if api_key == settings.SIGAO_API_KEY:
+        if _api_key_matches(api_key):
             return AuthContext(auth_type="sigao", user=None)
         raise api_error(401, "SIGAO_API_KEY_INVALID", "API key inválida")
 
@@ -66,6 +79,7 @@ def require_jwt_or_sigao_key(
     )
     if not user:
         raise api_error(401, "AUTH_USER_INACTIVE", "Usuario no encontrado o inactivo")
+    _enforce_password_change(user, request)
     return AuthContext(auth_type="jwt", user=user)
 
 

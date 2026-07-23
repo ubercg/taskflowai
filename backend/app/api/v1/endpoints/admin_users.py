@@ -170,6 +170,7 @@ def create_admin_user(
         color=payload.color,
         is_active=True,
         password_hash=hash_password(settings.DEFAULT_NEW_USER_PASSWORD),
+        must_change_password=True,
     )
     db.add(db_user)
     db.commit()

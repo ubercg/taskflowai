@@ -15,9 +15,11 @@ const renderWithRouter = (ui, { initialEntries = ['/'] } = {}) =>
   render(
     <MemoryRouter initialEntries={initialEntries}>
       <Routes>
-        <Route path="*" element={ui} />
+        <Route path="/" element={ui} />
+        <Route path="/projects" element={ui} />
         <Route path="/login" element={<div>Login Page</div>} />
         <Route path="/unauthorized" element={<div>Unauthorized</div>} />
+        <Route path="/profile" element={<div>Profile Page</div>} />
       </Routes>
     </MemoryRouter>
   )
@@ -39,6 +41,40 @@ describe('ProtectedRoute', () => {
     })
     renderWithRouter(<ProtectedRoute><div>Contenido</div></ProtectedRoute>)
     expect(screen.getByText('Contenido')).toBeInTheDocument()
+  })
+
+  test('redirige a /profile si must_change_password y no está en /profile', () => {
+    useAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { role: 'developer', must_change_password: true },
+    })
+    renderWithRouter(
+      <ProtectedRoute><div>Contenido</div></ProtectedRoute>,
+      { initialEntries: ['/projects'] },
+    )
+    expect(screen.getByText('Profile Page')).toBeInTheDocument()
+  })
+
+  test('permite /profile cuando must_change_password', () => {
+    useAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { role: 'developer', must_change_password: true },
+    })
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <Routes>
+          <Route
+            path="/profile"
+            element={(
+              <ProtectedRoute>
+                <div>Change Password Form</div>
+              </ProtectedRoute>
+            )}
+          />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Change Password Form')).toBeInTheDocument()
   })
 
   test('redirige a /unauthorized si el rol no tiene permiso', () => {

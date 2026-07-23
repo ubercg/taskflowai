@@ -10,12 +10,14 @@ const LABEL = 'mb-1.5 block text-[13px] font-medium text-fg';
 
 const ProfilePage = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+
+  const mustChange = Boolean(user?.must_change_password);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,6 +32,9 @@ const ProfilePage = () => {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      if (user) {
+        setUser({ ...user, must_change_password: false });
+      }
     } catch (err) {
       setError(resolveApiError(err, 'profile.changePassword.error'));
     }
@@ -38,6 +43,15 @@ const ProfilePage = () => {
   return (
     <div className="mx-auto max-w-[600px] px-4 py-8">
       <h1 className="mb-6 text-[28px] font-semibold tracking-tight text-fg">{t('profile.title')}</h1>
+
+      {mustChange && (
+        <div
+          role="status"
+          className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-[13px] text-amber-200"
+        >
+          {t('profile.changePassword.required')}
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-xl border border-border bg-surface">
         <div className="flex items-center gap-4 border-b border-border p-6">

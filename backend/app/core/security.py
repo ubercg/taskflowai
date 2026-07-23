@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, Header
+from fastapi import Depends, Header, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.db.database import get_db
@@ -10,6 +10,30 @@ from app.core.errors import api_error
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+# TSK-014: while a forced password change is pending, the token is only good
+# for the escape hatch (change your password) and reading your own identity.
+# Every other authenticated endpoint is blocked server-side, so the frontend
+# gate can no longer be skipped by hitting the API directly.
+PASSWORD_CHANGE_ALLOWLIST = frozenset(
+    {
+        "/api/v1/auth/change-password",
+        "/api/v1/auth/me",
+        "/api/v1/auth/logout",
+    }
+)
+
+
+def _enforce_password_change(user, request: Request) -> None:
+    """Block a must_change_password user everywhere except the allowlist."""
+    if getattr(user, "must_change_password", False) and (
+        request.url.path not in PASSWORD_CHANGE_ALLOWLIST
+    ):
+        raise api_error(
+            403,
+            "PASSWORD_CHANGE_REQUIRED",
+            "Debés cambiar tu contraseña antes de continuar",
+        )
 
 
 import bcrypt
@@ -47,7 +71,9 @@ def decode_token(token: str) -> dict:
 
 # Dependencia principal — inyectar en cualquier endpoint
 def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
 ):
     payload = decode_token(token)
     user_id = payload.get("sub")
@@ -60,6 +86,7 @@ def get_current_user(
     )
     if not user:
         raise api_error(401, "AUTH_USER_INACTIVE", "Usuario no encontrado o inactivo")
+    _enforce_password_change(user, request)
     return user
 
 

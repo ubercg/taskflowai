@@ -81,7 +81,8 @@
       "submit": "Actualizar contraseña",
       "success": "¡Contraseña actualizada con éxito!",
       "mismatch": "Las contraseñas nuevas no coinciden",
-      "error": "Error al actualizar contraseña"
+      "error": "Error al actualizar contraseña",
+      "required": "Debés cambiar la contraseña temporal antes de continuar."
     }
   },
   "projects": {
@@ -660,6 +661,7 @@
     "UNKNOWN_ERROR": "Ocurrió un error inesperado",
     "LOGIN_FAILED": "Error al iniciar sesión",
     "AUTH_TOKEN_INVALID": "Sesión inválida o expirada. Volvé a iniciar sesión.",
+    "PASSWORD_CHANGE_REQUIRED": "Debés cambiar tu contraseña antes de continuar.",
     "AUTH_TOKEN_NO_SUBJECT": "Sesión inválida. Volvé a iniciar sesión.",
     "AUTH_USER_INACTIVE": "Usuario no encontrado o inactivo",
     "AUTH_INVALID_CREDENTIALS": "Credenciales incorrectas",

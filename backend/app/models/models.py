@@ -47,13 +47,14 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
-    password_hash = Column(
-        String(255),
-        default="$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniJ7HQxQZFx3g8K5vP.8X/5oq",
-    )
+    # Sin default: cada camino de alta debe setear un hash explícito
+    # (admin → DEFAULT_NEW_USER_PASSWORD; SIGAO → token aleatorio).
+    password_hash = Column(String(255), nullable=False)
     role = Column(SQLEnum(UserRole), default=UserRole.developer)
     color = Column(String(7), default="#6366f1")
     is_active = Column(Boolean, default=True)  # Postgres boolean o smallint
+    # True en altas por admin con contraseña por defecto; el login/FE fuerzan el cambio.
+    must_change_password = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
