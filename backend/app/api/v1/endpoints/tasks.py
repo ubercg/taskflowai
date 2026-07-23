@@ -124,8 +124,9 @@ def move_task(
         db.commit()
         db.refresh(task)
 
-        # 4. Phase 4: Disparar Bottleneck Detector de forma asíncrona (AI Layer)
-        background_tasks.add_task(analyze_bottleneck, task.project_id, db)
+        # 4. Phase 4: Disparar Bottleneck Detector de forma asíncrona (AI Layer).
+        # Own session inside analyze_bottleneck — never pass request `db` (TSK-005).
+        background_tasks.add_task(analyze_bottleneck, task.project_id)
 
         return task
 

@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 import logging
 
+from app.db.database import SessionLocal
+
 logger = logging.getLogger(__name__)
 
 ACTIVE_STATUSES = ["backlog", "todo", "in_progress", "review", "blocked"]
@@ -9,20 +11,36 @@ BOTTLENECK_MULTIPLIER = 2.0  # si avg_hours > cycle_time * 2 → cuello
 MIN_TASKS_FOR_ANALYSIS = 1  # mínimo de tareas para calcular
 
 
-def analyze_bottleneck(project_id: int, db: Session) -> None:
+def analyze_bottleneck(project_id: int) -> None:
     """
     Analiza el aging de tareas por columna en un proyecto.
     Compara contra el cycle_time histórico del proyecto.
     Persiste resultado en kanban_bottlenecks con UPSERT.
 
-    Esta función corre en background — NUNCA lanzar excepciones
-    que puedan romper el thread principal.
+    Corre en BackgroundTasks de FastAPI: abre y cierra su propia sesión.
+    Nunca recibe la sesión de la request (esa ya está cerrada cuando corre
+    el background — TSK-005). NUNCA re-lanza excepciones.
     """
+    db = SessionLocal()
     try:
-        # 1. Obtener cycle_time promedio histórico del proyecto
-        #    Calculado desde activities: tiempo promedio entre primer in_progress y done
-        cycle_result = db.execute(
-            text("""
+        _run_bottleneck_analysis(project_id, db)
+    except Exception as e:
+        logger.error(f"BottleneckDetector error for project {project_id}: {e}")
+        # NO re-lanzar — es background task
+        try:
+            db.rollback()
+        except Exception:
+            pass
+    finally:
+        db.close()
+
+
+def _run_bottleneck_analysis(project_id: int, db: Session) -> None:
+    """Core analysis. Receives an open session; caller owns lifecycle."""
+    # 1. Obtener cycle_time promedio histórico del proyecto
+    #    Calculado desde activities: tiempo promedio entre primer in_progress y done
+    cycle_result = db.execute(
+        text("""
             SELECT
                 COALESCE(
                     AVG(
@@ -46,21 +64,21 @@ def analyze_bottleneck(project_id: int, db: Session) -> None:
             JOIN tasks t ON t.id = start_time.task_id
             WHERE t.project_id = :project_id
         """),
-            {"project_id": project_id},
-        )
+        {"project_id": project_id},
+    )
 
-        row = cycle_result.mappings().first()
-        cycle_time_avg_h = float(row["cycle_time_avg_h"]) if row else 24.0
-        # Si no hay historial suficiente, usar 24h como baseline
-        if cycle_time_avg_h < 1:
-            cycle_time_avg_h = 24.0
+    row = cycle_result.mappings().first()
+    cycle_time_avg_h = float(row["cycle_time_avg_h"]) if row else 24.0
+    # Si no hay historial suficiente, usar 24h como baseline
+    if cycle_time_avg_h < 1:
+        cycle_time_avg_h = 24.0
 
-        threshold = cycle_time_avg_h * BOTTLENECK_MULTIPLIER
+    threshold = cycle_time_avg_h * BOTTLENECK_MULTIPLIER
 
-        # 2. Calcular aging actual por columna
-        #    Tiempo promedio desde created_at hasta ahora para tareas activas
-        aging_result = db.execute(
-            text("""
+    # 2. Calcular aging actual por columna
+    #    Tiempo promedio desde created_at hasta ahora para tareas activas
+    aging_result = db.execute(
+        text("""
             SELECT
                 t.status,
                 COUNT(t.id) AS task_count,
@@ -75,22 +93,22 @@ def analyze_bottleneck(project_id: int, db: Session) -> None:
                 AND t.parent_id IS NULL
             GROUP BY t.status
         """),
-            {"project_id": project_id},
+        {"project_id": project_id},
+    )
+
+    aging_rows = aging_result.mappings().all()
+
+    # 3. UPSERT en kanban_bottlenecks por cada status encontrado
+    for row in aging_rows:
+        status = row["status"]
+        avg_hours = float(row["avg_hours"] or 0)
+        task_count = int(row["task_count"])
+        is_bottleneck = (
+            task_count >= MIN_TASKS_FOR_ANALYSIS and avg_hours > threshold
         )
 
-        aging_rows = aging_result.mappings().all()
-
-        # 3. UPSERT en kanban_bottlenecks por cada status encontrado
-        for row in aging_rows:
-            status = row["status"]
-            avg_hours = float(row["avg_hours"] or 0)
-            task_count = int(row["task_count"])
-            is_bottleneck = (
-                task_count >= MIN_TASKS_FOR_ANALYSIS and avg_hours > threshold
-            )
-
-            db.execute(
-                text("""
+        db.execute(
+            text("""
                 INSERT INTO kanban_bottlenecks
                     (project_id, status, avg_hours, task_count, is_bottleneck, threshold_h, detected_at)
                 VALUES
@@ -102,22 +120,18 @@ def analyze_bottleneck(project_id: int, db: Session) -> None:
                     threshold_h   = EXCLUDED.threshold_h,
                     detected_at   = NOW()
             """),
-                {
-                    "project_id": project_id,
-                    "status": status,
-                    "avg_hours": avg_hours,
-                    "task_count": task_count,
-                    "is_bottleneck": is_bottleneck,
-                    "threshold_h": threshold,
-                },
-            )
-
-        db.commit()
-        logger.info(
-            f"Bottleneck analysis done for project {project_id}. "
-            f"Cycle time avg: {cycle_time_avg_h:.1f}h, threshold: {threshold:.1f}h"
+            {
+                "project_id": project_id,
+                "status": status,
+                "avg_hours": avg_hours,
+                "task_count": task_count,
+                "is_bottleneck": is_bottleneck,
+                "threshold_h": threshold,
+            },
         )
 
-    except Exception as e:
-        logger.error(f"BottleneckDetector error for project {project_id}: {e}")
-        # NO re-lanzar — es background task
+    db.commit()
+    logger.info(
+        f"Bottleneck analysis done for project {project_id}. "
+        f"Cycle time avg: {cycle_time_avg_h:.1f}h, threshold: {threshold:.1f}h"
+    )
