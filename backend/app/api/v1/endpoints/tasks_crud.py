@@ -105,7 +105,9 @@ def update_task(
         # Restrict fields
         update_data = payload.model_dump(exclude_unset=True)
         # `status` is no longer part of TaskUpdate — it moves only via /move.
-        allowed_fields = {"logged_hours", "description"}
+        # `logged_hours` is not on TaskUpdate either (comes from time-logs); dead
+        # entry removed (TSK-004 residue). Developer whitelist = description only.
+        allowed_fields = {"description"}
         for key in update_data.keys():
             if key not in allowed_fields:
                 raise api_error(

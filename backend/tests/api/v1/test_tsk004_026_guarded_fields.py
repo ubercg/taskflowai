@@ -171,3 +171,103 @@ def test_user_admin_update_schema_has_no_is_active_field():
         "generic PATCH /admin/users/{id} bypasses the HAS_ACTIVE_TASKS guard. "
         "Its only write path is PATCH /admin/users/{id}/toggle."
     )
+
+
+# ---------------------------------------------------------------------------
+# TSK-004 residues — WIP by any path + Activity on every status transition
+# ---------------------------------------------------------------------------
+
+
+def _seed_assignee_at_wip_limit(session):
+    """Assignee already holds WIP_LIMIT (default 3) tasks in progress."""
+    project = Project(id=1, name="P", status="active")
+    assignee = User(
+        id=5,
+        email="wip@test.com",
+        password_hash="pw",
+        name="WIP User",
+        role=UserRole.developer,
+        is_active=True,
+    )
+    filled = [
+        Task(
+            id=i,
+            project_id=1,
+            title=f"In progress {i}",
+            status=TaskStatus.in_progress,
+            assignee_id=5,
+        )
+        for i in (30, 31, 32)
+    ]
+    candidate = Task(
+        id=33,
+        project_id=1,
+        title="Would exceed WIP",
+        status=TaskStatus.todo,
+        assignee_id=5,
+    )
+    session.add_all([project, assignee, *filled, candidate])
+    session.commit()
+
+
+def test_move_endpoint_still_enforces_wip_limit(client, sqlite_session):
+    """The only status path (/move) still blocks exceeding WIP_LIMIT."""
+    _seed_assignee_at_wip_limit(sqlite_session)
+
+    resp = client.patch(
+        "/api/v1/tasks/33/move", json={"status": "in_progress", "user_id": 5}
+    )
+
+    assert resp.status_code == 422, resp.text
+    assert resp.json()["detail"]["code"] == "WIP_LIMIT_EXCEEDED"
+    sqlite_session.expire_all()
+    assert sqlite_session.get(Task, 33).status == TaskStatus.todo
+
+
+def test_generic_patch_cannot_bypass_wip_via_status(client, sqlite_session):
+    """PATCH /tasks/{id} with status=in_progress is inert — no WIP bypass."""
+    _seed_assignee_at_wip_limit(sqlite_session)
+
+    resp = client.patch(
+        "/api/v1/tasks/33", json={"status": "in_progress", "title": "Still todo"}
+    )
+
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["title"] == "Still todo"
+    assert body["status"] == "todo"
+    sqlite_session.expire_all()
+    assert sqlite_session.get(Task, 33).status == TaskStatus.todo
+
+
+def test_move_writes_activity_row(client, sqlite_session):
+    """Every real status transition via /move leaves an activities row (RN-04)."""
+    from app.models.models import Activity
+
+    project = Project(id=1, name="P", status="active")
+    actor = User(
+        id=1,
+        email="actor@test.com",
+        password_hash="pw",
+        name="Actor",
+        role=UserRole.admin,
+        is_active=True,
+    )
+    task = Task(id=40, project_id=1, title="Track me", status=TaskStatus.backlog)
+    sqlite_session.add_all([project, actor, task])
+    sqlite_session.commit()
+
+    resp = client.patch(
+        "/api/v1/tasks/40/move", json={"status": "todo", "user_id": 1}
+    )
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["status"] == "todo"
+
+    rows = (
+        sqlite_session.query(Activity).filter(Activity.task_id == 40).all()
+    )
+    assert len(rows) == 1
+    assert rows[0].from_status == TaskStatus.backlog
+    assert rows[0].to_status == TaskStatus.todo
+    assert rows[0].user_id == 1
