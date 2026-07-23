@@ -280,7 +280,9 @@
       "viewTasks": "Ver tareas",
       "deactivate": "Desactivar",
       "activate": "Activar",
-      "delete": "Eliminar usuario"
+      "delete": "Eliminar usuario",
+      "resetPassword": "Resetear contraseña (default)",
+      "assignPassword": "Asignar contraseña temporal"
     },
     "card": {
       "wipCurrent": "WIP actual",
@@ -330,7 +332,23 @@
     "admin": {
       "toggleError": "Error al cambiar el estado del usuario",
       "deleteError": "No se pudo eliminar el usuario",
-      "deleteConfirm": "¿Eliminar permanentemente a \"{{name}}\" ({{email}})? Esta acción no se puede deshacer."
+      "deleteConfirm": "¿Eliminar permanentemente a \"{{name}}\" ({{email}})? Esta acción no se puede deshacer.",
+      "password": {
+        "resetConfirm": "¿Resetear la contraseña de \"{{name}}\" ({{email}}) al valor por defecto del entorno? Deberá cambiarla en el próximo login.",
+        "resetSuccess": "Contraseña de {{name}} reseteada. Debe cambiarla al ingresar.",
+        "assignTitle": "Asignar contraseña temporal",
+        "assignHint": "Se asignará a {{name}} ({{email}}). Deberá cambiarla en el próximo login.",
+        "newLabel": "Contraseña temporal",
+        "confirmLabel": "Confirmar contraseña",
+        "assignSubmit": "Asignar",
+        "assigning": "Asignando...",
+        "assignSuccess": "Contraseña temporal asignada a {{name}}.",
+        "errors": {
+          "required": "La contraseña es obligatoria.",
+          "mismatch": "Las contraseñas no coinciden.",
+          "save": "No se pudo actualizar la contraseña."
+        }
+      }
     },
     "tasks": {
       "completed": "Completadas",
@@ -690,6 +708,8 @@
     "USER_LAST_ADMIN": "No se puede eliminar el único administrador",
     "USER_DELETE_CONFLICT": "No se puede eliminar: hay restricciones en la base de datos",
     "USER_CANNOT_DEACTIVATE_SELF": "No podés desactivar tu propio usuario",
+    "USER_PASSWORD_REQUIRED": "La contraseña es obligatoria al asignar",
+    "USER_PASSWORD_FORBIDDEN_ON_RESET": "No envíes new_password en mode=reset",
     "HAS_ACTIVE_TASKS": "Este usuario tiene {{active_tasks}} tareas activas. Reasignalas antes de desactivar.",
     "TASK_NOT_FOUND": "Tarea no encontrada",
     "TASK_VIEWER_CANNOT_MOVE": "Los viewers no pueden mover tareas",

@@ -280,7 +280,9 @@
       "viewTasks": "View tasks",
       "deactivate": "Deactivate",
       "activate": "Activate",
-      "delete": "Delete user"
+      "delete": "Delete user",
+      "resetPassword": "Reset password (default)",
+      "assignPassword": "Assign temporary password"
     },
     "card": {
       "wipCurrent": "Current WIP",
@@ -330,7 +332,23 @@
     "admin": {
       "toggleError": "Failed to change user status",
       "deleteError": "Could not delete the user",
-      "deleteConfirm": "Permanently delete \"{{name}}\" ({{email}})? This action cannot be undone."
+      "deleteConfirm": "Permanently delete \"{{name}}\" ({{email}})? This action cannot be undone.",
+      "password": {
+        "resetConfirm": "Reset password for \"{{name}}\" ({{email}}) to the environment default? They must change it on next login.",
+        "resetSuccess": "Password for {{name}} was reset. They must change it on login.",
+        "assignTitle": "Assign temporary password",
+        "assignHint": "Will be assigned to {{name}} ({{email}}). They must change it on next login.",
+        "newLabel": "Temporary password",
+        "confirmLabel": "Confirm password",
+        "assignSubmit": "Assign",
+        "assigning": "Assigning...",
+        "assignSuccess": "Temporary password assigned to {{name}}.",
+        "errors": {
+          "required": "Password is required.",
+          "mismatch": "Passwords do not match.",
+          "save": "Could not update the password."
+        }
+      }
     },
     "tasks": {
       "completed": "Completed",
@@ -690,6 +708,8 @@
     "USER_LAST_ADMIN": "Cannot delete the only administrator",
     "USER_DELETE_CONFLICT": "Cannot delete: database constraints apply",
     "USER_CANNOT_DEACTIVATE_SELF": "You cannot deactivate your own user",
+    "USER_PASSWORD_REQUIRED": "Password is required when assigning",
+    "USER_PASSWORD_FORBIDDEN_ON_RESET": "Do not send new_password with mode=reset",
     "HAS_ACTIVE_TASKS": "This user has {{active_tasks}} active tasks. Reassign them before deactivating.",
     "TASK_NOT_FOUND": "Task not found",
     "TASK_VIEWER_CANNOT_MOVE": "Viewers cannot move tasks",

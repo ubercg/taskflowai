@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
-import { getAdminUsers, toggleAdminUser, deleteAdminUser } from '../services/api';
+import {
+  getAdminUsers,
+  toggleAdminUser,
+  deleteAdminUser,
+  setAdminUserPassword,
+} from '../services/api';
 import { resolveApiError } from '../services/api/errors';
 import { useAuth } from '../store/authStore';
 import UserTable from '../components/users/UserTable';
 import UserFormModal from '../components/users/UserFormModal';
 import UserTasksDrawer from '../components/users/UserTasksDrawer';
+import AssignPasswordModal from '../components/users/AssignPasswordModal';
 import { Button } from '../components/ui';
 import { userRoleLabel } from '../i18n/enums';
 
@@ -21,6 +27,7 @@ const AdminUsersPage = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewingUser, setViewingUser] = useState(null);
+  const [assignPasswordUser, setAssignPasswordUser] = useState(null);
 
   const queryParams = {};
   if (searchTerm) queryParams.search = searchTerm;
@@ -45,6 +52,19 @@ const AdminUsersPage = () => {
       mutate();
     } catch (err) {
       alert(resolveApiError(err, 'users.admin.deleteError'));
+    }
+  };
+
+  const handleResetPassword = async (u) => {
+    if (!window.confirm(t('users.admin.password.resetConfirm', { name: u.name, email: u.email }))) {
+      return;
+    }
+    try {
+      await setAdminUserPassword(u.id, { mode: 'reset' });
+      alert(t('users.admin.password.resetSuccess', { name: u.name }));
+      mutate();
+    } catch (err) {
+      alert(resolveApiError(err, 'users.admin.password.errors.save'));
     }
   };
 
@@ -112,12 +132,26 @@ const AdminUsersPage = () => {
         onToggle={handleToggleUser}
         onViewTasks={(user) => setViewingUser(user)}
         onDelete={handleDeleteUser}
+        onResetPassword={handleResetPassword}
+        onAssignPassword={setAssignPasswordUser}
         currentUserId={authUser?.id}
         loading={isLoading}
       />
 
       {isModalOpen && (
         <UserFormModal user={editingUser} onClose={() => setIsModalOpen(false)} onSaved={() => { setIsModalOpen(false); mutate(); }} />
+      )}
+
+      {assignPasswordUser && (
+        <AssignPasswordModal
+          user={assignPasswordUser}
+          onClose={() => setAssignPasswordUser(null)}
+          onSaved={() => {
+            setAssignPasswordUser(null);
+            alert(t('users.admin.password.assignSuccess', { name: assignPasswordUser.name }));
+            mutate();
+          }}
+        />
       )}
 
       {viewingUser && <UserTasksDrawer user={viewingUser} onClose={() => setViewingUser(null)} />}
