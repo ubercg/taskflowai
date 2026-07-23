@@ -9,7 +9,7 @@ import { cn } from '../../lib/cn';
 
 const EMOJIS = ['🚀', '🏛️', '🤖', '⚡', '🎯', '💡', '🔧', '📦'];
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'];
-const STATUS_OPTIONS = ['active', 'on_hold', 'completed', 'archived'];
+const STATUS_OPTIONS = ['active', 'on_hold', 'completed'];
 
 const LABEL = 'mb-1.5 block text-[13px] font-medium text-fg';
 

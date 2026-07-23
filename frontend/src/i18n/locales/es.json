@@ -89,6 +89,10 @@
     "title": "Proyectos",
     "subtitle": "Gestiona tus portafolios y visualiza el progreso estratégico.",
     "newProject": "Nuevo Proyecto",
+    "showArchived": "Mostrar archivados",
+    "archiveError": {
+      "fallback": "No se pudo archivar el proyecto."
+    },
     "loadError": {
       "title": "Error al cargar proyectos",
       "fallback": "No se pudo conectar con el servidor. Verifica que el backend esté arriba."
@@ -675,6 +679,10 @@
     "PROJECT_DELETE_FORBIDDEN": "Solo admins pueden eliminar proyectos",
     "PROJECT_ROLE_REQUIRED": "El rol es obligatorio",
     "PROJECT_MEMBER_NOT_FOUND": "Miembro no encontrado en el proyecto",
+    "PROJECT_NOT_READY_TO_ARCHIVE": "No se puede archivar: hay {{open_tasks}} tareas abiertas y {{incomplete_objectives}} objetivos incompletos.",
+    "PROJECT_ARCHIVE_FORBIDDEN": "Solo un admin o el manager del proyecto pueden archivar.",
+    "PROJECT_ARCHIVE_USE_DEDICATED_PATH": "Para archivar usá la acción Archivar (no el formulario de edición).",
+    "PROJECT_STATUS_INVALID": "Estado de proyecto inválido.",
     "USER_NOT_FOUND": "Usuario no encontrado",
     "USER_EMAIL_TAKEN": "Ese email ya está en uso",
     "USER_CANNOT_DEMOTE_SELF": "No podés quitarte el rol de admin a vos mismo",

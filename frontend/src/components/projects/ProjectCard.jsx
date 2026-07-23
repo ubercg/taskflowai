@@ -10,6 +10,7 @@ const getStatusColor = (status) => {
     case 'active': return '#22c55e';
     case 'on_hold': return '#eab308';
     case 'completed': return '#94a3b8';
+    case 'archived': return '#64748b';
     default: return '#94a3b8';
   }
 };
@@ -24,7 +25,7 @@ const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
   const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef();
-  const { canEditProject, canDeleteProject } = usePermissions();
+  const { canEditProject } = usePermissions();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,7 +46,8 @@ const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
   const inProgressTasks = metrics?.in_progress_tasks || 0;
   const blockedTasks = metrics?.blocked_tasks || 0;
 
-  const showMenuTrigger = canEditProject || canDeleteProject;
+  const isArchived = project.status === 'archived';
+  const showMenuTrigger = canEditProject && !isArchived;
   const statusColor = getStatusColor(project.status);
 
   return (
@@ -100,7 +102,7 @@ const ProjectCard = ({ project, metrics, onEdit, onArchive }) => {
                       <span aria-hidden="true">✏️</span> {t('projects.card.edit')}
                     </button>
                   )}
-                  {canDeleteProject && (
+                  {canEditProject && (
                     <button
                       type="button"
                       role="menuitem"

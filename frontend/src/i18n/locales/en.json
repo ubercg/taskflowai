@@ -89,6 +89,10 @@
     "title": "Projects",
     "subtitle": "Manage your portfolios and see strategic progress.",
     "newProject": "New Project",
+    "showArchived": "Show archived",
+    "archiveError": {
+      "fallback": "Could not archive the project."
+    },
     "loadError": {
       "title": "Failed to load projects",
       "fallback": "Could not connect to the server. Check that the backend is up."
@@ -675,6 +679,10 @@
     "PROJECT_DELETE_FORBIDDEN": "Only admins can delete projects",
     "PROJECT_ROLE_REQUIRED": "Role is required",
     "PROJECT_MEMBER_NOT_FOUND": "Member not found in this project",
+    "PROJECT_NOT_READY_TO_ARCHIVE": "Cannot archive: {{open_tasks}} open tasks and {{incomplete_objectives}} incomplete objectives.",
+    "PROJECT_ARCHIVE_FORBIDDEN": "Only a global admin or the project manager can archive.",
+    "PROJECT_ARCHIVE_USE_DEDICATED_PATH": "Use the Archive action to archive (not the edit form).",
+    "PROJECT_STATUS_INVALID": "Invalid project status.",
     "USER_NOT_FOUND": "User not found",
     "USER_EMAIL_TAKEN": "That email is already in use",
     "USER_CANNOT_DEMOTE_SELF": "You cannot remove your own admin role",

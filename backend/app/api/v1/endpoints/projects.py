@@ -1,9 +1,18 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
+
 from app.db.database import get_db
-from app.models.models import Project, ProjectMember, ProjectStatus
+from app.models.models import (
+    Objective,
+    ObjectiveMode,
+    Project,
+    ProjectMember,
+    ProjectStatus,
+    Task,
+    TaskStatus,
+)
 from app.schemas.schemas import ProjectResponse, ProjectCreate, ProjectUpdate
-from sqlalchemy import text
 from app.core.errors import api_error
 from app.core.security import (
     require_authenticated,
@@ -14,16 +23,80 @@ from app.core.security import (
 router = APIRouter()
 
 
+def _objective_progress(db: Session, objective: Objective) -> int:
+    """Mirror objectives._PROGRESS_SELECT in ORM (SQLite-safe)."""
+    mode = objective.mode
+    if isinstance(mode, ObjectiveMode):
+        mode = mode.value
+    if mode == ObjectiveMode.manual.value:
+        return int(objective.progress_pct or 0)
+    total = (
+        db.query(func.count(Task.id))
+        .filter(Task.objective_id == objective.id)
+        .scalar()
+        or 0
+    )
+    if total == 0:
+        return 0
+    done = (
+        db.query(func.count(Task.id))
+        .filter(
+            Task.objective_id == objective.id,
+            Task.status == TaskStatus.done,
+        )
+        .scalar()
+        or 0
+    )
+    return int(round(100.0 * done / total))
+
+
+def _archive_eligibility(db: Session, project_id: int) -> tuple[int, int]:
+    """Return (open_tasks, incomplete_objectives). Both must be 0 to archive."""
+    open_tasks = (
+        db.query(func.count(Task.id))
+        .filter(
+            Task.project_id == project_id,
+            Task.status != TaskStatus.done,
+        )
+        .scalar()
+        or 0
+    )
+    objectives = db.query(Objective).filter(Objective.project_id == project_id).all()
+    incomplete = sum(
+        1 for obj in objectives if _objective_progress(db, obj) < 100
+    )
+    return open_tasks, incomplete
+
+
 @router.get("", response_model=list[ProjectResponse])
 def read_projects(
     skip: int = 0,
     limit: int = 100,
+    include_archived: bool = Query(
+        False,
+        description="If false (default), exclude status=archived from the list.",
+    ),
+    status: str | None = Query(
+        None,
+        description="Optional exact status filter (overrides include_archived when set).",
+    ),
     db: Session = Depends(get_db),
     current_user=Depends(require_authenticated),
 ):
     q = db.query(Project)
     if current_user.role != "admin":
         q = q.join(ProjectMember).filter(ProjectMember.user_id == current_user.id)
+    if status is not None:
+        try:
+            q = q.filter(Project.status == ProjectStatus(status))
+        except ValueError:
+            raise api_error(
+                422,
+                "PROJECT_STATUS_INVALID",
+                f"Invalid project status: {status}",
+            )
+    elif not include_archived:
+        q = q.filter(Project.status != ProjectStatus.archived)
     return q.offset(skip).limit(limit).all()
 
 
@@ -73,11 +146,64 @@ def update_project(
     if not project:
         raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
     data = project_update.model_dump(exclude_unset=True)
+    # TSK-027 / REQ-010 RN-003: archived only via POST .../archive.
+    if data.get("status") in ("archived", ProjectStatus.archived):
+        raise api_error(
+            422,
+            "PROJECT_ARCHIVE_USE_DEDICATED_PATH",
+            "Archiving requires POST /projects/{id}/archive",
+        )
     for k, v in data.items():
         if k == "status" and v is not None:
             setattr(project, k, ProjectStatus(v))
         else:
             setattr(project, k, v)
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+@router.post("/{project_id}/archive", response_model=ProjectResponse)
+def archive_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_authenticated),
+):
+    """Archive a project when all tasks are done and all objectives are at 100%.
+
+    Authorization: global admin, or project membership with manager/admin role.
+    """
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise api_error(404, "PROJECT_NOT_FOUND", "Project not found")
+
+    if current_user.role != "admin":
+        member = (
+            db.query(ProjectMember)
+            .filter_by(project_id=project_id, user_id=current_user.id)
+            .first()
+        )
+        if not member or member.role not in ("admin", "manager"):
+            raise api_error(
+                403,
+                "PROJECT_ARCHIVE_FORBIDDEN",
+                "Solo admin global o manager del proyecto pueden archivar",
+            )
+
+    if project.status == ProjectStatus.archived:
+        return project
+
+    open_tasks, incomplete_objectives = _archive_eligibility(db, project_id)
+    if open_tasks > 0 or incomplete_objectives > 0:
+        raise api_error(
+            422,
+            "PROJECT_NOT_READY_TO_ARCHIVE",
+            "Project has open tasks or incomplete objectives",
+            open_tasks=open_tasks,
+            incomplete_objectives=incomplete_objectives,
+        )
+
+    project.status = ProjectStatus.archived
     db.commit()
     db.refresh(project)
     return project
