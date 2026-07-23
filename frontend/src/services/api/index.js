@@ -220,6 +220,14 @@ export const toggleAdminUser = toggleUser; // ✓ EXISTÍA
 export const getAdminUserTasks = getUserTasks; // ✓ EXISTÍA
 export const getAdminUserStats = getUserStats; // ✓ EXISTÍA
 
+/**
+ * Admin reset/assign password (TSK-028).
+ * @param {number} id
+ * @param {{ mode: 'reset'|'assign', new_password?: string }} data
+ */
+export const setAdminUserPassword = (id, data) =>
+  api.post(`/api/v1/admin/users/${id}/password`, data).then((res) => res.data);
+
 
 // ── TIME LOGS ────────────────────────────────────
 

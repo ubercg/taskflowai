@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, text, func
 from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, EmailStr, ConfigDict
-from typing import List, Optional
+from typing import List, Literal, Optional
 from datetime import datetime
 
 from app.db.database import get_db
@@ -62,6 +62,21 @@ class TaskAssignedOut(BaseModel):
     priority: str
     project_id: int
     project_name: str
+
+
+class AdminPasswordRequest(BaseModel):
+    """Reset (DEFAULT_NEW_USER_PASSWORD) or assign an explicit temporary password."""
+
+    mode: Literal["reset", "assign"]
+    new_password: Optional[str] = None
+
+
+class AdminPasswordOut(BaseModel):
+    id: int
+    email: str
+    must_change_password: bool
+    mode: Literal["reset", "assign"]
+    password_reset: bool = True
 
 
 # --- Endpoints ---
@@ -265,6 +280,50 @@ def delete_admin_user(
         raise api_error(409, "USER_DELETE_CONFLICT", "No se puede eliminar el usuario por restricciones en la base de datos")
 
     return {"message": "Usuario eliminado", "id": user_id}
+
+
+@router.post("/{user_id}/password", response_model=AdminPasswordOut)
+def set_admin_user_password(
+    user_id: int,
+    payload: AdminPasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Admin-only password reset/assign (REQ-010 / TSK-028). Always sets must_change_password."""
+    u = db.query(User).filter(User.id == user_id).first()
+    if not u:
+        raise api_error(404, "USER_NOT_FOUND", "Usuario no encontrado")
+
+    if payload.mode == "reset":
+        if payload.new_password is not None and payload.new_password != "":
+            raise api_error(
+                422,
+                "USER_PASSWORD_FORBIDDEN_ON_RESET",
+                "new_password no aplica en mode=reset",
+            )
+        plain = settings.DEFAULT_NEW_USER_PASSWORD
+    else:
+        # mode == assign — same floor as change-password (no min length yet) + RN-008 empty ban
+        if payload.new_password is None or not str(payload.new_password).strip():
+            raise api_error(
+                422,
+                "USER_PASSWORD_REQUIRED",
+                "new_password es obligatorio en mode=assign",
+            )
+        plain = payload.new_password
+
+    u.password_hash = hash_password(plain)
+    u.must_change_password = True
+    db.commit()
+    db.refresh(u)
+
+    return {
+        "id": u.id,
+        "email": u.email,
+        "must_change_password": True,
+        "mode": payload.mode,
+        "password_reset": True,
+    }
 
 
 @router.patch("/{user_id}/toggle")

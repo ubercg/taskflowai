@@ -16,7 +16,17 @@ const getInitials = (name) => {
   return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
 };
 
-const UserTable = ({ users, onEdit, onToggle, onViewTasks, onDelete, currentUserId, loading }) => {
+const UserTable = ({
+  users,
+  onEdit,
+  onToggle,
+  onViewTasks,
+  onDelete,
+  onResetPassword,
+  onAssignPassword,
+  currentUserId,
+  loading,
+}) => {
   const { t } = useTranslation();
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
@@ -115,6 +125,28 @@ const UserTable = ({ users, onEdit, onToggle, onViewTasks, onDelete, currentUser
                     <button onClick={() => onEdit(user)} title={t('users.table.edit')} className="p-1 text-muted transition-colors hover:text-fg">
                       <span aria-hidden="true">✏️</span>
                     </button>
+                    {onResetPassword && (
+                      <button
+                        type="button"
+                        data-testid="btn-reset-password"
+                        onClick={() => onResetPassword(user)}
+                        title={t('users.table.resetPassword')}
+                        className="p-1 text-muted transition-colors hover:text-fg"
+                      >
+                        <span aria-hidden="true">🔑</span>
+                      </button>
+                    )}
+                    {onAssignPassword && (
+                      <button
+                        type="button"
+                        data-testid="btn-assign-password"
+                        onClick={() => onAssignPassword(user)}
+                        title={t('users.table.assignPassword')}
+                        className="p-1 text-muted transition-colors hover:text-fg"
+                      >
+                        <span aria-hidden="true">🔏</span>
+                      </button>
+                    )}
                     <button data-testid="btn-view-tasks" onClick={() => onViewTasks(user)} title={t('users.table.viewTasks')} className="p-1 text-muted transition-colors hover:text-fg">
                       <span aria-hidden="true">👁</span>
                     </button>
