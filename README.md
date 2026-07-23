@@ -31,7 +31,8 @@ Es crucial entender qué partes del repositorio se compilan y despliegan en un e
 Estos son los elementos que conforman el sistema vivo que se despliega en un servidor:
 
 *   **`docker-compose.yml`**: El orquestador principal. Define los servicios `db`, `backend`, `frontend` y `nginx`. En un entorno productivo real, el frontend se compilaría estáticamente (Fase de Build) en vez de usar el servidor de desarrollo de Vite.
-*   **`nginx/nginx.conf`**: El guardián de la infraestructura. Expone el puerto `80`, rutea las peticiones `/api/` al contenedor de FastAPI y el resto al Frontend, eliminando los problemas de CORS.
+*   **`nginx/nginx.sigao.conf`**: Reverse proxy. Expone el puerto `80`, sirve la SPA bajo `/taskflow/` (`VITE_BASE_PATH`), reescribe `/taskflow/api/` → `/api/` hacia FastAPI y redirige deep links sin prefijo con `302` a `/taskflow$request_uri`.
+*   **`docker-compose.sigao.yml`**: Overlay de embed bajo SIGAO (no publica `:80`, ajusta HMR y el host de Postgres). El conf de nginx lo monta el compose base; este overlay no lo re-monta.
 *   **`backend/`**: 
     *   `app/`: Contiene toda la lógica de negocio, modelos ORM, schemas Pydantic y el AI Layer.
     *   `requirements.txt` y `Dockerfile`: Instrucciones de construcción y dependencias.
@@ -64,9 +65,15 @@ make dev
 ```
 
 ### 4. Acceso al Sistema
-Gracias a Nginx, no necesitas especificar puertos extraños. Abre tu navegador e ingresa a:
-*   **App Web:** `http://localhost/`
-*   **Documentación API (Swagger):** `http://localhost/docs`
+`make dev` levanta el stack **standalone** con layout SIGAO-shaped: la app vive bajo `/taskflow/`. `http://localhost/` responde `302` hacia `/taskflow/`.
+*   **App Web:** `http://localhost/taskflow/`
+*   **Documentación API (Swagger):** `http://localhost/docs` (la API cuelga de la raíz; también `/taskflow/api/` vía rewrite)
+
+Para embeber TaskFlow detrás de SIGAO (sin publicar `:80` de este stack):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.sigao.yml up -d
+```
 
 **Credenciales del seed local (solo desarrollo / volumen fresco):**
 *   **Email:** `admin@taskflow.com`
