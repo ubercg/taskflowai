@@ -45,11 +45,14 @@ class UserAdminCreate(BaseModel):
 
 
 class UserAdminUpdate(BaseModel):
+    # `is_active` is intentionally NOT here: deactivation carries the
+    # HAS_ACTIVE_TASKS invariant enforced only by PATCH /admin/users/{id}/toggle.
+    # Allowing it through this generic update would bypass that guard (TSK-026).
+    # Activation state has exactly one path: /toggle.
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     role: Optional[UserRole] = None
     color: Optional[str] = None
-    is_active: Optional[bool] = None
 
 
 class TaskAssignedOut(BaseModel):

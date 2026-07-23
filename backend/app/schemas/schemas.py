@@ -121,9 +121,12 @@ class TaskCreate(TaskBase):
 
 
 class TaskUpdate(BaseModel):
+    # `status` is intentionally NOT here: it carries the WIP / open-subtasks
+    # invariants (RN-01, RN-02) enforced only by PATCH /tasks/{id}/move.
+    # Allowing it through this generic update would bypass those guards
+    # (TSK-004). The status transition has exactly one path: /move.
     title: Optional[str] = None
     description: Optional[str] = None
-    status: Optional[TaskStatus] = None
     priority: Optional[TaskPriority] = None
     assignee_id: Optional[int] = None
     due_date: Optional[datetime] = None
