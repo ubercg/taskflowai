@@ -4,8 +4,6 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.models.models import (
-    Objective,
-    ObjectiveMode,
     Project,
     ProjectMember,
     ProjectStatus,
@@ -19,39 +17,17 @@ from app.core.security import (
     require_manager_or_above,
     check_project_access,
 )
+from app.api.v1.endpoints.objectives import count_incomplete_objectives
 
 router = APIRouter()
 
 
-def _objective_progress(db: Session, objective: Objective) -> int:
-    """Mirror objectives._PROGRESS_SELECT in ORM (SQLite-safe)."""
-    mode = objective.mode
-    if isinstance(mode, ObjectiveMode):
-        mode = mode.value
-    if mode == ObjectiveMode.manual.value:
-        return int(objective.progress_pct or 0)
-    total = (
-        db.query(func.count(Task.id))
-        .filter(Task.objective_id == objective.id)
-        .scalar()
-        or 0
-    )
-    if total == 0:
-        return 0
-    done = (
-        db.query(func.count(Task.id))
-        .filter(
-            Task.objective_id == objective.id,
-            Task.status == TaskStatus.done,
-        )
-        .scalar()
-        or 0
-    )
-    return int(round(100.0 * done / total))
-
-
 def _archive_eligibility(db: Session, project_id: int) -> tuple[int, int]:
-    """Return (open_tasks, incomplete_objectives). Both must be 0 to archive."""
+    """Return (open_tasks, incomplete_objectives). Both must be 0 to archive.
+
+    Objective progress comes from objectives.count_incomplete_objectives (the
+    canonical _PROGRESS_SELECT) so there is a single source of truth.
+    """
     open_tasks = (
         db.query(func.count(Task.id))
         .filter(
@@ -61,10 +37,7 @@ def _archive_eligibility(db: Session, project_id: int) -> tuple[int, int]:
         .scalar()
         or 0
     )
-    objectives = db.query(Objective).filter(Objective.project_id == project_id).all()
-    incomplete = sum(
-        1 for obj in objectives if _objective_progress(db, obj) < 100
-    )
+    incomplete = count_incomplete_objectives(db, project_id)
     return open_tasks, incomplete
 
 

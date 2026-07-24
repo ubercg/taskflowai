@@ -43,6 +43,24 @@ _PROGRESS_SELECT = """
 """
 
 
+def count_incomplete_objectives(db: Session, project_id: int) -> int:
+    """Count a project's objectives whose progress is below 100%.
+
+    Single source of truth for objective progress: the same _PROGRESS_SELECT
+    the objectives API exposes (SQLite-safe since the CAST(... AS INTEGER) fix).
+    Used by project archive eligibility (REQ-010).
+    """
+    rows = (
+        db.execute(
+            text(_PROGRESS_SELECT.format(where="o.project_id = :project_id")),
+            {"project_id": project_id},
+        )
+        .mappings()
+        .all()
+    )
+    return sum(1 for r in rows if (r["progress"] or 0) < 100)
+
+
 @router.get("", response_model=list[ObjectiveResponse])
 def read_objectives(
     project_id: int = Query(None),
